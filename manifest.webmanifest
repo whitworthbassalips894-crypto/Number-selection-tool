@@ -1,0 +1,20 @@
+{
+  "name": "六合彩「特码 · 三组 7 码」每日选号助手",
+  "short_name": "特码三组7码",
+  "description": "六合彩特码每日选号工具：每期推荐 3 组 7 码（共 21 注，允许跨组重叠），附公平赔率、期望回报率与逐期无未来函数历史回放",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f8fb",
+  "theme_color": "#f6f8fb",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
