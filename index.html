@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#f6f8fb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="description" content="六合彩特码选号助手：每期推荐 3 组 7 码（1 个号 = 1 注，每组 7 注，3 组独立累计共 21 注，允许跨组重叠），附公平赔率、期望回报率与无未来函数逐期回放。" />
+  <title>六合彩 · 特码三组 7 码选号助手</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=2026.10.30-r1" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.10.30-r1" />
+  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.10.30-r1" />
+  <link rel="stylesheet" href="./assets/styles.css?v=2026.10.30-r1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <img src="./assets/icon.svg?v=2026.10.30-r1" alt="" class="brand-icon" />
+        <div class="brand-text">
+          <div class="brand-title">
+            特码 · 三组 7 码
+            <span class="brand-badge" id="dbBadge">加载中…</span>
+            <span class="build-tag" id="buildTag" title="构建版本号">v2026.10.30-r1</span>
+          </div>
+          <div class="brand-subtitle" id="latestLine">正在读取底库…</div>
+        </div>
+      </div>
+      <nav class="anchor-nav" aria-label="本页导航">
+        <a href="#sync">同步</a>
+        <a href="#today">推荐</a>
+        <a href="#history">回放</a>
+        <a href="#more">设置</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- 启动失败提示（脚本加载失败 / 初始化中断时显示） -->
+    <section id="bootError" class="boot-error" hidden>
+      <div class="boot-error-head">⚠ 页面初始化失败</div>
+      <p class="boot-error-msg" id="bootErrorMsg">脚本加载失败或初始化中断。</p>
+      <p class="boot-error-hint">
+        常见原因：浏览器缓存了旧版 Service Worker / 旧版 JS。点「修复缓存」会清掉本工具的旧缓存并自动重载，
+        <b>不会删除</b>你保存的本金赔率与本地录入的开奖。
+      </p>
+      <div class="boot-error-actions">
+        <button type="button" class="btn btn-primary" id="btnBootReload">重新加载</button>
+        <button type="button" class="btn btn-danger" id="btnBootRepair">修复缓存并重载</button>
+      </div>
+    </section>
+
+    <!-- ① 数据同步（置顶：进页面先补最新开奖） -->
+    <section id="sync" class="page-section">
+      <details class="fold" open>
+        <summary>数据同步<span class="summary-note">一键补最新开奖</span></summary>
+        <div class="fold-body">
+          <div class="sync-grid" id="syncGrid"></div>
+          <div class="audit-line" id="auditLine">体检中…</div>
+          <div class="sync-actions">
+            <button type="button" class="btn btn-sm" id="btnSyncCheck">👁 仅检查</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnSyncNow">🔄 一键同步</button>
+            <button type="button" class="btn btn-sm" id="btnSyncFix">🛠 以数据源为准修复冲突</button>
+            <button type="button" class="btn btn-sm" id="btnExportDb">导出底库 JSON</button>
+          </div>
+          <div class="hint-line" id="syncStatus">读的是仓库里的 <code>data/draws.json</code>（Actions 每日自动抓取），只把缺失期号追加到本机，不改动内置底库。</div>
+
+          <!-- 补位工具（粘贴导入 / 本机开奖）默认收起：一键同步才是第一屏的事 -->
+          <details class="fold fold-sub">
+            <summary>粘贴导入 / 本机开奖</summary>
+            <div class="fold-body">
+              <textarea id="pasteBox" class="textarea-ctrl" placeholder="粘贴开奖文本兜底，如「302期 2026-10-29 05 14 23 31 38 45 + 08」"></textarea>
+              <div class="sync-actions">
+                <button type="button" class="btn btn-sm" id="btnPastePreview">解析预览</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btnPasteMerge">✓ 追加缺失期</button>
+                <button type="button" class="btn btn-sm" id="btnPasteDemo">填入示例</button>
+                <button type="button" class="btn btn-sm" id="btnPasteClear">清空</button>
+                <span class="hint-line" id="pasteMsg"></span>
+              </div>
+
+              <div class="sync-actions">
+                <span class="hint-line">本机录入 <b id="localCountSync">0</b> 期</span>
+                <button type="button" class="btn btn-sm" id="btnExportLocal">导出本机开奖</button>
+                <label class="btn btn-sm file-btn">导入本机开奖<input type="file" id="fileInputLocal" accept=".json" hidden /></label>
+                <button type="button" class="btn btn-sm btn-danger" id="btnClearLocalSync">清空本机开奖</button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </details>
+    </section>
+
+    <!-- ② 今日号码（仅保留特码模块：推荐 3 组 7 码，允许跨组重叠） -->
+    <section id="today" class="page-section">
+      <div class="mode-banner" aria-label="当前玩法说明">
+        <span class="mode-dot"></span>
+        <span>特码（1 中 1）· 每日推荐 3 组 7 码</span>
+        <small>每组 7 注 · 3 组独立累计共 21 注 · 允许跨组重叠</small>
+      </div>
+
+      <div class="card hero-card">
+        <div class="hero-top">
+          <div class="hero-tags">
+            <span class="period-pill" id="heroPeriod">—</span>
+            <span class="tag tag-gold" id="heroMeta">—</span>
+            <span class="tag tag-muted" id="heroShare" hidden>—</span>
+          </div>
+          <div class="hero-actions">
+            <select id="periodSelect" class="select-ctrl select-sm" aria-label="选择期数"></select>
+            <button type="button" class="btn btn-sm" id="btnPrevPeriod" title="更早一期">◀</button>
+            <button type="button" class="btn btn-sm" id="btnNextPeriod" title="更新一期">▶</button>
+            <button type="button" class="btn btn-sm" id="btnNext">下一期</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnCopyAll">📋 复制号码</button>
+          </div>
+        </div>
+
+        <div id="heroResult"></div>
+        <div id="consensusStrip"></div>
+        <div class="five-grid" id="fiveGrid"></div>
+
+        <p class="hint-line cost-line" id="featuredCostLine"></p>
+      </div>
+    </section>
+
+    <!-- ③ 历史回放 -->
+    <section id="history" class="page-section">
+      <div class="section-head">
+        <h2><span class="sec-bar"></span>历史回放<span class="tag-lite">无未来信息</span></h2>
+        <div class="section-tools">
+          <select id="histFilter" class="select-ctrl select-sm" aria-label="回放筛选">
+            <option value="all">全部期次</option>
+            <option value="hit">只看中奖（≥1 注）</option>
+            <option value="multi">只看重叠多中（≥2 注）</option>
+          </select>
+          <button type="button" class="btn btn-sm" id="btnPrevHit" title="跳到上一期（更早）中奖">↑ 上一命中</button>
+          <button type="button" class="btn btn-sm" id="btnNextHit" title="跳到下一期（更新）中奖">↓ 下一命中</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnReplayRun">▶ 重新计算</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tabs" id="histRangeTabs" role="tablist" aria-label="回放范围">
+          <button type="button" class="tab" data-range="30">近 30 期</button>
+          <button type="button" class="tab active" data-range="100">近 100 期</button>
+          <button type="button" class="tab" data-range="365">近 365 期</button>
+          <button type="button" class="tab" data-range="year:2026">2026 年</button>
+          <button type="button" class="tab" data-range="year:2025">2025 年</button>
+          <button type="button" class="tab" data-range="year:2024">2024 年</button>
+          <button type="button" class="tab" data-range="year:2023">2023 年</button>
+          <button type="button" class="tab" data-range="year:2022">2022 年</button>
+          <button type="button" class="tab" data-range="all">全部</button>
+        </div>
+
+        <div class="replay-status hint-line" id="replayStatus">准备中…</div>
+        <div class="metrics-layout" id="histMetrics"></div>
+        <p class="baseline-note" id="histBaseline"></p>
+
+        <div class="table-scroll" id="histScroll">
+          <table class="history">
+            <thead>
+              <tr>
+                <th class="col-period">期号 / 日期</th>
+                <th class="col-draw">当期开奖（橙红底 = 特码命中）</th>
+                <th class="col-hits">逐组命中</th>
+                <th class="col-prize">当期奖金</th>
+              </tr>
+            </thead>
+            <tbody id="histBody"></tbody>
+          </table>
+        </div>
+
+        <div class="load-more-wrap">
+          <button type="button" class="btn" id="btnMoreHist">加载更多</button>
+          <span class="hint-line" id="histCount"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ 设置（折叠） -->
+    <section id="more" class="page-section">
+      <details class="fold" open>
+        <summary>本金与赔率</summary>
+        <div class="fold-body">
+          <div class="cfg-fields">
+            <label>单注本金（元）<input type="number" id="cfgStake" class="input-ctrl" min="1" step="1" value="10" /></label>
+            <label>特码赔率（倍 · 1 注 1 个号）<input type="number" id="cfgOddsSpecial" class="input-ctrl" min="1" step="1" value="48" /></label>
+            <button type="button" class="btn btn-sm" id="btnResetCfg">恢复默认</button>
+          </div>
+          <p class="hint-line" id="cfgOddsNote"></p>
+        </div>
+      </details>
+
+      <details class="fold" open>
+        <summary>版本与缓存维护</summary>
+        <div class="fold-body">
+          <div class="sync-actions">
+            <button type="button" class="btn btn-sm btn-primary" id="btnCheckUpdate">检查更新</button>
+            <button type="button" class="btn btn-sm" id="btnRepairCache">修复缓存（保留本地数据）</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btnResetServiceWorker">彻底重置（注销 SW）</button>
+          </div>
+          <p class="hint-line" id="updateStatus">当前构建：v2026.10.30-r1</p>
+        </div>
+      </details>
+
+      <p class="footer-note">
+        构建版本 <b id="buildTagFooter">v2026.10.30-r1</b> ·
+        彩票每期独立，任何选号方法都不改变命中概率；本站只做数据整理与娱乐参考，请理性对待、量力而行。
+      </p>
+    </section>
+  </main>
+
+  <div class="mobile-copy-bar" id="mobileCopyBar">
+    <button type="button" class="btn btn-sm btn-primary" id="btnCopyAllMobile">📋 复制号码</button>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!--
+    启动看门狗：内联脚本，不依赖任何外部资源。
+    app.js 加载失败 / 初始化抛错 / 超过 8 秒仍未启动完成时立刻给出提示与自救入口。
+  -->
+  <script>
+    (function () {
+      var shown = false;
+      function showBootError(msg) {
+        if (shown) return;
+        shown = true;
+        try {
+          var panel = document.getElementById('bootError');
+          var msgEl = document.getElementById('bootErrorMsg');
+          var badge = document.getElementById('dbBadge');
+          if (msgEl && msg) msgEl.textContent = msg;
+          if (panel) panel.hidden = false;
+          if (badge) { badge.textContent = '⚠ 加载失败'; badge.classList.add('badge-error'); }
+        } catch (e) { /* ignore */ }
+      }
+      window.__SHOW_BOOT_ERROR__ = showBootError;
+
+      var CACHE_PREFIX = 'mark6-nst-';
+      function hardRepair(hard) {
+        try {
+          if (window.caches && caches.keys) {
+            caches.keys().then(function (keys) {
+              return Promise.all(keys.filter(function (k) {
+                return k.indexOf(CACHE_PREFIX) === 0;
+              }).map(function (k) { return caches.delete(k); }));
+            });
+          }
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              var scopePath = new URL('./', location.href).pathname;
+              var mine = regs.filter(function (r) {
+                try { return new URL(r.scope).pathname.indexOf(scopePath) === 0; } catch (e) { return false; }
+              });
+              if (hard) return Promise.all(mine.map(function (r) { return r.unregister(); }));
+              return Promise.all(mine.map(function (r) { return r.update().catch(function () {}); }));
+            });
+          }
+        } catch (e) { /* ignore */ }
+        setTimeout(function () {
+          var url = new URL(location.href);
+          url.searchParams.set('_r', String(Date.now()));
+          location.replace(url.toString());
+        }, 500);
+      }
+      window.__HARD_REPAIR__ = hardRepair;
+      document.addEventListener('DOMContentLoaded', function () {
+        var reload = document.getElementById('btnBootReload');
+        var repair = document.getElementById('btnBootRepair');
+        if (reload) reload.addEventListener('click', function () { location.reload(); });
+        if (repair) repair.addEventListener('click', function () { hardRepair(false); });
+      });
+
+      window.addEventListener('error', function (e) {
+        var target = e && e.target;
+        if (target && target.tagName === 'SCRIPT') {
+          showBootError('脚本加载失败：' + (target.src || '(内联)'));
+          return;
+        }
+        if (e && e.message) showBootError('运行时错误：' + e.message);
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e && e.reason;
+        showBootError('脚本执行失败：' + ((r && r.message) || r || '未知错误'));
+      });
+
+      setTimeout(function () {
+        if (!window.__APP_BOOTED__) {
+          showBootError('初始化超时（8 秒），通常是浏览器缓存了旧版文件或 Service Worker 未更新。');
+        }
+      }, 8000);
+    })();
+  </script>
+
+  <script type="module" src="./src/app.js?v=2026.10.30-r1"></script>
+</body>
+</html>
