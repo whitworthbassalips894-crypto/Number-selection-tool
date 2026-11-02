@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import INITIAL_DB from '../data/draws.js';
-import { generateDailyFive } from '../src/dailyfive.js';
-import { formatFiveTickets, formatSingleTicket } from '../src/copy.js';
+import { combinedPlan } from '../src/combined.js';
 
 const ROOT = process.cwd();
 
@@ -25,9 +24,7 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     'quickEntry', 'quickPeriod', 'quickDate', 'quickPasteInput', 'btnQuickRecognize', 'btnQuickDemo', 'btnQuickClear',
     'quickPreview', 'btnQuickSave', 'quickMsg',
     'heroPeriod', 'heroMeta', 'heroShare', 'periodSelect', 'btnPrevPeriod', 'btnNextPeriod', 'btnNext', 'btnCopyAll',
-    'heroResult', 'consensusStrip', 'fiveGrid', 'featuredCostLine',
-    'histFilter', 'btnPrevHit', 'btnNextHit', 'btnReplayRun', 'histRangeTabs', 'replayStatus',
-    'histMetrics', 'histBaseline', 'histBody', 'btnMoreHist', 'histCount',
+    'dualBoard', 'combinedStrategy', 'historyIncludeRandom', 'combinedStatus', 'yearlyBody', 'combinedBody', 'combinedCount',
     'cfgStake', 'cfgOddsSpecial', 'btnResetCfg', 'cfgOddsNote',
     'btnCheckUpdate', 'btnRepairCache', 'btnResetServiceWorker', 'updateStatus',
     'btnCopyAllMobile', 'toastContainer'
@@ -119,41 +116,70 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     // 验证 URL 归一为 ?p=NEXT（清除了旧链接遗留的 m=special）
     assert.equal(dom.window.location.search, '?p=NEXT');
 
-    // 验证渲染了 3 张卡片、共 21 颗号码球
-    const cards = dom.window.document.querySelectorAll('#fiveGrid .five-card');
-    assert.equal(cards.length, 3);
-    const balls = dom.window.document.querySelectorAll('#fiveGrid .lotto-ball');
-    assert.equal(balls.length, 21);
-
-    // 验证整套复制输出纯号码 3 行 × 7 码
+    // 复制的是当前可见的 A / B，不再复制已移除的原版三组。
     dom.window.document.getElementById('btnCopyAll').click();
     await new Promise((r) => setTimeout(r, 10));
-    const lines = copied.split('\n');
-    assert.equal(lines.length, 3);
-    for (const l of lines) assert.match(l, /^\d{2}(、\d{2}){6}$/);
+    assert.match(copied, /^方案 A：.*\n方案 B：/);
 
-    // 切换到历史某期（找一期有命中的，验证只高亮特码球，正码球绝不误标 ball-hit）
-    const hitDraw = INITIAL_DB.draws.slice(0, 60).find((d) => {
-      const p = generateDailyFive(INITIAL_DB.draws, { year: d.year, periodNum: d.periodNum, date: d.date });
-      return p.five.some((g) => g.numbers.includes(d.special)) && p.five.some((g) => d.numbers.some((n) => g.numbers.includes(n)));
+    // 历史期切换仍保留，双方案展示当前开奖号的命中状态。
+    const hitDraw = INITIAL_DB.draws.slice(0, 60).find(d => {
+      const p = combinedPlan(INITIAL_DB.draws, d);
+      return p.b.includes(d.special);
     });
-    assert.ok(hitDraw, '近 60 期中应存在既中特码又含正码同号的期次');
-
+    assert.ok(hitDraw);
     const sel = dom.window.document.getElementById('periodSelect');
     sel.value = hitDraw.id;
     sel.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    assert.match(board.querySelector('.plan-b .dual-meta').textContent, /命中/);
 
-    const resultBalls = [...dom.window.document.querySelectorAll('#heroResult .lotto-ball')];
-    assert.equal(resultBalls.length, 7, '开奖条应渲染 6 正码 + 1 特码');
-    for (let i = 0; i < 6; i++) {
-      assert.equal(resultBalls[i].classList.contains('ball-hit'), false, '6 个正码球在特码模块绝不应标为命中');
+    // 全量回放：不分页、不显示逐期金额，展开 / 收起和方案切换均使用正确的号码。
+    const deadline = Date.now() + 60000;
+    const status = dom.window.document.getElementById('combinedStatus');
+    while (!status.textContent.startsWith('✓') && Date.now() < deadline) {
+      if (status.textContent.includes('失败')) assert.fail(status.textContent);
+      await new Promise(r => setTimeout(r, 100));
     }
-    assert.equal(resultBalls[6].classList.contains('ball-hit'), true, '第 7 颗特码球命中时必须高亮');
-
-    // 等待回放完成并验证 3 组对比卡片渲染
-    await new Promise((r) => setTimeout(r, 400));
-    const stratBoxes = dom.window.document.querySelectorAll('#histMetrics .sc-box');
-    assert.equal(stratBoxes.length, 3, '回放对比面板应展示 3 组独立卡片');
+    assert.match(status.textContent, /^✓/);
+    const strategy = dom.window.document.getElementById('combinedStrategy');
+    assert.deepEqual([...strategy.options].map(o => o.value), ['a', 'b']);
+    const body = dom.window.document.getElementById('combinedBody');
+    assert.equal(body.querySelectorAll('tr.main-row').length, INITIAL_DB.draws.length + 1); // 两期本地录入，减去一条无效底库
+    assert.equal(dom.window.document.getElementById('yearlyBody').querySelectorAll('tr').length, 6);
+    assert.equal(dom.window.document.getElementById('btnMoreHist'), null);
+    assert.equal(dom.window.document.getElementById('fiveGrid'), null);
+    assert.equal(dom.window.document.getElementById('histBody'), null);
+    assert.doesNotMatch(body.textContent, /元|¥/);
+    const row305 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-305'));
+    const plan305 = combinedPlan(INITIAL_DB.draws, INITIAL_DB.draws[0]);
+    row305.click();
+    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.aPure);
+    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.aPure.includes(INITIAL_DB.draws[0].special));
+    row305.click();
+    const firstRow = body.querySelector('tr.main-row');
+    assert.equal(firstRow.querySelectorAll('.d-num').length, 7);
+    assert.equal(firstRow.querySelectorAll('.d-num:not(.special).hit').length, 0);
+    let expand = firstRow.querySelector('button');
+    expand.click();
+    assert.equal(expand.getAttribute('aria-expanded'), 'true');
+    assert.match(firstRow.nextElementSibling.textContent, /方案 A/);
+    assert.doesNotMatch(firstRow.nextElementSibling.textContent, /元|¥/);
+    expand.click();
+    assert.equal(expand.getAttribute('aria-expanded'), 'false');
+    assert.equal(body.querySelector('.feat-detail'), null);
+    strategy.value = 'b';
+    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.equal(dom.window.document.getElementById('historyRandomLabel').hidden, true);
+    expand = body.querySelector('button');
+    expand.click();
+    assert.match(body.querySelector('.feat-detail').textContent, /方案 B/);
+    assert.equal(body.querySelectorAll('.feat-detail .d-num').length, 5);
+    strategy.value = 'a';
+    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.equal(dom.window.document.getElementById('historyIncludeRandom').checked, false);
+    const historyToggle = dom.window.document.getElementById('historyIncludeRandom');
+    historyToggle.checked = true;
+    historyToggle.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.equal(dom.window.document.getElementById('includeRandom').checked, true);
   } finally {
     for (const k of keys) {
       if (prevGlobals[k] === undefined) delete globalThis[k];

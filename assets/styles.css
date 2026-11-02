@@ -626,3 +626,41 @@ tr.feat-detail > td { background: #f8fafc; padding: 10px 16px; text-align: left;
 .combined-table { min-width:800px; }
 .history-hit { color:#c94b2d; background:#fff0e7; padding:2px 3px; border-radius:4px; }
 @media(max-width:700px) { .dual-grid { grid-template-columns:1fr; } .dual-heading { align-items:flex-start; flex-direction:column; } .dual-heading h2 { font-size:22px; } .dual-card { padding:16px; } }
+
+/* 双方案回放：与推荐看板保持同一套卡片、颜色和间距 */
+.combined-replay { padding: 24px; }
+.combined-replay-head { align-items: flex-start; margin-bottom: 14px; }
+.combined-replay-head h3, .replay-detail-heading h3 { font-size: 1.08rem; color: var(--ink); }
+.strategy-picker { display: flex; align-items: center; gap: 9px; color: var(--muted); }
+.strategy-picker select { min-width: 174px; font-weight: 700; }
+.history-random { margin: 0 0 12px; }
+.history-random[hidden] { display: none; }
+.replay-progress { margin-bottom: 12px; }
+.replay-note { margin: 12px 0 0; }
+.replay-detail-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin: 28px 0 12px; }
+.yearly-scroll { max-height: none; overflow: auto; }
+.yearly-table { min-width: 820px; }
+.yearly-table tbody td:first-child { font-weight: 800; color: var(--ink); }
+.yearly-table tbody tr:last-child { background: #f6f8fb; font-weight: 800; }
+.replay-scroll { max-height: 620px; overflow: auto; }
+.replay-table { min-width: 550px; }
+.replay-expand { border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 5px 9px; color: var(--muted); cursor: pointer; font-size: 12px; white-space: nowrap; }
+.replay-expand:hover, .replay-expand:focus-visible { border-color: var(--gold); color: var(--gold-deep); outline-color: var(--gold); }
+.replay-table .fd-nums { align-items: center; }
+@media (max-width: 720px) {
+  .combined-replay { padding: 16px; }
+  .combined-replay-head { gap: 12px; }
+  .strategy-picker { width: 100%; justify-content: space-between; }
+  .strategy-picker select { flex: 1; min-width: 0; }
+  .yearly-scroll { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .yearly-table { display: table; width: 100%; }
+  .yearly-table thead { display: table-header-group; }
+  .yearly-table tbody { display: table-row-group; }
+  .yearly-table tr { display: table-row; }
+  .yearly-table td { display: table-cell; border-bottom: 1px solid var(--line-soft); padding: 8px 7px; text-align: center; }
+  .replay-scroll { max-height: 65vh; overflow: auto; padding-right: 3px; }
+  .replay-table { min-width: 0; }
+  .replay-table td.col-hits::before { content: '本期命中'; }
+  .replay-table td.col-expand { text-align: right; }
+  .replay-detail-heading { align-items: flex-start; }
+}

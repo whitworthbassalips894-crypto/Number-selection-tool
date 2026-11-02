@@ -1,40 +1,16 @@
-/**
- * 六合彩「特码 · 三组 7 码」前端主控制器
- *
- * 一页流结构：① 数据同步（置顶） → ② 今日号码 → ③ 历史回放 → ④ 设置
- *
- * 规则与形态：
- *  - 仅保留特码模块（已去掉三中三 / 四中四）；
- *  - 特码是「1 中 1」：1 个号 = 1 注（默认 10 元/注、赔率 48 倍）；
- *  - 每期由 3 套特码策略（#1 热态顺势 / #2 遗漏回补 / #3 周期均衡）各自独立推荐 7 码，
- *    每组 7 注，3 组独立累计共 21 注，组与组之间允许号码重叠（重叠号命中则多组叠加返奖）；
- *  - 命中口径：只核对当期开奖的最后一个号码（特码），6 个正码不计入命中；
- *  - 历史回放严格「无未来函数」：第 T 期推荐只用严格早于 T 期的数据。
- */
+/** 特码双方案页面：只核对特码；历史回放仅使用严格早于目标期的数据。 */
 
 import {
   APP_BUILD,
   APP_VERSION_LABEL,
   CACHE_PREFIX,
   DEFAULT_CONFIG,
-  SPECIAL_GROUP_COUNT,
-  SPECIAL_GROUP_SIZE,
-  SPECIAL_TOTAL_BETS,
-  betsPerTicket,
   getColorForNumber,
-  getPlayMode,
-  getZodiacForNumber,
   pad2
 } from './constants.js';
-import { evaluateTickets } from './combinatorics.js';
 import { mergeDraws, normalizeDrawRecord, parseDrawsInput, parseQuickDrawInput } from './parser.js';
 import { compareDrawSets, describeSourceLag, formatSyncSummary, rawGithubDbUrl } from './sync.js';
-import { formatFiveTickets, formatSingleTicket } from './copy.js';
-import {
-  buildDailyFiveRecords,
-  expandEntryTickets,
-  generateDailyFive
-} from './dailyfive.js';
+import { generateDailyFive } from './dailyfive.js';
 import { expectedReturnRate, formatPercent, specialBaseline } from './statistics.js';
 import { nextPeriodMeta } from './periods.js';
 import { auditDraws } from './audit.js';
@@ -45,11 +21,9 @@ import {
   safeSet
 } from './storage.js';
 import INITIAL_DB from '../data/draws.js';
-import { combinedPlan, replayRecord, summarize, STRATEGIES } from './combined.js';
+import { combinedPlan, replayRecord, summarize } from './combined.js';
 
 const PERIOD_SELECT_LIMIT = 120;
-const REPLAY_PAGE = 40;
-const REPLAY_CHUNK = 25;
 
 const state = {
   config: { ...DEFAULT_CONFIG },
@@ -60,20 +34,6 @@ const state = {
   storageErrors: []
 };
 
-const replay = {
-  token: 0,
-  records: [],
-  filtered: [],
-  running: false,
-  visible: REPLAY_PAGE,
-  expanded: new Set(),
-  cursor: -1,
-  filters: {
-    range: '100',
-    hit: 'all' // all = 全部期次 / hit = 只看中奖(≥1注) / multi = 只看重叠多中(≥2注)
-  }
-};
-
 /** 快速录入开奖：解析后的 6 个正码 + 1 个特码 */
 const quickEntry = {
   numbers: [],
@@ -81,23 +41,6 @@ const quickEntry = {
   msg: '',
   msgType: ''
 };
-
-/** 一条回放记录是否中奖（任意一组命中特码） */
-const isWinRecord = (rec) => (rec?.five || []).some((e) => (e.hitCount || 0) > 0);
-
-/** 一条回放记录是否重叠多中（≥2 组同时命中特码） */
-const isMultiWinRecord = (rec) => {
-  const wins = (rec?.five || []).reduce((acc, e) => acc + (e.hitCount || 0), 0);
-  return wins >= 2;
-};
-
-/** 按当前筛选条件过滤回放记录 */
-function applyReplayFilter(records = replay.records) {
-  const hit = replay.filters.hit || 'all';
-  if (hit === 'hit') return records.filter(isWinRecord);
-  if (hit === 'multi' || hit === 'partial') return records.filter(isMultiWinRecord);
-  return records.slice();
-}
 
 const planCache = new Map();
 const combined = { includeRandom: true, records: [], token: 0 };
@@ -120,15 +63,6 @@ function currentStake() {
 function currentOdds() {
   const v = Number(state.config.oddsSpecial);
   return Number.isFinite(v) && v > 0 ? v : DEFAULT_CONFIG.oddsSpecial;
-}
-
-const betConfig = () => ({
-  stake: currentStake(),
-  oddsSpecial: currentOdds()
-});
-
-function entryTickets(e) {
-  return expandEntryTickets(e.numbers, getPlayMode());
 }
 
 function showToast(msg) {
@@ -165,18 +99,6 @@ async function copyText(text, label = '已复制到剪贴板') {
   }
 }
 
-function money(n) {
-  const v = Number(n || 0);
-  if (!Number.isFinite(v)) return '—';
-  return `${v > 0 ? '+' : ''}${Math.round(v).toLocaleString('zh-CN')} 元`;
-}
-
-function amount(n) {
-  const v = Number(n || 0);
-  if (!Number.isFinite(v)) return '—';
-  return `${Math.round(v).toLocaleString('zh-CN')} 元`;
-}
-
 const numsText = (nums) => (nums || []).map(pad2).join(' ');
 
 function escapeHtml(str) {
@@ -186,19 +108,6 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function ballHtml(num, opts = {}) {
-  const n = Number(num);
-  const color = getColorForNumber(n);
-  const size = opts.size ? ` ${opts.size}` : '';
-  const hit = opts.hitSet?.has(n) ? ' ball-hit' : '';
-  const dim = opts.dim ? ' ball-special-dim' : '';
-  const cons = opts.consensus ? ' ball-consensus' : '';
-  const zodiac = opts.zodiac === false ? '' : getZodiacForNumber(n, opts.date || '2026-10-30');
-  const attrs = opts.attrs || '';
-  const mark = opts.mark ? `<span class="ball-tag" title="${escapeHtml(opts.markLabel || '')}">${escapeHtml(opts.mark)}</span>` : '';
-  return `<div class="lotto-ball-wrap" ${attrs}><div class="lotto-ball ${color}${size}${hit}${dim}${cons}">${pad2(n)}${mark}</div>${zodiac ? `<span class="ball-meta">${zodiac}</span>` : ''}</div>`;
 }
 
 function miniBallHtml(num, opts = {}) {
@@ -212,20 +121,6 @@ function miniBallHtml(num, opts = {}) {
   else if (opts.normalBall) titleParts.push('（正码，特码模块不计入命中）');
   if (opts.sharedCount >= 2) titleParts.push(`（跨组重叠：共 ${opts.sharedCount} 组推荐）`);
   return `<span class="${cls.join(' ')}" title="${escapeHtml(titleParts.join(''))}">${pad2(n)}</span>`;
-}
-
-/**
- * 渲染当期开奖号码行（特码模块：正码不高亮，只有特码命中时高亮特码球）
- */
-function drawBallsHtml(draw, opts = {}) {
-  if (!draw) return '';
-  const coveredSet = opts.hitSet;
-  const normals = draw.numbers.map((n) => ballHtml(n, { ...opts, hitSet: null, date: draw.date })).join('');
-  const specialHitSet = draw.special != null && coveredSet?.has(draw.special) ? new Set([draw.special]) : null;
-  const special = draw.special != null
-    ? `<span class="ball-plus">+</span>${ballHtml(draw.special, { ...opts, hitSet: specialHitSet, dim: true, date: draw.date })}`
-    : '';
-  return normals + special;
 }
 
 /* ==================== 跨设备对齐（URL 分享参数） ==================== */
@@ -345,18 +240,11 @@ function getThreePlan(target) {
 function renderOddsNote() {
   const el = $('cfgOddsNote');
   if (!el) return;
-  const stake = currentStake();
   const odds = currentOdds();
   const base = specialBaseline();
   const ev = expectedReturnRate(odds);
-  const fair = base.fairOdds;
-  const flag = ev > 1 + 1e-6
-    ? ' ⚠ 高于公平赔率（49 倍），期望回报率超过 100%，真实盘口有抽水，请核对赔率'
-    : ev > 1 - 1e-6 ? '（理论公平值）' : '';
-  const summary = `特码（1 中 1：每组 ${SPECIAL_GROUP_SIZE} 码 = ${SPECIAL_GROUP_SIZE} 注，${SPECIAL_GROUP_COUNT} 组独立累计共 ${SPECIAL_TOTAL_BETS} 注，每期投入 ${SPECIAL_TOTAL_BETS * stake} 元）：`
-    + `当前 ${odds} 倍 → 单注命中 P = ${formatPercent(base.hitProb, 4)}，单组 ${SPECIAL_GROUP_SIZE} 码命中 P = ${formatPercent(base.hitProbPerTicket, 4)}，`
-    + `理论公平赔率 ${fair} 倍，期望回报率约 ${formatPercent(ev, 2)}${flag}（市面常见 48 倍）。`;
-  el.innerHTML = `期望回报率 = 赔率 × 单注命中概率（100% = 公平）。<br>${escapeHtml(summary)}`;
+  const flag = ev > 1 + 1e-6 ? ' ⚠ 高于公平赔率，请核对赔率' : '';
+  el.textContent = `每个号码为 1 注。单注理论命中率 ${formatPercent(base.hitProb, 4)}，公平赔率 ${base.fairOdds} 倍；当前赔率 ${odds} 倍，理论回报率 ${formatPercent(ev, 2)}${flag}。`;
 }
 
 /* ==================== 渲染：顶栏与期数 ==================== */
@@ -404,163 +292,15 @@ function populatePeriodSelect() {
 
 /* ==================== 渲染：② 今日推荐（特码三组 7 码） ==================== */
 
-function groupCardHtml(e, ctx, cfg, overlapCounts = {}, index = 1) {
-  const t = ctx.target;
-  const bets = e.numbers.length; // 7 注
-  const hitSet = ctx.draw && ctx.draw.special != null && e.numbers.includes(ctx.draw.special)
-    ? new Set([ctx.draw.special])
-    : null;
-
-  const balls = e.numbers.map((n) => {
-    const count = Number(overlapCounts[n] || 1);
-    const isShared = count >= 2;
-    return ballHtml(n, {
-      size: 'lg',
-      date: t.date,
-      hitSet,
-      consensus: isShared,
-      mark: isShared ? `×${count}` : '',
-      markLabel: isShared ? `跨组重叠号（共 ${count} 组同时推荐）` : ''
-    });
-  }).join('');
-
-  const shape = e.shape || { odd: 0, even: 0, big: 0, small: 0, zone1: 0, zone2: 0, zone3: 0, red: 0, blue: 0, green: 0, sum: 0 };
-  const sharedCount = (e.sharedNumbers || []).length;
-
-  let hitHtml = '';
-  if (ctx.draw) {
-    const tickets = entryTickets(e);
-    const ev = evaluateTickets(tickets, ctx.draw, {
-      ...cfg,
-      playMode: 'special',
-      targetSize: 1
-    });
-    const winners = ev.winningTickets || [];
-    const specialStr = ctx.draw.special != null ? pad2(ctx.draw.special) : '—';
-    const label = winners.length
-      ? `命中特码 ${specialStr} ✓ 中 ${winners.length} 注 · 返奖 ${amount(ev.payout)}`
-      : `未中 · 本期特码是 ${specialStr}（本组投入 ${amount(bets * cfg.stake)}）`;
-    hitHtml = `
-      <div class="fc-hit">
-        <span class="tag ${winners.length ? 'tag-win' : 'tag-muted'}">${label}</span>
-      </div>`;
-  }
-
-  return `
-    <article class="five-card" data-five="${escapeHtml(e.id)}">
-      <header class="fc-head">
-        <span class="fc-idx">第 ${index} 组</span>
-        <span class="fc-icon">${e.icon}</span>
-        <span class="fc-name">${escapeHtml(e.name)}</span>
-        <span class="tag tag-gold">${bets} 码 · ${bets} 注</span>
-        ${sharedCount > 0 ? `<span class="tag tag-muted">含重叠 ${sharedCount} 码</span>` : ''}
-        <span class="fc-actions">
-          <button type="button" class="btn btn-sm" data-copy-five="${escapeHtml(e.id)}">复制本组</button>
-        </span>
-        <span class="fc-rationale">${escapeHtml(e.rationale || '')}</span>
-      </header>
-      <div class="fc-body">
-        <div class="fc-balls">${balls}</div>
-        <div class="fc-shape">
-          <span>奇偶 ${shape.odd}:${shape.even}</span>
-          <span>大小 ${shape.big}:${shape.small}</span>
-          <span>三区 ${shape.zone1}-${shape.zone2}-${shape.zone3}</span>
-          <span>三波 ${shape.red}-${shape.blue}-${shape.green}</span>
-          <span>和值 ${shape.sum}</span>
-        </div>
-      </div>
-      <div class="fc-foot">${hitHtml}</div>
-    </article>`;
-}
-
 function renderToday() {
   const ctx = getPeriodContext();
   const plan = getThreePlan(ctx.target);
   const t = ctx.target;
-  renderDualBoard(ctx, plan);
-  const cfg = betConfig();
-  const odds = currentOdds();
-  const baseline = specialBaseline();
-  const cov = plan.coverage;
-  const betsTotal = cov.totalBets; // 21 注
-  const overlapCounts = plan.overlapCounts || {};
-
-  const heroPeriod = $('heroPeriod');
-  if (heroPeriod) {
-    heroPeriod.textContent = ctx.isUpcoming
-      ? `${t.year}年第${t.period}期 · 待开奖`
-      : `${t.year}年第${t.period}期 · 已开奖`;
-  }
+  $('heroPeriod').textContent = `${t.year}年第${t.period}期 · ${ctx.isUpcoming ? '待开奖' : '已开奖'}`;
+  $('heroMeta').textContent = '每号 1 注 · 仅核对特码';
   renderShareTag();
   writeShareParams();
-
-  const heroMeta = $('heroMeta');
-  if (heroMeta) {
-    const overlapNote = cov.consensusCount > 0
-      ? `（跨组重叠 ${cov.consensusCount} 个号）`
-      : '（本期三组完全不重叠）';
-    heroMeta.textContent = `${plan.five.length} 组 × ${SPECIAL_GROUP_SIZE} 码 = ${betsTotal} 注 · 覆盖 ${cov.distinct} 个不同号${overlapNote}`;
-  }
-
-  // 跨组重叠号提示条
-  const consensusEl = $('consensusStrip');
-  if (consensusEl) {
-    if (plan.consensus && plan.consensus.length > 0) {
-      const items = plan.consensus.map((n) => `${pad2(n)}（${overlapCounts[n] || 2}组）`).join('、');
-      consensusEl.innerHTML = `<div class="consensus-strip"><b>跨组重叠重点号：</b><span>${escapeHtml(items)}</span><span>· 金圈角标球代表被多组同时选中，若开出特码则多组叠加返奖</span></div>`;
-    } else {
-      consensusEl.innerHTML = '';
-    }
-  }
-
-  const grid = $('fiveGrid');
-  if (grid) {
-    grid.innerHTML = plan.five.map((e, i) => groupCardHtml(e, ctx, cfg, overlapCounts, i + 1)).join('');
-  }
-
-  const box = $('heroResult');
-  if (box) {
-    if (!ctx.draw) {
-      box.innerHTML = '';
-    } else {
-      const perGroup = plan.five.map((e) => {
-        const tickets = entryTickets(e);
-        const ev = evaluateTickets(tickets, ctx.draw, {
-          ...cfg,
-          playMode: 'special',
-          targetSize: 1
-        });
-        return { e, d: { winCount: ev.winCount || 0, payout: ev.payout || 0, bets: tickets.length } };
-      });
-      const wins = perGroup.reduce((a, p) => a + p.d.winCount, 0);
-      const cost = betsTotal * cfg.stake;
-      const totalPayout = perGroup.reduce((a, p) => a + p.d.payout, 0);
-      const net = totalPayout - cost;
-      const coveredAll = new Set(plan.five.flatMap((e) => e.numbers));
-      box.innerHTML = `
-        <div class="result-strip${wins ? ' win' : ''}">
-          <div class="result-label">本期开奖 · 特码 ${betsTotal} 注中 ${wins} 注${wins >= 2 ? `（重叠号命中，${wins} 组同时中奖！）` : ''}</div>
-          <div class="ball-row">${drawBallsHtml(ctx.draw, { size: 'sm', hitSet: coveredAll })}</div>
-          <div class="kpi-inline">
-            <div class="kpi-chip"><div class="k-label">命中注数</div><div class="k-value ${wins ? 'positive' : ''}">${wins} / ${betsTotal}</div></div>
-            <div class="kpi-chip"><div class="k-label">本期净收益</div><div class="k-value ${net >= 0 ? 'positive' : 'negative'}">${money(net)}</div></div>
-            <div class="kpi-chip"><div class="k-label">逐组命中</div><div class="k-value gold">${perGroup.map((p) => `${p.e.code} ${p.d.winCount ? '✓' : '—'}`).join(' · ')}</div></div>
-          </div>
-        </div>`;
-    }
-  }
-
-  const ev = expectedReturnRate(odds);
-  const fair = baseline.fairOdds.toFixed(1);
-  const costLine = $('featuredCostLine');
-  if (costLine) {
-    costLine.innerHTML = [
-      `单注 ${cfg.stake} 元 × ${betsTotal} 注（${SPECIAL_GROUP_COUNT} 组 × ${SPECIAL_GROUP_SIZE} 码）= ${amount(betsTotal * cfg.stake)}`,
-      `单注命中 ${formatPercent(cov.perBet, 4)} · 单组 ${SPECIAL_GROUP_SIZE} 码命中 ${formatPercent(cov.perTicket, 4)}（公平赔率 ${fair} 倍）`,
-      `当前赔率 ${odds} 倍 → 回报率 <b>${formatPercent(ev, 1)}</b>`,
-      `本期覆盖 ${cov.distinct} 个号，至少中 1 注 <b>${formatPercent(cov.anyHit, 3)}</b>`
-    ].join(' · ');
-  }
+  renderDualBoard(ctx, plan);
 }
 
 /* 双方案与独立全量回测 */
@@ -578,7 +318,7 @@ function renderDualBoard(ctx, threePlan) {
     <div class="dual-grid"><article class="dual-card plan-a"><span class="plan-label">PLAN A · 双工具共振</span><h3>双工具共振共同号</h3><p>工具 1 的 12 码 ∩ 工具 2 三组去重并集</p><div class="dual-balls">${balls(a, 'a')}</div><div class="dual-meta">${a.length} 注${result(a)}</div><label class="random-toggle"><input type="checkbox" id="includeRandom" ${combined.includeRandom ? 'checked' : ''}> 包含 🎲 随机撞号 <small>关闭则只留纯精选共振</small></label></article>
     <article class="dual-card plan-b"><span class="plan-label">PLAN B · 热冷精选</span><h3>工具 1 热 + 冷精选</h3><p>🔥 热号 3 码 + 🎯 冷号 2 码</p><div class="dual-balls">${balls(p.b, 'b')}</div><div class="dual-meta">${p.b.length} 注${result(p.b)}</div></article></div>
     <p class="dual-disclaimer">每号 1 注 · 号码仅供参考，任何选号方法均不能改变单注 1/49 的理论命中概率。</p>`;
-  $('tool1Details').innerHTML = p.twelve.breakdown.map(group => `<div class="source-row"><strong>${group.icon} ${escapeHtml(group.name)} ${group.count} 码</strong><span>${group.numbers.map(pad2).join('　')}</span></div>`).join('') + `<p class="hint-line">完整清单：${p.tool1.map(pad2).join('、')} · 固定随机盐 0</p>`;
+
 }
 
 let combinedTimer;
@@ -588,6 +328,7 @@ function scheduleCombinedReplay() {
   combined.records = [];
   $('yearlyBody').innerHTML = '';
   $('combinedBody').innerHTML = '';
+  $('combinedCount').textContent = '—';
   $('combinedStatus').textContent = '准备计算全量历史…';
   combinedTimer = setTimeout(() => {
     if (typeof document === 'undefined') return;
@@ -621,348 +362,31 @@ async function runCombinedReplay() {
   renderCombinedReplay();
 }
 
+function selectedCombinedKey() {
+  return $('combinedStrategy').value === 'b' ? 'b' : (combined.includeRandom ? 'a' : 'aPure');
+}
+
 function renderCombinedReplay() {
   const select = $('combinedStrategy');
-  if (!select || !select.value || !combined.records.length) return;
-  const key = select.value, stake = currentStake(), odds = currentOdds();
+  if (!select) return;
+  $('historyIncludeRandom').checked = combined.includeRandom;
+  $('historyRandomLabel').hidden = select.value !== 'a';
+  if (!combined.records.length) return;
+  const key = selectedCombinedKey(), stake = currentStake(), odds = currentOdds();
   const currency = n => `${n > 0 ? '+' : ''}${n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元`;
   const row = (label, records) => {
     const v = summarize(records, key, stake, odds);
-    return `<tr><th>${label}</th><td>${v.periods}</td><td>${v.bets}</td><td>${v.hits}</td><td>${(v.hitRate * 100).toFixed(3)}%</td><td>${currency(v.net)}</td><td>${(v.roi * 100).toFixed(2)}%</td><td>${currency(v.maxDrawdown)}</td><td>${v.longestLosing} 期</td></tr>`;
+    return `<tr><td>${label}</td><td>${v.periods}</td><td>${v.bets}</td><td>${v.hits}</td><td>${(v.hitRate * 100).toFixed(3)}%</td><td>${currency(v.net)}</td><td>${(v.roi * 100).toFixed(2)}%</td><td>${v.maxDrawdown.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元</td><td>${v.longestLosing} 期</td></tr>`;
   };
   const years = [...new Set([2022, 2023, 2024, 2025, 2026, ...combined.records.map(r => r.draw.year)])].sort((a,b) => a-b);
   $('yearlyBody').innerHTML = years.map(y => row(y, combined.records.filter(r => r.draw.year === y))).join('') + row('总计', combined.records);
-  $('combinedBody').innerHTML = combined.records.map(r => {
-    const nums = r.picks[key], hits = nums.filter(n => n === Number(r.draw.special)).length;
-    const net = stake * (hits * odds - nums.length);
-    return `<tr><td>${escapeHtml(r.draw.id)}<br><small>${escapeHtml(r.draw.date || '')}</small></td><td>${nums.map(n => n === Number(r.draw.special) ? `<b class="history-hit">${pad2(n)}</b>` : pad2(n)).join(' ') || '—'}</td><td>${pad2(r.draw.special)}</td><td>${nums.length} / ${hits}</td><td>${currency(net)}</td></tr>`;
+  $('combinedCount').textContent = `共 ${combined.records.length} 期`;
+  $('combinedBody').innerHTML = combined.records.map((r, index) => {
+    const nums = r.picks[key], hit = nums.includes(Number(r.draw.special));
+    const normalBalls = r.draw.numbers.map(n => miniBallHtml(n, { normalBall: true })).join('');
+    const specialBall = miniBallHtml(r.draw.special, { special: true, hit });
+    return `<tr class="main-row${hit ? ' row-win' : ''}" data-replay-row="${index}"><td class="col-period">${escapeHtml(r.draw.id)}<small>${escapeHtml(r.draw.date || '')}</small></td><td class="col-draw"><div class="draw-balls">${normalBalls}<span class="d-sep"></span>${specialBall}</div></td><td class="col-hits"><span class="tk-pill${hit ? ' win' : ''}">${hit ? '命中' : '未中'} ${hit ? 1 : 0}/${nums.length}</span></td><td class="col-expand"><button type="button" class="replay-expand" data-replay-index="${index}" aria-expanded="false" aria-label="展开 ${escapeHtml(r.draw.id)} 推荐号码">展开 ▾</button></td></tr>`;
   }).join('');
-}
-
-/* ==================== 渲染：③ 历史回放 ==================== */
-
-function syncHistRangeLabel() {
-  const host = $('histRangeTabs');
-  if (host) {
-    const total = state.allDraws.length;
-    const all = host.querySelector('.tab[data-range="all"]');
-    if (all) all.textContent = `全部 · ${total}`;
-    const byYear = new Map();
-    for (const d of state.allDraws) byYear.set(Number(d.year), (byYear.get(Number(d.year)) || 0) + 1);
-    host.querySelectorAll('.tab[data-range^="year:"]').forEach((btn) => {
-      const year = Number(btn.dataset.range.slice(5));
-      const n = byYear.get(year) || 0;
-      btn.textContent = n ? `${year} 年 · ${n}` : `${year} 年`;
-      btn.hidden = n === 0;
-      if (!n && String(replay.filters.range) === btn.dataset.range) replay.filters.range = '100';
-    });
-  }
-  markRangeTab();
-}
-
-function replayTargets() {
-  const f = replay.filters;
-  let list = state.allDraws;
-  if (String(f.range).startsWith('year:')) {
-    const year = Number(String(f.range).slice(5));
-    list = list.filter((d) => Number(d.year) === year);
-  } else if (f.range !== 'all') {
-    const n = Math.max(1, Number(f.range) || 0);
-    list = list.slice(0, n);
-  }
-  return list;
-}
-
-function markRangeTab() {
-  const host = $('histRangeTabs');
-  if (!host) return;
-  host.querySelectorAll('.tab[data-range]').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.range === String(replay.filters.range));
-  });
-}
-
-async function runReplay() {
-  const status = $('replayStatus');
-  const token = ++replay.token;
-
-  const targets = replayTargets();
-  if (targets.length === 0) {
-    replay.running = false;
-    replay.records = [];
-    replay.filtered = [];
-    if (status) status.textContent = '当前范围没有可回放的期次。';
-    renderReplayTable();
-    return;
-  }
-
-  replay.running = true;
-  replay.expanded.clear();
-  const started = Date.now();
-  if (status) status.textContent = `正在逐期回放 ${targets.length} 期（每期只用该期之前的数据）…`;
-
-  const cfg = betConfig();
-  const records = [];
-  const chunk = Math.max(1, REPLAY_CHUNK);
-
-  for (let i = 0; i < targets.length; i += chunk) {
-    if (token !== replay.token) return;
-    const part = buildDailyFiveRecords(state.allDraws, targets.slice(i, i + chunk), cfg);
-    records.push(...part);
-    if (status) status.textContent = `正在逐期回放… ${records.length}/${targets.length} 期`;
-    await new Promise((r) => setTimeout(r, 0));
-  }
-
-  if (token !== replay.token) return;
-
-  replay.records = records;
-  replay.filtered = applyReplayFilter(records);
-  replay.visible = REPLAY_PAGE;
-  replay.cursor = -1;
-  replay.running = false;
-  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
-  const winCount = records.filter(isWinRecord).length;
-  const multiCount = records.filter(isMultiWinRecord).length;
-  const filterText = replay.filters.hit === 'hit'
-    ? `，其中中奖 ${winCount} 期`
-    : replay.filters.hit === 'multi'
-      ? `，其中重叠多中 ${multiCount} 期`
-      : '';
-  if (status) status.textContent = `✓ 已回放 ${records.length} 期（耗时 ${elapsed}s，无未来函数${filterText}）。`;
-  renderReplayTable();
-}
-
-/**
- * 动态按当前本金/赔率计算单期汇总（修改本金/赔率时无需重跑选号即可即时刷新金额）
- */
-function periodMoney(rec) {
-  const stake = currentStake();
-  const odds = currentOdds();
-  let wins = 0;
-  let cost = 0;
-  for (const e of rec.five) {
-    const hits = Number(e.hitCount) || 0;
-    const betsThis = Number.isFinite(e.bets) && e.bets > 0 ? e.bets : e.numbers.length;
-    wins += hits;
-    cost += stake * betsThis;
-  }
-  const payout = wins * stake * odds;
-  return {
-    wins,
-    cost,
-    payout,
-    net: payout - cost,
-    odds
-  };
-}
-
-function prizeCellHtml(payout, idx) {
-  const v = Math.round(Number(payout) || 0);
-  const cls = v > 0 ? 'prize-tot win' : 'prize-tot';
-  return `<span class="${cls}">${v > 0 ? `¥${v.toLocaleString('zh-CN')}` : '¥0'}</span>
-    <button type="button" class="tk-pill fold" data-feat-toggle="${idx}" title="展开当期三组明细">▾</button>`;
-}
-
-function replayRowHtml(rec, idx) {
-  const d = rec.draw;
-  const anyHit = new Set(rec.five.flatMap((e) => e.hitNums || []));
-  const normalBalls = d.numbers
-    .map((n) => miniBallHtml(n, { hit: false, normalBall: true }))
-    .join('');
-  const specialBall = d.special != null
-    ? `<span class="d-sep"></span>${miniBallHtml(d.special, {
-      special: true,
-      hit: anyHit.has(d.special)
-    })}`
-    : '';
-
-  const pills = rec.five.map((e) => {
-    const betsThis = Number.isFinite(e.bets) && e.bets > 0 ? e.bets : e.numbers.length;
-    const wins = Number(e.hitCount) || 0;
-    const text = `${e.code} ${wins}/${betsThis}`;
-    const cls = wins > 0 ? 'tk-pill win' : 'tk-pill';
-    const title = wins > 0
-      ? `${e.name} 命中特码（中 ${wins} 注）`
-      : `${e.name} 未命中当期特码`;
-    return `<span class="${cls}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
-  }).join('');
-
-  const m = periodMoney(rec);
-
-  return `
-    <tr class="main-row ${m.wins ? 'row-win' : ''}" data-row-idx="${idx}" data-draw-id="${escapeHtml(d.id)}">
-      <td class="col-period">${d.year}-${d.period}<small>${escapeHtml(d.date)}</small></td>
-      <td class="col-draw"><div class="draw-balls">${normalBalls}${specialBall}</div></td>
-      <td class="col-hits"><div class="tk-pills">${pills}</div></td>
-      <td class="col-prize">${prizeCellHtml(m.payout, idx)}</td>
-    </tr>`;
-}
-
-function featureDetailHtml(rec) {
-  const stake = currentStake();
-  const odds = currentOdds();
-  const overlapCounts = rec.overlapCounts || {};
-  const specialNum = rec.draw?.special != null ? pad2(rec.draw.special) : '—';
-
-  const block = (e) => {
-    const hitSet = new Set(e.hitNums || []);
-    const balls = e.numbers.map((n) => miniBallHtml(n, {
-      hit: hitSet.has(n),
-      shared: (overlapCounts[n] || 0) >= 2,
-      sharedCount: overlapCounts[n] || 1
-    })).join('');
-    const betsThis = Number.isFinite(e.bets) && e.bets > 0 ? e.bets : e.numbers.length;
-    const hits = Number(e.hitCount) || 0;
-    const payout = hits * stake * odds;
-    const badge = hits > 0 ? '<span class="badge hit">命中</span>' : '<span class="badge miss">未中</span>';
-    const hitText = hits > 0
-      ? `命中特码 ${numsText(e.hitNums)}（中 ${hits} 注，本组成本 ${amount(stake * betsThis)}，返奖 ${amount(payout)}）`
-      : `0 注 · 本期特码 ${specialNum} 不在本组 ${betsThis} 码内（本组成本 ${amount(stake * betsThis)}，每中 1 注返 ${amount(stake * odds)}）`;
-    return `
-      <div class="fd-five">
-        <div class="fd-head">${e.icon} ${escapeHtml(e.code)} ${escapeHtml(e.name)} <span class="fd-nums">${balls}</span></div>
-        <div class="fd-line">${badge} ${hitText}</div>
-      </div>`;
-  };
-  return `
-    <tr class="feat-detail"><td colspan="4">
-      ${rec.five.map(block).join('')}
-    </td></tr>`;
-}
-
-function renderReplayTable() {
-  const body = $('histBody');
-  const list = replay.filtered;
-  const visible = list.slice(0, replay.visible);
-
-  if (!list.length) {
-    const emptyText = replay.running
-      ? '正在计算…'
-      : replay.filters.hit === 'hit'
-        ? '这个范围里一期都没中奖 —— 换「全部期次」或调整范围再看看。'
-        : replay.filters.hit === 'multi'
-          ? '这个范围里没有重叠多中（≥2 组同中）的期次 —— 可切回「只看中奖」或「全部期次」。'
-          : '这个范围还没有回放结果，点「▶ 重新计算」试试。';
-    body.innerHTML = `<tr class="empty-row"><td colspan="4">${emptyText}</td></tr>`;
-  } else {
-    body.innerHTML = visible.map(replayRowHtml).join('');
-    if (replay.expanded.size) {
-      const rows = [...body.querySelectorAll('tr[data-draw-id]')];
-      for (const drawId of replay.expanded) {
-        const idx = list.findIndex((r) => r.draw.id === drawId);
-        if (idx < 0 || idx >= visible.length) continue;
-        const tr = rows.find((row) => row.dataset.drawId === drawId);
-        if (!tr) continue;
-        tr.insertAdjacentHTML('afterend', featureDetailHtml(list[idx]));
-      }
-    }
-  }
-
-  const totalRecords = replay.records.length;
-  const filteredNote = list.length !== totalRecords && totalRecords
-    ? `（已筛选，占全部 ${totalRecords} 期）`
-    : '';
-  $('histCount').textContent = list.length
-    ? `共 ${list.length} 期${filteredNote}，显示 ${visible.length} 期`
-    : '没有匹配的期次';
-  $('btnMoreHist').style.display = list.length > visible.length ? '' : 'none';
-
-  renderReplayMetrics();
-}
-
-function renderReplayMetrics() {
-  const stake = currentStake();
-  const odds = currentOdds();
-  const baseline = specialBaseline();
-  const records = replay.filtered;
-  const host = $('histMetrics');
-  if (!host) return;
-
-  let winPeriods = 0;
-  let multiWinPeriods = 0;
-  let totalHitBets = 0;
-  let payoutSum = 0;
-  let costSum = 0;
-  let maxPayout = 0;
-
-  for (const rec of records) {
-    const m = periodMoney(rec);
-    if (m.wins > 0) winPeriods++;
-    if (m.wins >= 2) multiWinPeriods++;
-    totalHitBets += m.wins;
-    payoutSum += m.payout;
-    costSum += m.cost;
-    if (m.payout > maxPayout) maxPayout = m.payout;
-  }
-  const periods = records.length;
-  const winRate = periods ? (winPeriods / periods) * 100 : 0;
-  const backRate = costSum > 0 ? (payoutSum / costSum) * 100 : 0;
-
-  // 逐组汇总（每组独立 7 注）
-  const agg = new Map();
-  for (const rec of records) {
-    for (const e of rec.five) {
-      let a = agg.get(e.id);
-      if (!a) {
-        a = { id: e.id, code: e.code, name: e.name, icon: e.icon, periods: 0, hits: 0, wins: 0, cost: 0, payout: 0 };
-        agg.set(e.id, a);
-      }
-      const hitsThis = Number(e.hitCount) || 0;
-      const betsThis = Number.isFinite(e.bets) && e.bets > 0 ? e.bets : e.numbers.length;
-      a.periods++;
-      a.hits += hitsThis;
-      if (hitsThis > 0) a.wins++;
-      a.cost += stake * betsThis;
-      a.payout += hitsThis * stake * odds;
-    }
-  }
-
-  const aggList = [...agg.values()];
-  const maxGroupWins = aggList.length ? Math.max(...aggList.map((x) => x.wins)) : 0;
-
-  const cards = aggList.map((a) => {
-    const groupWinRate = a.periods ? (a.wins / a.periods) * 100 : 0;
-    const groupBackRate = a.cost > 0 ? (a.payout / a.cost) * 100 : 0;
-    const cls = ['sc-box'];
-    if (maxGroupWins > 0 && a.wins === maxGroupWins) cls.push('is-lead');
-    return `
-      <div class="${cls.join(' ')}">
-        <span class="sc-name">${a.icon} ${escapeHtml(a.code)} ${escapeHtml(a.name)}</span>
-        <span class="sc-hit">${groupWinRate.toFixed(1)}%</span>
-        <small>中奖 ${a.wins} / ${a.periods} 期 · 每组 ${SPECIAL_GROUP_SIZE} 注</small>
-        <span class="sc-sum">返奖 ¥${Math.round(a.payout).toLocaleString('zh-CN')}（${groupBackRate.toFixed(1)}%）</span>
-      </div>`;
-  }).join('');
-
-  host.innerHTML = `
-    <div class="metric-card v-prize">
-      <div class="mc-head">特码三组 7 码 · 有奖期占比</div>
-      <div>
-        <span class="mc-val">${winRate.toFixed(1)}%</span>
-        <span class="mc-label">${winPeriods} / ${periods} 期有奖${multiWinPeriods ? `（重叠多中 ${multiWinPeriods} 期）` : ''}</span>
-      </div>
-      <div class="mc-bar"><div class="mc-fill" style="width:${Math.min(100, winRate).toFixed(1)}%"></div></div>
-      <div class="mc-kv">
-        <div><span class="mc-sm">累计返奖（${totalHitBets} 注）</span><b>¥${Math.round(payoutSum).toLocaleString('zh-CN')}</b></div>
-        <div><span class="mc-sm">总投入</span><b>¥${Math.round(costSum).toLocaleString('zh-CN')}</b></div>
-        <div><span class="mc-sm">返奖比</span><b>${backRate.toFixed(1)}%</b></div>
-        <div><span class="mc-sm">单期最高</span><b>¥${Math.round(maxPayout).toLocaleString('zh-CN')}</b></div>
-      </div>
-      <div class="mc-sub">单注 ${stake} 元 · 每组 ${betsPerTicket()} 注（3 组共 ${SPECIAL_TOTAL_BETS} 注） · 赔率 ${odds} 倍</div>
-    </div>
-    <div class="strat-compare">${cards || '<div class="sc-box">暂无数据</div>'}</div>`;
-
-  const ev = expectedReturnRate(odds);
-  const fair = baseline.fairOdds.toFixed(1);
-  const plan = getThreePlan(getPeriodContext().target);
-  const cov = plan.coverage;
-  const base = $('histBaseline');
-  if (base) {
-    base.innerHTML = `随机理论期望：单组 7 码命中率 <b>${formatPercent(baseline.hitProbPerTicket, 2)}</b>（场均 ${baseline.expectedHitsPerGroup.toFixed(2)} 注），`
-      + `3 组合计 21 注场均 <b>${baseline.expectedHits.toFixed(2)} 注</b> · `
-      + `公平赔率 <b>${fair}</b> 倍，当前 ${odds} 倍 → 期望回报率 <b>${formatPercent(ev, 1)}</b> · `
-      + `当前期覆盖 ${cov.distinct} 个不同号（${cov.totalBets} 注），至少中 1 注 <b>${formatPercent(cov.anyHit, 3)}</b>。`
-      + `回放只做无未来信息历史统计，各组差异在随机波动内，不构成投注建议。`;
-  }
 }
 
 /* ==================== 数据变更后统一刷新 ==================== */
@@ -971,11 +395,9 @@ function refreshAfterDataChange() {
   rebuildMergedDraws();
   renderHeader();
   populatePeriodSelect();
-  syncHistRangeLabel();
   renderToday();
   renderSyncPanel();
   renderQuickEntry();
-  scheduleReplay();
   scheduleCombinedReplay();
 }
 
@@ -1146,97 +568,53 @@ function bindEvents() {
     if ($('periodSelect')) $('periodSelect').value = 'NEXT';
     renderToday();
   });
-  on('btnCopyAll', 'click', () => {
+  const copyPlans = () => {
     const ctx = getPeriodContext();
-    copyText(formatFiveTickets(getThreePlan(ctx.target).five), '三组 7 码已复制');
-  });
-  on('btnCopyAllMobile', 'click', () => {
-    const ctx = getPeriodContext();
-    copyText(formatFiveTickets(getThreePlan(ctx.target).five), '三组 7 码已复制');
-  });
+    const p = combinedPlan(state.allDraws, ctx.target, getThreePlan(ctx.target));
+    const a = combined.includeRandom ? p.a : p.aPure;
+    copyText(`方案 A：${a.length ? a.map(pad2).join('、') : '无'}\n方案 B：${p.b.map(pad2).join('、')}`, '双方案已复制');
+  };
+  on('btnCopyAll', 'click', copyPlans);
+  on('btnCopyAllMobile', 'click', copyPlans);
   on('btnPrevPeriod', 'click', () => stepPeriod(1));
   on('btnNextPeriod', 'click', () => stepPeriod(-1));
-  on('fiveGrid', 'click', (e) => {
-    const copyBtn = e.target.closest('[data-copy-five]');
-    if (copyBtn) {
-      const plan = getThreePlan(getPeriodContext().target);
-      const entry = plan.five.find((x) => x.id === copyBtn.dataset.copyFive);
-      if (entry) copyText(formatSingleTicket(entry.numbers), `${entry.code} ${entry.name} 已复制`);
-    }
-  });
   on('heroShare', 'click', () => {
     copyText(window.location.href, '链接已复制 · 另一台设备打开就是同一组号码');
   });
 
-  /* 历史回放 */
-  on('btnMoreHist', 'click', () => {
-    replay.visible += REPLAY_PAGE;
-    renderReplayTable();
-  });
-  on('histRangeTabs', 'click', (e) => {
-    const btn = e.target.closest('.tab[data-range]');
-    if (!btn) return;
-    replay.filters.range = btn.dataset.range || 'all';
-    markRangeTab();
-    runReplay();
-  });
-  on('btnReplayRun', 'click', () => runReplay());
-  on('histFilter', 'change', (e) => {
-    replay.filters.hit = e.target.value || 'all';
-    replay.cursor = -1;
-    replay.visible = REPLAY_PAGE;
-    replay.filtered = applyReplayFilter();
-    renderReplayTable();
-  });
-
-  const jumpHit = (dir) => {
-    const list = replay.filtered;
-    if (!list.length) { showToast(replay.records.length ? '当前筛选下没有期次' : '请先点「▶ 重新计算」'); return; }
-    let idx = replay.cursor;
-    if (idx < 0 || idx >= list.length) idx = dir > 0 ? -1 : list.length;
-    for (let i = idx + dir; i >= 0 && i < list.length; i += dir) {
-      if (isWinRecord(list[i])) {
-        replay.cursor = i;
-        if (i >= replay.visible) replay.visible = Math.min(list.length, i + REPLAY_PAGE);
-        replay.expanded.add(list[i].draw.id);
-        renderReplayTable();
-        const tr = [...$('histBody').querySelectorAll('tr[data-draw-id]')].find((row) => row.dataset.drawId === list[i].draw.id);
-        if (tr) {
-          if (typeof tr.scrollIntoView === 'function') tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          tr.classList.add('row-flash');
-          setTimeout(() => tr.classList.remove('row-flash'), 1600);
-        }
-        return;
-      }
-    }
-    for (let i = dir > 0 ? list.length - 1 : 0; i >= 0 && i < list.length; i -= dir) {
-      if (isWinRecord(list[i])) {
-        replay.cursor = i;
-        if (i >= replay.visible) replay.visible = Math.min(list.length, i + REPLAY_PAGE);
-        replay.expanded.add(list[i].draw.id);
-        renderReplayTable();
-        showToast(dir > 0 ? '这已经是最新的一个命中了，已跳到最早的一个' : '这已经是最早的一个命中了，已跳到最新的一个');
-        return;
-      }
-    }
-    showToast('这个范围里没有中奖期');
+  /* 方案开关与回放 */
+  const setIncludeRandom = (checked) => {
+    combined.includeRandom = checked;
+    renderToday();
+    renderCombinedReplay();
   };
-  on('btnPrevHit', 'click', () => jumpHit(-1));
-  on('btnNextHit', 'click', () => jumpHit(1));
-  on('histBody', 'click', (e) => {
-    const tr = e.target.closest('tr[data-draw-id]');
-    const id = tr?.dataset.drawId;
-    if (!id) return;
-    if (replay.expanded.has(id)) {
-      replay.expanded.delete(id);
-    } else {
-      replay.expanded.add(id);
-    }
-    renderReplayTable();
-  });
-
-  on('dualBoard', 'change', (e) => { if (e.target.id === 'includeRandom') { combined.includeRandom = e.target.checked; renderToday(); } });
+  on('dualBoard', 'change', (e) => { if (e.target.id === 'includeRandom') setIncludeRandom(e.target.checked); });
+  on('historyIncludeRandom', 'change', (e) => setIncludeRandom(e.target.checked));
   on('combinedStrategy', 'change', () => renderCombinedReplay());
+  on('combinedBody', 'click', (e) => {
+    const row = e.target.closest('[data-replay-row]');
+    if (!row) return;
+    const button = row.querySelector('[data-replay-index]');
+    const index = Number(button.dataset.replayIndex);
+    const record = combined.records[index];
+    if (!record) return;
+    const tr = button.closest('tr');
+    if (button.getAttribute('aria-expanded') === 'true') {
+      tr.nextElementSibling?.remove();
+      button.setAttribute('aria-expanded', 'false');
+      button.textContent = '展开 ▾';
+      button.setAttribute('aria-label', `展开 ${record.draw.id} 推荐号码`);
+      return;
+    }
+    const key = selectedCombinedKey();
+    const nums = record.picks[key];
+    const hit = nums.includes(Number(record.draw.special));
+    const balls = nums.map(n => miniBallHtml(n, { hit: n === Number(record.draw.special) })).join('');
+    tr.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="4"><div class="fd-head">${key === 'b' ? '方案 B · 热冷精选' : '方案 A · 双工具共振'} <span class="fd-nums">${balls || '本期无推荐号码'}</span></div><div class="fd-line"><span class="badge ${hit ? 'hit' : 'miss'}">${hit ? '命中' : '未中'}</span> ${hit ? `命中特码 ${pad2(record.draw.special)} · 中 1 注` : `本期开奖号码 ${pad2(record.draw.special)} 不在推荐中`}</div></td></tr>`);
+    button.setAttribute('aria-expanded', 'true');
+    button.textContent = '收起 ▴';
+    button.setAttribute('aria-label', `收起 ${record.draw.id} 推荐号码`);
+  });
 
   /* 设置与缓存 */
   ['cfgStake', 'cfgOddsSpecial'].forEach((id) => {
@@ -1249,7 +627,6 @@ function bindEvents() {
       saveConfig();
       renderHeader();
       renderToday();
-      if (replay.records.length) renderReplayTable();
       renderCombinedReplay();
     });
   });
@@ -1258,7 +635,6 @@ function bindEvents() {
     saveConfig();
     renderHeader();
     renderToday();
-    if (replay.records.length) renderReplayTable();
     renderCombinedReplay();
     showToast('已恢复默认本金与赔率');
   });
@@ -1706,18 +1082,6 @@ async function runSync({ write = false, fix = false, silent = false } = {}) {
 }
 
 /* ==================== Service Worker / 缓存 ==================== */
-let replayTimer = null;
-function scheduleReplay() {
-  clearTimeout(replayTimer);
-  replayTimer = setTimeout(() => {
-    runReplay().catch((err) => {
-      console.error('[replay]', err);
-      const el = $('replayStatus');
-      if (el) el.textContent = `⚠ 回放计算失败：${err.message}`;
-    });
-  }, 120);
-}
-
 async function repairCache(opts = {}) {
   const { hard = false, message = '已清理旧缓存，正在重新载入…' } = opts;
   try {
@@ -1795,14 +1159,10 @@ function initApp() {
   applyShareParams();
   renderHeader();
   populatePeriodSelect();
-  syncHistRangeLabel();
   bindEvents();
   renderToday();
   renderSyncPanel();
   renderQuickEntry();
-  renderReplayTable();
-  const strategySelect = $('combinedStrategy');
-  strategySelect.innerHTML = Object.entries(STRATEGIES).map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
   scheduleCombinedReplay();
   registerServiceWorker();
 
@@ -1810,7 +1170,6 @@ function initApp() {
     showToast(`⚠ ${state.storageErrors[0]}`);
   }
 
-  scheduleReplay();
   autoCheckSyncQuietly();
 
   window.__APP_BOOTED__ = true;
