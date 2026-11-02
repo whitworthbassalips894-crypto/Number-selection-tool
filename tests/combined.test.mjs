@@ -42,3 +42,22 @@ test('无效开奖不进入回放，推荐只按特码命中', () => {
   assert.equal(r.picks.tool2.length, 21);
   assert.equal(new Set(r.picks.tool2).size, r.picks.tool2Unique.length);
 });
+
+test('A + B 两套下注合计，重叠号码按两注结算，随机开关只影响 A', () => {
+  const p = combinedPlan(db.draws, target);
+  assert.deepEqual(p.ab, [6,10,23,23,25,25,34,37,43]);
+  assert.deepEqual(p.abPure, [10,23,23,25,25,34,37,43]);
+  const draw = { id: '2026-306', year: 2026, periodNum: 306, date: '2026-11-02', numbers: [1,2,3,4,5,7], special: 23 };
+  const record = replayRecord(db.draws, draw);
+  assert.deepEqual(record.picks.ab, p.ab);
+  assert.deepEqual(record.picks.abPure, p.abPure);
+  const result = summarize([record], 'ab', 10, 48);
+  assert.equal(result.bets, 9);
+  assert.equal(result.hits, 2);
+  assert.equal(result.net, 870);
+  assert.equal(result.hitRate, 2 / 9);
+  const pure = summarize([record], 'abPure', 10, 48);
+  assert.equal(pure.bets, 8);
+  assert.equal(pure.hits, 2);
+  assert.equal(pure.net, 880);
+});

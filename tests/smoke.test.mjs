@@ -141,7 +141,7 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     }
     assert.match(status.textContent, /^✓/);
     const strategy = dom.window.document.getElementById('combinedStrategy');
-    assert.deepEqual([...strategy.options].map(o => o.value), ['a', 'b']);
+    assert.deepEqual([...strategy.options].map(o => o.value), ['a', 'b', 'ab']);
     const body = dom.window.document.getElementById('combinedBody');
     assert.equal(body.querySelectorAll('tr.main-row').length, INITIAL_DB.draws.length + 1); // 两期本地录入，减去一条无效底库
     assert.equal(dom.window.document.getElementById('yearlyBody').querySelectorAll('tr').length, 6);
@@ -173,6 +173,28 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     expand.click();
     assert.match(body.querySelector('.feat-detail').textContent, /方案 B/);
     assert.equal(body.querySelectorAll('.feat-detail .d-num').length, 5);
+    strategy.value = 'ab';
+    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.equal(dom.window.document.getElementById('historyRandomLabel').hidden, false);
+    assert.equal(dom.window.document.getElementById('combinedTerms').hidden, false);
+    let row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
+    const draw303 = INITIAL_DB.draws.find(d => d.id === '2026-303');
+    const plan303 = combinedPlan(INITIAL_DB.draws, draw303);
+    assert.match(row303.querySelector('.col-hits').textContent, /^命中 2\/8$/);
+    row303.click();
+    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.abPure);
+    assert.match(row303.nextElementSibling.textContent, /方案 A \+ 方案 B/);
+    assert.match(row303.nextElementSibling.textContent, /中 2 注/);
+    assert.equal(row303.nextElementSibling.querySelectorAll('.d-num.hit').length, 2);
+    const randomAB = dom.window.document.getElementById('historyIncludeRandom');
+    randomAB.checked = true;
+    randomAB.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
+    row303.click();
+    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.ab);
+    assert.equal(dom.window.document.getElementById('includeRandom').checked, true);
+    randomAB.checked = false;
+    randomAB.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
     strategy.value = 'a';
     strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
     assert.equal(dom.window.document.getElementById('historyIncludeRandom').checked, false);

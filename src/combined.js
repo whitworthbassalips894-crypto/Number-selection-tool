@@ -7,6 +7,8 @@ export const STRATEGIES = {
   a: '方案 A · 含🎲随机撞号',
   aPure: '方案 A · 剔除🎲随机撞号',
   b: '方案 B · 热+冷 5 码',
+  ab: '方案 A + 方案 B · 含随机',
+  abPure: '方案 A + 方案 B · 剔除随机',
   tool2: '工具 2 · 原版 21 注（重复号累计）',
   tool2Unique: '工具 2 · 三组去重',
   tool1: '工具 1 · 原版 12 码'
@@ -20,7 +22,10 @@ export function combinedPlan(draws, target, threePlan = null) {
   const a = twelve.numbers.filter(n => union.has(n));
   const aPure = a.filter(n => twelve.styles[n] !== 'random');
   const b = twelve.numbers.filter(n => ['hot', 'cold'].includes(twelve.styles[n]));
-  return { three, twelve, a, aPure, b, tool2: groups.flat(), tool2Unique: [...union].sort((a, b) => a - b), tool1: twelve.numbers };
+  // 两套方案各自下注；共同号在两套方案中各计一注，不能去重。
+  const ab = [...a, ...b].sort((x, y) => x - y);
+  const abPure = [...aPure, ...b].sort((x, y) => x - y);
+  return { three, twelve, a, aPure, b, ab, abPure, tool2: groups.flat(), tool2Unique: [...union].sort((a, b) => a - b), tool1: twelve.numbers };
 }
 
 export function replayRecord(draws, draw) {
