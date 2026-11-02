@@ -1511,8 +1511,13 @@ function renderSyncPanel() {
 const REMOTE_CANDIDATES = [
   DEFAULT_CONFIG.remoteSourceUrl,
   `https://api.allorigins.win/raw?url=${encodeURIComponent(DEFAULT_CONFIG.remoteSourceUrl)}`,
-  `https://corsproxy.io/?${encodeURIComponent(DEFAULT_CONFIG.remoteSourceUrl)}`
+  `https://corsproxy.io/?${encodeURIComponent(DEFAULT_CONFIG.remoteSourceUrl)}`,
+  // 阅读器代理：返回 Markdown 文本，解析器已兼容 **加粗** 标记
+  `https://r.jina.ai/${DEFAULT_CONFIG.remoteSourceUrl}`
 ];
+
+/** 仓库 Actions 页面：底库落后时引导用户手动触发同步 */
+const ACTIONS_URL = 'https://github.com/whitworthbassalips894-crypto/Number-selection-tool/actions';
 
 async function fetchRemoteSourceHtml(timeoutMs = 5000) {
   const attempts = [];
@@ -1593,7 +1598,8 @@ async function runSync({ write = false, fix = false, silent = false } = {}) {
         status.textContent = `底库最新 ${latest?.id || '—'}${latest?.date ? `（${latest.date}）` : ''}`
           + ` · 今天 ${lagNow.expectedId} ${lagNow.lagPeriods === 0 ? '已入库' : '未开奖（通常 21:40 后公布）'}`;
       } else {
-        status.textContent = `没有可追加的期次。${lagNow.message}`;
+        status.innerHTML = `没有可追加的期次。${escapeHtml(lagNow.message)}`
+          + ` <a href="${ACTIONS_URL}" target="_blank" rel="noopener">去 Actions 手动同步底库 →</a>`;
       }
       showToast(r.appendable.length
         ? `可补 ${r.appendable.length} 期，点「一键同步」`
@@ -1622,7 +1628,8 @@ async function runSync({ write = false, fix = false, silent = false } = {}) {
         + `<details class="audit-more"><summary>为什么浏览器抓不到上游</summary>`
         + `<ul class="audit-list"><li>${escapeHtml(remote.reason)}</li>`
         + remote.attempts.map((a) => `<li>${escapeHtml(a)}</li>`).join('')
-        + '</ul></details>';
+        + '</ul></details>'
+        + ` <a href="${ACTIONS_URL}" target="_blank" rel="noopener">去 Actions 手动同步底库 →</a>`;
       showToast(lag.ok && lag.stale ? `底库落后 ${lag.lagPeriods} 期` : '已是最新，无需同步');
       return;
     }
