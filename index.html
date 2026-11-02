@@ -7,22 +7,22 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="六合彩特码选号助手：每期推荐 3 组 7 码（1 个号 = 1 注，每组 7 注，3 组独立累计共 21 注，允许跨组重叠），附公平赔率、期望回报率与无未来函数逐期回放。" />
-  <title>六合彩 · 特码三组 7 码选号助手</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r1" />
-  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.11.02-r1" />
-  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.11.02-r1" />
-  <link rel="stylesheet" href="./assets/styles.css?v=2026.11.02-r1" />
+  <title>特码选号 · 双方案精选看板</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r2" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.11.02-r2" />
+  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.11.02-r2" />
+  <link rel="stylesheet" href="./assets/styles.css?v=2026.11.02-r2" />
 </head>
 <body>
   <header class="app-header">
     <div class="header-inner">
       <div class="brand-group">
-        <img src="./assets/icon.svg?v=2026.11.02-r1" alt="" class="brand-icon" />
+        <img src="./assets/icon.svg?v=2026.11.02-r2" alt="" class="brand-icon" />
         <div class="brand-text">
           <div class="brand-title">
-            特码 · 三组 7 码
+            特码 · 双方案精选
             <span class="brand-badge" id="dbBadge">加载中…</span>
-            <span class="build-tag" id="buildTag" title="构建版本号">v2026.11.02-r1</span>
+            <span class="build-tag" id="buildTag" title="构建版本号">v2026.11.02-r2</span>
           </div>
           <div class="brand-subtitle" id="latestLine">正在读取底库…</div>
         </div>
@@ -53,7 +53,40 @@
       </div>
     </section>
 
-    <!-- ① 数据同步（置顶：进页面先补最新开奖） -->
+    <!-- ② 今日号码（仅保留特码模块：推荐 3 组 7 码，允许跨组重叠） -->
+    <section id="today" class="page-section">
+      <div class="mode-banner" aria-label="当前玩法说明">
+        <span class="mode-dot"></span>
+        <span>特码（1 中 1）· 双方案精选</span>
+        <small>双工具共同号 × 热冷精选 · 原版详情可折叠查看</small>
+      </div>
+
+      <div class="card hero-card">
+        <div class="hero-top">
+          <div class="hero-tags">
+            <span class="period-pill" id="heroPeriod">—</span>
+            <span class="tag tag-gold" id="heroMeta">—</span>
+            <span class="tag tag-muted" id="heroShare" hidden>—</span>
+          </div>
+          <div class="hero-actions">
+            <select id="periodSelect" class="select-ctrl select-sm" aria-label="选择期数"></select>
+            <button type="button" class="btn btn-sm" id="btnPrevPeriod" title="更早一期">◀</button>
+            <button type="button" class="btn btn-sm" id="btnNextPeriod" title="更新一期">▶</button>
+            <button type="button" class="btn btn-sm" id="btnNext">下一期</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnCopyAll">📋 复制工具 2 三组</button>
+          </div>
+        </div>
+
+        <div id="dualBoard"></div>
+        <details class="fold source-details">
+          <summary>工具 2 原版三组 7 码详情 <span class="summary-note">21 注，重叠号码累计</span></summary>
+          <div class="fold-body"><div id="heroResult"></div><div id="consensusStrip"></div><div class="five-grid" id="fiveGrid"></div><p class="hint-line cost-line" id="featuredCostLine"></p></div>
+        </details>
+        <details class="fold source-details"><summary>工具 1 原版 12 码分类详情 <span class="summary-note">随机 / 热 / 冷 / 均衡</span></summary><div class="fold-body" id="tool1Details"></div></details>
+      </div>
+    </section>
+
+    <!-- 数据同步与快速录入 -->
     <section id="sync" class="page-section">
       <details class="fold" open>
         <summary>数据同步<span class="summary-note">一键补最新开奖</span></summary>
@@ -126,43 +159,23 @@
       </details>
     </section>
 
-    <!-- ② 今日号码（仅保留特码模块：推荐 3 组 7 码，允许跨组重叠） -->
-    <section id="today" class="page-section">
-      <div class="mode-banner" aria-label="当前玩法说明">
-        <span class="mode-dot"></span>
-        <span>特码（1 中 1）· 每日推荐 3 组 7 码</span>
-        <small>每组 7 注 · 3 组独立累计共 21 注 · 允许跨组重叠</small>
-      </div>
-
-      <div class="card hero-card">
-        <div class="hero-top">
-          <div class="hero-tags">
-            <span class="period-pill" id="heroPeriod">—</span>
-            <span class="tag tag-gold" id="heroMeta">—</span>
-            <span class="tag tag-muted" id="heroShare" hidden>—</span>
-          </div>
-          <div class="hero-actions">
-            <select id="periodSelect" class="select-ctrl select-sm" aria-label="选择期数"></select>
-            <button type="button" class="btn btn-sm" id="btnPrevPeriod" title="更早一期">◀</button>
-            <button type="button" class="btn btn-sm" id="btnNextPeriod" title="更新一期">▶</button>
-            <button type="button" class="btn btn-sm" id="btnNext">下一期</button>
-            <button type="button" class="btn btn-sm btn-primary" id="btnCopyAll">📋 复制号码</button>
-          </div>
-        </div>
-
-        <div id="heroResult"></div>
-        <div id="consensusStrip"></div>
-        <div class="five-grid" id="fiveGrid"></div>
-
-        <p class="hint-line cost-line" id="featuredCostLine"></p>
-      </div>
-    </section>
-
     <!-- ③ 历史回放 -->
     <section id="history" class="page-section">
       <div class="section-head">
         <h2><span class="sec-bar"></span>历史回放<span class="tag-lite">无未来信息</span></h2>
-        <div class="section-tools">
+
+      </div>
+
+      <div class="card combined-replay">
+        <div class="combined-replay-head"><div><h3>全量历史 · 分年回测</h3><p class="hint-line">仅使用开奖前历史，按特码结算；默认 10 元 / 注，48 倍赔率，可在设置中修改。</p></div>
+          <label>查看方案 <select id="combinedStrategy" class="select-ctrl select-sm" aria-label="回测方案"></select></label></div>
+        <div class="hint-line" id="combinedStatus">准备计算…</div>
+        <div class="table-scroll"><table class="history combined-table"><thead><tr><th>年份</th><th>期数</th><th>总注数</th><th>命中次数</th><th>单注命中率</th><th>净收益</th><th>ROI</th><th>最大回撤</th><th>最长连黑</th></tr></thead><tbody id="yearlyBody"></tbody></table></div>
+        <p class="hint-line">随机单注基准 1/49 = 2.041%。净收益 = 命中注数 × 本金 × 赔率 − 总注数 × 本金；最大回撤以期末累计净收益从此前峰值（含初始 0）计算，年度内重置，总计跨年连续计算。连黑按未命中期数计算。无效开奖不参与回测；历史表现不代表未来结果。</p>
+        <details class="fold source-details"><summary>逐期命中明细 <span class="summary-note">按所选方案，全量历史</span></summary><div class="fold-body"><div class="table-scroll"><table class="history combined-table"><thead><tr><th>期号 / 日期</th><th>推荐号码</th><th>特码</th><th>注数 / 命中</th><th>净收益</th></tr></thead><tbody id="combinedBody"></tbody></table></div></div></details>
+      </div>
+      <details class="fold source-details"><summary>工具 2 原版回放（范围筛选与逐组详情）</summary><div class="fold-body">
+              <div class="section-tools">
           <select id="histFilter" class="select-ctrl select-sm" aria-label="回放筛选">
             <option value="all">全部期次</option>
             <option value="hit">只看中奖（≥1 注）</option>
@@ -172,8 +185,6 @@
           <button type="button" class="btn btn-sm" id="btnNextHit" title="跳到下一期（更新）中奖">↓ 下一命中</button>
           <button type="button" class="btn btn-sm btn-primary" id="btnReplayRun">▶ 重新计算</button>
         </div>
-      </div>
-
       <div class="card">
         <div class="tabs" id="histRangeTabs" role="tablist" aria-label="回放范围">
           <button type="button" class="tab" data-range="30">近 30 期</button>
@@ -209,7 +220,7 @@
           <button type="button" class="btn" id="btnMoreHist">加载更多</button>
           <span class="hint-line" id="histCount"></span>
         </div>
-      </div>
+      </div></div></details>
     </section>
 
     <!-- ④ 设置（折叠） -->
@@ -234,12 +245,12 @@
             <button type="button" class="btn btn-sm" id="btnRepairCache">修复缓存（保留本地数据）</button>
             <button type="button" class="btn btn-sm btn-danger" id="btnResetServiceWorker">彻底重置（注销 SW）</button>
           </div>
-          <p class="hint-line" id="updateStatus">当前构建：v2026.11.02-r1</p>
+          <p class="hint-line" id="updateStatus">当前构建：v2026.11.02-r2</p>
         </div>
       </details>
 
       <p class="footer-note">
-        构建版本 <b id="buildTagFooter">v2026.11.02-r1</b> ·
+        构建版本 <b id="buildTagFooter">v2026.11.02-r2</b> ·
         彩票每期独立，任何选号方法都不改变命中概率；本站只做数据整理与娱乐参考，请理性对待、量力而行。
       </p>
     </section>
@@ -329,6 +340,6 @@
     })();
   </script>
 
-  <script type="module" src="./src/app.js?v=2026.11.02-r1"></script>
+  <script type="module" src="./src/app.js?v=2026.11.02-r2"></script>
 </body>
 </html>

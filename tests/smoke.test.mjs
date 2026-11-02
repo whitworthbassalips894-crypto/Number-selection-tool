@@ -71,6 +71,17 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     assert.equal(dom.window.__APP_BOOTED__, true, 'app.js 必须无错完成初始化');
     assert.equal(dom.window.document.getElementById('bootError').hidden, true);
 
+    // 双方案首屏：随机撞号开关与双方重叠核心同步更新
+    const board = dom.window.document.getElementById('dualBoard');
+    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), ['06','23','25','34']);
+    assert.deepEqual([...board.querySelectorAll('.plan-b .dual-number b')].map(x => x.textContent), ['10','23','25','37','43']);
+    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-shared b')].map(x => x.textContent), ['23','25']);
+    const toggle = dom.window.document.getElementById('includeRandom');
+    toggle.checked = false;
+    toggle.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), ['23','25','34']);
+
+
     // 快速录入：粘贴号码自动识别 6 正码 + 1 特码，正码升序，可保存到本机开奖
     const quickInput = dom.window.document.getElementById('quickPasteInput');
     quickInput.value = '08 14 23 26 31 45 + 12';
