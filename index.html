@@ -68,14 +68,14 @@
           </div>
           <div class="hint-line" id="syncStatus">读的是仓库里的 <code>data/draws.json</code>（Actions 每日自动抓取），只把缺失期号追加到本机，不改动内置底库。</div>
 
-          <!-- 快速录入开奖：点选 1–49 号码，自动识别 6 正码 + 1 特码 -->
+          <!-- 快速录入开奖：粘贴号码自动识别 6 正码 + 1 特码 -->
           <div class="quick-entry" id="quickEntry">
             <div class="quick-entry-head">
               <div class="quick-entry-title">
                 <span class="quick-entry-icon" aria-hidden="true">🎯</span>
                 <div>
                   <div class="quick-entry-name">快速录入开奖</div>
-                  <div class="quick-entry-sub">点号码就行 · 自动识别 1–49 · 正码自动升序 · 第 7 个号码为特码</div>
+                  <div class="quick-entry-sub">粘贴号码自动识别 1–49 · 正码自动升序 · 第 7 个号码为特码</div>
                 </div>
               </div>
               <div class="quick-entry-period">
@@ -92,12 +92,6 @@
               <button type="button" class="btn btn-sm" id="btnQuickDemo">示例</button>
               <button type="button" class="btn btn-sm" id="btnQuickClear">清空</button>
             </div>
-
-            <div class="quick-grid-head">
-              <span class="quick-grid-title">点选开奖号码</span>
-              <span class="quick-count" id="quickCount">已选 0 / 7</span>
-            </div>
-            <div class="quick-grid" id="quickGrid" role="group" aria-label="1 到 49 号点选"></div>
 
             <div class="quick-preview" id="quickPreview"></div>
 

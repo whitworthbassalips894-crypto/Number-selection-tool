@@ -13,7 +13,6 @@
  */
 
 import {
-  ALL_NUMBERS,
   APP_BUILD,
   APP_VERSION_LABEL,
   CACHE_PREFIX,
@@ -74,9 +73,10 @@ const replay = {
   }
 };
 
-/** 快速录入开奖：点选状态（按点选顺序，第 7 个号码即特码） */
+/** 快速录入开奖：解析后的 6 个正码 + 1 个特码 */
 const quickEntry = {
-  selected: [],
+  numbers: [],
+  special: null,
   msg: '',
   msgType: ''
 };
@@ -919,7 +919,7 @@ function stepPeriod(dir) {
   showToast(`已切换到 ${label}`);
 }
 
-/* ==================== 快速录入开奖（点选 1–49） ==================== */
+/* ==================== 快速录入开奖（粘贴自动识别 1–49） ==================== */
 
 function setQuickMsg(text, type = '') {
   quickEntry.msg = text || '';
@@ -933,79 +933,41 @@ function setQuickMsg(text, type = '') {
 function renderQuickPreview() {
   const el = $('quickPreview');
   if (!el) return;
-  const selected = quickEntry.selected;
-  if (!selected.length) {
-    el.innerHTML = '<span class="quick-preview-empty">点上面的号码，或把开奖号码粘到输入框自动识别。第 7 个号码会作为特码。</span>';
+  const { numbers, special } = quickEntry;
+  if (!numbers.length && special == null) {
+    el.innerHTML = '<span class="quick-preview-empty">把开奖号码粘贴到上面输入框，自动识别 6 正码 + 1 特码。</span>';
     return;
   }
-  const regular = selected.slice(0, 6).sort((a, b) => a - b);
-  const special = selected.length === 7 ? selected[6] : null;
-  const regularHtml = regular
+  const regularHtml = numbers
     .map((n) => `<span class="lotto-ball sm ${getColorForNumber(n)}" title="正码">${pad2(n)}</span>`)
     .join('');
   const specialHtml = special != null
     ? `<span class="ball-plus">+</span><span class="lotto-ball sm ${getColorForNumber(special)}" title="特码">${pad2(special)}</span>`
-    : `<span class="quick-preview-label">再选 ${7 - selected.length} 个，最后一个自动成为特码</span>`;
+    : `<span class="quick-preview-label">还差 ${7 - numbers.length} 个号码（需要 6 正码 + 1 特码）</span>`;
   el.innerHTML = `<span class="quick-preview-label">正码</span>${regularHtml}${specialHtml}`;
 }
 
 function renderQuickEntry() {
-  const grid = $('quickGrid');
-  if (!grid) return;
-
   const meta = getNextDrawMeta();
   const periodEl = $('quickPeriod');
   const dateEl = $('quickDate');
   if (periodEl) periodEl.textContent = `${meta.year}-${meta.period}`;
   if (dateEl) dateEl.textContent = meta.date;
-
-  const selected = quickEntry.selected;
-  grid.innerHTML = ALL_NUMBERS.map((n) => {
-    const color = getColorForNumber(n);
-    const idx = selected.indexOf(n);
-    const isSelected = idx >= 0;
-    const isSpecial = isSelected && idx === 6;
-    const order = isSelected ? (isSpecial ? '特' : String(idx + 1)) : '';
-    const label = isSelected
-      ? `${pad2(n)} 号${isSpecial ? '（特码）' : `（第 ${idx + 1} 个正码）`}`
-      : `${pad2(n)} 号`;
-    return `<button type="button" class="quick-num ${color}${isSelected ? ' selected' : ''}${isSpecial ? ' is-special' : ''}"`
-      + ` data-quick-num="${n}" aria-pressed="${isSelected}" aria-label="${label}" title="${label}">`
-      + `${pad2(n)}${order ? `<span class="qn-order">${order}</span>` : ''}</button>`;
-  }).join('');
-
-  const countEl = $('quickCount');
-  if (countEl) countEl.textContent = `已选 ${selected.length} / 7`;
-
   renderQuickPreview();
   setQuickMsg(quickEntry.msg, quickEntry.msgType);
 }
 
-function toggleQuickNumber(n) {
-  if (!Number.isInteger(n) || n < 1 || n > 49) return;
-  const idx = quickEntry.selected.indexOf(n);
-  if (idx >= 0) {
-    quickEntry.selected.splice(idx, 1);
-    setQuickMsg('', '');
-  } else if (quickEntry.selected.length >= 7) {
-    setQuickMsg('已选满 7 个号码（6 正码 + 1 特码），请先点掉一个再选', 'bad');
-    return;
-  } else {
-    quickEntry.selected.push(n);
-    setQuickMsg('', '');
-  }
-  renderQuickEntry();
-}
-
 function fillQuickEntry(numbers, special) {
-  // 正码按从小到大排列（与图片里的「自动升序排列」一致），特码保持最后一位
-  const regular = [...new Set(numbers.slice(0, 6))].sort((a, b) => a - b);
-  const selected = special != null ? [...regular, special] : regular.slice(0, 7);
-  quickEntry.selected = selected
-    .filter((n, i) => Number.isInteger(n) && n >= 1 && n <= 49 && selected.indexOf(n) === i)
-    .slice(0, 7);
+  // 正码按从小到大排列（与图片里的「自动升序排列」一致），特码单独保留
+  const regular = [...new Set(numbers.slice(0, 6))]
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 49)
+    .sort((a, b) => a - b);
+  quickEntry.numbers = regular;
+  quickEntry.special = Number.isInteger(special) && special >= 1 && special <= 49 && !regular.includes(special)
+    ? special
+    : null;
   renderQuickEntry();
-  return quickEntry.selected.length;
+  return quickEntry.numbers.length + (quickEntry.special != null ? 1 : 0);
 }
 
 function recognizeQuickInput() {
@@ -1031,7 +993,8 @@ function recognizeQuickInput() {
 
 function fillQuickDemo() {
   const meta = getNextDrawMeta();
-  quickEntry.selected = [8, 14, 23, 26, 31, 45, 12];
+  quickEntry.numbers = [8, 14, 23, 26, 31, 45];
+  quickEntry.special = 12;
   const input = $('quickPasteInput');
   if (input) input.value = `${meta.periodNum}期 ${meta.date} 08 14 23 26 31 45 + 12`;
   renderQuickEntry();
@@ -1039,7 +1002,8 @@ function fillQuickDemo() {
 }
 
 function clearQuickEntry() {
-  quickEntry.selected = [];
+  quickEntry.numbers = [];
+  quickEntry.special = null;
   const input = $('quickPasteInput');
   if (input) input.value = '';
   renderQuickEntry();
@@ -1048,7 +1012,7 @@ function clearQuickEntry() {
 
 function saveQuickEntry() {
   // 用户可能刚粘贴完就点保存：此时防抖还没回填，先从输入框再识别一次
-  if (quickEntry.selected.length !== 7) {
+  if (quickEntry.numbers.length !== 6 || quickEntry.special == null) {
     const input = $('quickPasteInput');
     const text = input ? input.value.trim() : '';
     if (text) {
@@ -1056,8 +1020,8 @@ function saveQuickEntry() {
       if (parsed.special != null) fillQuickEntry(parsed.numbers, parsed.special);
     }
   }
-  if (quickEntry.selected.length !== 7) {
-    setQuickMsg(`还差 ${7 - quickEntry.selected.length} 个号码：需要 6 正码 + 1 特码`, 'bad');
+  if (quickEntry.numbers.length !== 6 || quickEntry.special == null) {
+    setQuickMsg('还差 6 正码 + 1 特码：请把 7 个号码粘贴到输入框后点「识别」', 'bad');
     return;
   }
   const meta = getNextDrawMeta();
@@ -1065,8 +1029,8 @@ function saveQuickEntry() {
     year: meta.year,
     periodNum: meta.periodNum,
     date: meta.date,
-    numbers: quickEntry.selected.slice(0, 6).sort((a, b) => a - b),
-    special: quickEntry.selected[6]
+    numbers: quickEntry.numbers,
+    special: quickEntry.special
   });
   if (!record) {
     setQuickMsg('号码不符合规则：必须是 1–49 且不重复的 7 个号码', 'bad');
@@ -1078,7 +1042,8 @@ function saveQuickEntry() {
   }
   state.localDraws = mergeDraws(state.localDraws, [record]).merged;
   saveLocalDraws();
-  quickEntry.selected = [];
+  quickEntry.numbers = [];
+  quickEntry.special = null;
   const input = $('quickPasteInput');
   if (input) input.value = '';
   refreshAfterDataChange();
@@ -1240,12 +1205,7 @@ function bindEvents() {
   on('btnSyncNow', 'click', () => runSync({ write: true }));
   on('btnSyncFix', 'click', () => runSync({ write: false, fix: true }));
 
-  /* 快速录入开奖（点选 1–49 + 文本自动识别） */
-  on('quickGrid', 'click', (e) => {
-    const btn = e.target.closest('[data-quick-num]');
-    if (!btn) return;
-    toggleQuickNumber(Number(btn.dataset.quickNum));
-  });
+  /* 快速录入开奖（粘贴自动识别 1–49） */
   on('btnQuickRecognize', 'click', recognizeQuickInput);
   on('btnQuickDemo', 'click', fillQuickDemo);
   on('btnQuickClear', 'click', clearQuickEntry);
