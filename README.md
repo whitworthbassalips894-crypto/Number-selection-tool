@@ -66,6 +66,8 @@ npx http-server . -a 0.0.0.0 -p 8080 -c-1
 npm run sync
 ```
 
+> **自动每日同步**：需要 `.github/workflows/sync-draws.yml`（由 `ci/sync-draws.yml` 安装）。工作流每天 21:45 起抓取上游开奖并写回 `data/draws.json` / `data/draws.js`。如果底库落后，页面「一键同步」会提示去 Actions 手动触发；浏览器也会依次尝试直连、allorigins、corsproxy、r.jina.ai 兜底抓取上游。
+
 ---
 
 ## 理性声明

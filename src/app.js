@@ -1523,10 +1523,12 @@ async function fetchRemoteSourceHtml(timeoutMs = 5000) {
   const attempts = [];
   for (const u of REMOTE_CANDIDATES) {
     const short = u.length > 60 ? `${u.slice(0, 57)}…` : u;
+    // 阅读器代理要现场抓取并转换页面，给足 12 秒
+    const perTry = u.includes('r.jina.ai') ? Math.max(timeoutMs, 12000) : timeoutMs;
     let timer = null;
     try {
       const ctrl = new AbortController();
-      timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      timer = setTimeout(() => ctrl.abort(), perTry);
       const res = await fetch(new URL(u, window.location.href).toString(), { cache: 'no-store', signal: ctrl.signal });
       if (!res.ok) {
         attempts.push(`${short} → HTTP ${res.status}`);
@@ -1536,7 +1538,7 @@ async function fetchRemoteSourceHtml(timeoutMs = 5000) {
       if (text?.includes('期(开奖时间:')) return { html: text, reason: '', attempts };
       attempts.push(`${short} → 页面里找不到开奖记录（站点结构可能变了）`);
     } catch (err) {
-      const msg = err?.name === 'AbortError' ? `超时 ${timeoutMs}ms` : (err?.message || '网络错误');
+      const msg = err?.name === 'AbortError' ? `超时 ${perTry}ms` : (err?.message || '网络错误');
       attempts.push(`${short} → ${msg}`);
     } finally {
       if (timer) clearTimeout(timer);
