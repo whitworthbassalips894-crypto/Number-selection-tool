@@ -224,3 +224,26 @@ test('parseQuickDrawInput 忽略占位说明里的号码范围（1-49 / 1-80）'
   assert.deepEqual(other.numbers, [2, 8, 9, 13, 14, 31]);
   assert.equal(other.special, 45);
 });
+
+test('parsePlainTextDraws 兼容阅读器/代理返回的 Markdown 加粗格式', () => {
+  const text = `**305** 期(开奖时间:2026-11-01)
+
+31 **鼠**
+
+49 **马**
+
+29 **虎**
+
+44 **猪**
+
+18 **牛**
+
+40 **兔**
+
+26 **蛇**`;
+  const parsed = parseDrawsInput(text);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].id, '2026-305');
+  assert.deepEqual(parsed[0].numbers, [31, 49, 29, 44, 18, 40]);
+  assert.equal(parsed[0].special, 26);
+});

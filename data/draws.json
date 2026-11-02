@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-29T20:48:45.087Z",
+  "updatedAt": "2026-11-02T06:09:48.710Z",
   "source": "https://2026kj.zkclhb.com:2025/am.html",
-  "totalCount": 1763,
-  "latestId": "2026-302",
-  "latestDate": "2026-10-29",
+  "totalCount": 1766,
+  "latestId": "2026-305",
+  "latestDate": "2026-11-01",
   "years": [
     2026,
     2025,
@@ -12,6 +12,108 @@
     2022
   ],
   "draws": [
+    {
+      "id": "2026-305",
+      "year": 2026,
+      "period": "305",
+      "periodNum": 305,
+      "date": "2026-11-01",
+      "numbers": [
+        31,
+        49,
+        29,
+        44,
+        18,
+        40
+      ],
+      "special": 26,
+      "colors": [
+        "blue",
+        "green",
+        "red",
+        "green",
+        "red",
+        "red",
+        "blue"
+      ],
+      "zodiacs": [
+        "鼠",
+        "马",
+        "虎",
+        "猪",
+        "牛",
+        "兔",
+        "蛇"
+      ]
+    },
+    {
+      "id": "2026-304",
+      "year": 2026,
+      "period": "304",
+      "periodNum": 304,
+      "date": "2026-10-31",
+      "numbers": [
+        23,
+        24,
+        10,
+        43,
+        13,
+        36
+      ],
+      "special": 21,
+      "colors": [
+        "red",
+        "red",
+        "blue",
+        "green",
+        "red",
+        "blue",
+        "green"
+      ],
+      "zodiacs": [
+        "猴",
+        "羊",
+        "鸡",
+        "鼠",
+        "马",
+        "羊",
+        "狗"
+      ]
+    },
+    {
+      "id": "2026-303",
+      "year": 2026,
+      "period": "303",
+      "periodNum": 303,
+      "date": "2026-10-30",
+      "numbers": [
+        8,
+        28,
+        40,
+        3,
+        38,
+        49
+      ],
+      "special": 17,
+      "colors": [
+        "red",
+        "green",
+        "red",
+        "blue",
+        "green",
+        "green",
+        "green"
+      ],
+      "zodiacs": [
+        "猪",
+        "兔",
+        "兔",
+        "龙",
+        "蛇",
+        "马",
+        "虎"
+      ]
+    },
     {
       "id": "2026-302",
       "year": 2026,

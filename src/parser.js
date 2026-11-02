@@ -172,9 +172,12 @@ export function parsePlainTextDraws(text, options = {}) {
   const defaultYear = options.defaultYear || 2026;
   const results = [];
 
+  // 兼容阅读器/代理返回的 Markdown（如 **305** 期(...)）：去掉粗体标记后再解析
+  const normalizedText = text.replace(/\*\*/g, '');
+
   // 形态 1：网页直接复制的含 "XXX期(开奖时间:YYYY-MM-DD)" 段落
   const blockHeaderRegex = /(\d{1,3})\s*期\s*[（(]\s*开奖时间[:：]\s*(\d{4}-\d{1,2}-\d{1,2})\s*[)）]/g;
-  const headers = [...text.matchAll(blockHeaderRegex)];
+  const headers = [...normalizedText.matchAll(blockHeaderRegex)];
 
   if (headers.length > 0) {
     for (let i = 0; i < headers.length; i++) {
@@ -183,8 +186,8 @@ export function parsePlainTextDraws(text, options = {}) {
       const date = normalizeDateString(curr[2]);
       const year = Number(date.slice(0, 4));
       const sliceStart = curr.index + curr[0].length;
-      const sliceEnd = i + 1 < headers.length ? headers[i + 1].index : text.length;
-      const body = text.slice(sliceStart, sliceEnd);
+      const sliceEnd = i + 1 < headers.length ? headers[i + 1].index : normalizedText.length;
+      const body = normalizedText.slice(sliceStart, sliceEnd);
 
       const numMatches = [...body.matchAll(/\b(0?[1-9]|[1-4]\d)\b/g)].map((m) => Number(m[1]));
       if (numMatches.length >= 7) {
@@ -203,7 +206,7 @@ export function parsePlainTextDraws(text, options = {}) {
   }
 
   // 形态 2：逐行解析手工/简写输入
-  const lines = text
+  const lines = normalizedText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
