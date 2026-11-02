@@ -363,14 +363,18 @@ async function runCombinedReplay() {
 }
 
 function selectedCombinedKey() {
-  return $('combinedStrategy').value === 'b' ? 'b' : (combined.includeRandom ? 'a' : 'aPure');
+  const selection = $('combinedStrategy').value;
+  if (selection === 'b') return 'b';
+  if (selection === 'ab') return combined.includeRandom ? 'ab' : 'abPure';
+  return combined.includeRandom ? 'a' : 'aPure';
 }
 
 function renderCombinedReplay() {
   const select = $('combinedStrategy');
   if (!select) return;
   $('historyIncludeRandom').checked = combined.includeRandom;
-  $('historyRandomLabel').hidden = select.value !== 'a';
+  $('historyRandomLabel').hidden = select.value === 'b';
+  $('combinedTerms').hidden = select.value !== 'ab';
   if (!combined.records.length) return;
   const key = selectedCombinedKey(), stake = currentStake(), odds = currentOdds();
   const currency = n => `${n > 0 ? '+' : ''}${n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元`;
@@ -382,10 +386,11 @@ function renderCombinedReplay() {
   $('yearlyBody').innerHTML = years.map(y => row(y, combined.records.filter(r => r.draw.year === y))).join('') + row('总计', combined.records);
   $('combinedCount').textContent = `共 ${combined.records.length} 期`;
   $('combinedBody').innerHTML = combined.records.map((r, index) => {
-    const nums = r.picks[key], hit = nums.includes(Number(r.draw.special));
+    const nums = r.picks[key], hits = nums.filter(n => n === Number(r.draw.special)).length;
+    const hit = hits > 0;
     const normalBalls = r.draw.numbers.map(n => miniBallHtml(n, { normalBall: true })).join('');
     const specialBall = miniBallHtml(r.draw.special, { special: true, hit });
-    return `<tr class="main-row${hit ? ' row-win' : ''}" data-replay-row="${index}"><td class="col-period">${escapeHtml(r.draw.id)}<small>${escapeHtml(r.draw.date || '')}</small></td><td class="col-draw"><div class="draw-balls">${normalBalls}<span class="d-sep"></span>${specialBall}</div></td><td class="col-hits"><span class="tk-pill${hit ? ' win' : ''}">${hit ? '命中' : '未中'} ${hit ? 1 : 0}/${nums.length}</span></td><td class="col-expand"><button type="button" class="replay-expand" data-replay-index="${index}" aria-expanded="false" aria-label="展开 ${escapeHtml(r.draw.id)} 推荐号码">展开 ▾</button></td></tr>`;
+    return `<tr class="main-row${hit ? ' row-win' : ''}" data-replay-row="${index}"><td class="col-period">${escapeHtml(r.draw.id)}<small>${escapeHtml(r.draw.date || '')}</small></td><td class="col-draw"><div class="draw-balls">${normalBalls}<span class="d-sep"></span>${specialBall}</div></td><td class="col-hits"><span class="tk-pill${hit ? ' win' : ''}">${hit ? '命中' : '未中'} ${hits}/${nums.length}</span></td><td class="col-expand"><button type="button" class="replay-expand" data-replay-index="${index}" aria-expanded="false" aria-label="展开 ${escapeHtml(r.draw.id)} 推荐号码">展开 ▾</button></td></tr>`;
   }).join('');
 }
 
@@ -608,9 +613,11 @@ function bindEvents() {
     }
     const key = selectedCombinedKey();
     const nums = record.picks[key];
-    const hit = nums.includes(Number(record.draw.special));
+    const hits = nums.filter(n => n === Number(record.draw.special)).length;
+    const hit = hits > 0;
+    const label = key === 'b' ? '方案 B · 热冷精选' : key === 'ab' || key === 'abPure' ? '方案 A + 方案 B · 重叠号码各计一注' : '方案 A · 双工具共振';
     const balls = nums.map(n => miniBallHtml(n, { hit: n === Number(record.draw.special) })).join('');
-    tr.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="4"><div class="fd-head">${key === 'b' ? '方案 B · 热冷精选' : '方案 A · 双工具共振'} <span class="fd-nums">${balls || '本期无推荐号码'}</span></div><div class="fd-line"><span class="badge ${hit ? 'hit' : 'miss'}">${hit ? '命中' : '未中'}</span> ${hit ? `命中特码 ${pad2(record.draw.special)} · 中 1 注` : `本期开奖号码 ${pad2(record.draw.special)} 不在推荐中`}</div></td></tr>`);
+    tr.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="4"><div class="fd-head">${label} <span class="fd-nums">${balls || '本期无推荐号码'}</span></div><div class="fd-line"><span class="badge ${hit ? 'hit' : 'miss'}">${hit ? '命中' : '未中'}</span> ${hit ? `命中特码 ${pad2(record.draw.special)} · 中 ${hits} 注` : `本期开奖号码 ${pad2(record.draw.special)} 不在推荐中`}</div></td></tr>`);
     button.setAttribute('aria-expanded', 'true');
     button.textContent = '收起 ▴';
     button.setAttribute('aria-label', `收起 ${record.draw.id} 推荐号码`);
