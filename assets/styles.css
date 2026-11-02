@@ -291,6 +291,74 @@ tr.row-flash > td { animation: rowFlash 1.6s ease-out; }
 .fold-sub > summary { font-size: 0.82rem; padding: 10px 12px; color: var(--muted); }
 .fold-sub .fold-body { padding: 0 12px 12px; }
 
+/* ---------------- 快速录入开奖（点选 1–49） ---------------- */
+.quick-entry {
+  margin-top: 12px; padding: 14px; border-radius: 12px;
+  background: linear-gradient(180deg, #fffdf7 0%, #fff 62%);
+  border: 1px solid #f0e2b6; box-shadow: var(--shadow-sm);
+}
+.quick-entry-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.quick-entry-title { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.quick-entry-icon { font-size: 1.2rem; line-height: 1; }
+.quick-entry-name { font-weight: 800; font-size: 0.95rem; }
+.quick-entry-sub { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.quick-entry-period { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+.quick-entry-period b { color: var(--gold-deep); font-size: 0.95rem; }
+.quick-date { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.quick-paste-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.quick-paste-input { flex: 1 1 220px; min-width: 0; }
+.quick-grid-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 13px 0 7px; }
+.quick-grid-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+.quick-count {
+  font-size: 0.75rem; font-weight: 800; color: var(--gold-deep);
+  background: var(--gold-soft); border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+}
+.quick-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.quick-num {
+  position: relative; aspect-ratio: 1 / 1; min-width: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 10px; border: 1px solid var(--line); background: #fff;
+  font-size: 0.88rem; font-weight: 800; cursor: pointer; color: var(--ink);
+  transition: transform 0.1s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-num:active { transform: scale(0.94); }
+.quick-num.red { color: #b91c1c; background: #fff5f5; border-color: #f3d2d2; }
+.quick-num.blue { color: #1d4ed8; background: #f3f7ff; border-color: #d3e0fb; }
+.quick-num.green { color: #047857; background: #f2fdf9; border-color: #c9ecdf; }
+.quick-num.selected { color: #fff; border-color: transparent; box-shadow: 0 3px 8px rgba(15, 23, 42, 0.22); }
+.quick-num.selected.red { background: var(--wave-red); }
+.quick-num.selected.blue { background: var(--wave-blue); }
+.quick-num.selected.green { background: var(--wave-green); }
+.quick-num.is-special { outline: 3px solid var(--gold); outline-offset: 1px; }
+.quick-num .qn-order {
+  position: absolute; top: -5px; left: -5px; min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: 999px; background: #0f172a; color: #fff; font-size: 0.58rem; font-weight: 900;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+  border: 1px solid #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+}
+.quick-num.is-special .qn-order { background: var(--gold-deep); }
+.quick-preview {
+  margin-top: 11px; min-height: 54px; padding: 9px 11px; border-radius: 10px;
+  background: #f8fafc; border: 1px dashed var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+}
+.quick-preview-empty { font-size: 0.78rem; color: var(--muted); }
+.quick-preview-label { font-size: 0.72rem; font-weight: 800; color: var(--muted); }
+.quick-preview .lotto-ball { width: 34px; height: 34px; font-size: 0.82rem; }
+.quick-preview .ball-plus { font-size: 0.9rem; }
+.quick-entry-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 11px; }
+.quick-msg { font-size: 0.76rem; font-weight: 700; }
+.quick-msg.good { color: var(--green); }
+.quick-msg.bad { color: var(--hot); }
+@media (max-width: 520px) {
+  .quick-entry { padding: 11px; }
+  .quick-grid { gap: 4px; }
+  .quick-num { border-radius: 8px; font-size: 0.8rem; }
+  .quick-num .qn-order { min-width: 14px; height: 14px; font-size: 0.52rem; top: -4px; left: -4px; }
+  .quick-entry-actions .btn { flex: 1 1 auto; }
+}
+
 /* ==================== ③ 历史回放 ==================== */
 .tabs { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 10px; }
 .tab {

@@ -7,7 +7,8 @@ import {
   normalizeDrawRecord,
   parseAmHtml,
   parseDrawsInput,
-  parsePlainTextDraws
+  parsePlainTextDraws,
+  parseQuickDrawInput
 } from '../src/parser.js';
 
 test('normalizeDateString pads single-digit month and day', () => {
@@ -154,4 +155,72 @@ test('parseDrawsInput 解析出的记录日期都必须是合法日期', () => {
   for (const rec of parsed) {
     assert.ok(isValidISODate(rec.date), `日期必须合法：${rec.date}`);
   }
+});
+
+test('parseQuickDrawInput 自动识别 1–49 号码（忽略日期 / 期号 / 生肖 / 标签）', () => {
+  const cases = [
+    {
+      text: '05 14 23 31 38 45 + 08',
+      numbers: [5, 14, 23, 31, 38, 45],
+      special: 8
+    },
+    {
+      text: '第303期 2026-10-30 05 14 23 31 38 45 08',
+      numbers: [5, 14, 23, 31, 38, 45],
+      special: 8
+    },
+    {
+      text: '2026-304期 2026-10-31: 02, 11, 19, 27, 35, 44, 09',
+      numbers: [2, 11, 19, 27, 35, 44],
+      special: 9
+    },
+    {
+      text: '303期(开奖时间:2026-10-30)\n08\n猪\n14\n蛇\n23\n猴\n26\n蛇\n31\n鼠\n45\n狗\n12\n羊',
+      numbers: [8, 14, 23, 26, 31, 45],
+      special: 12
+    },
+    {
+      text: '开奖号码：０５ １４ ２３ ３１ ３８ ４５ ＋ ０８',
+      numbers: [5, 14, 23, 31, 38, 45],
+      special: 8
+    }
+  ];
+
+  for (const c of cases) {
+    const parsed = parseQuickDrawInput(c.text);
+    assert.deepEqual(parsed.numbers, c.numbers, `正码解析错误：${c.text}`);
+    assert.equal(parsed.special, c.special, `特码解析错误：${c.text}`);
+  }
+});
+
+test('parseQuickDrawInput 去重、过滤 1–49 之外的数字，并忽略多余号码', () => {
+  const parsed = parseQuickDrawInput('2026-10-30 第305期 05 14 23 31 38 45 08 05 49 50 00');
+  assert.deepEqual(parsed.numbers, [5, 14, 23, 31, 38, 45]);
+  assert.equal(parsed.special, 8);
+  assert.ok(parsed.ignored > 0, '多余号码应被计入 ignored');
+
+  const noPlus = parseQuickDrawInput('01 02 03 04 05 06 07');
+  assert.deepEqual(noPlus.numbers, [1, 2, 3, 4, 5, 6]);
+  assert.equal(noPlus.special, 7);
+
+  const tooFew = parseQuickDrawInput('05 14 23 31 38 45');
+  assert.deepEqual(tooFew.numbers, [5, 14, 23, 31, 38, 45]);
+  assert.equal(tooFew.special, null);
+});
+
+test('parseQuickDrawInput 特码与正码重复时不会凑出重复号码', () => {
+  const parsed = parseQuickDrawInput('05 14 23 31 38 45 + 45');
+  assert.equal(parsed.special, null, '特码与正码重复时应判定为无效');
+  const fallback = parseQuickDrawInput('05 14 23 31 38 45 + 45 12');
+  assert.equal(fallback.special, 12, '应顺延取 + 后面不重复的号码');
+  assert.ok(!fallback.numbers.includes(fallback.special), '特码不能出现在正码里');
+});
+
+test('parseQuickDrawInput 忽略占位说明里的号码范围（1-49 / 1-80）', () => {
+  const parsed = parseQuickDrawInput('输入或粘贴当期 7 个开奖号码（1-49，空格/逗号/顿号分隔，自动升序排列），如：02、08、09、13、14、31、45');
+  assert.deepEqual(parsed.numbers, [2, 8, 9, 13, 14, 31]);
+  assert.equal(parsed.special, 45);
+  const other = parseQuickDrawInput('输入或粘贴当期 20 个开奖号码（1-80，空格/逗号/顿号分隔），如：02 08 09 13 14 31 45');
+  assert.deepEqual(other.numbers, [2, 8, 9, 13, 14, 31]);
+  assert.equal(other.special, 45);
 });
