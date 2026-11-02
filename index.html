@@ -8,27 +8,28 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="六合彩特码选号助手：每期推荐 3 组 7 码（1 个号 = 1 注，每组 7 注，3 组独立累计共 21 注，允许跨组重叠），附公平赔率、期望回报率与无未来函数逐期回放。" />
   <title>六合彩 · 特码三组 7 码选号助手</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=2026.10.30-r1" />
-  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.10.30-r1" />
-  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.10.30-r1" />
-  <link rel="stylesheet" href="./assets/styles.css?v=2026.10.30-r1" />
+  <link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r1" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.11.02-r1" />
+  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.11.02-r1" />
+  <link rel="stylesheet" href="./assets/styles.css?v=2026.11.02-r1" />
 </head>
 <body>
   <header class="app-header">
     <div class="header-inner">
       <div class="brand-group">
-        <img src="./assets/icon.svg?v=2026.10.30-r1" alt="" class="brand-icon" />
+        <img src="./assets/icon.svg?v=2026.11.02-r1" alt="" class="brand-icon" />
         <div class="brand-text">
           <div class="brand-title">
             特码 · 三组 7 码
             <span class="brand-badge" id="dbBadge">加载中…</span>
-            <span class="build-tag" id="buildTag" title="构建版本号">v2026.10.30-r1</span>
+            <span class="build-tag" id="buildTag" title="构建版本号">v2026.11.02-r1</span>
           </div>
           <div class="brand-subtitle" id="latestLine">正在读取底库…</div>
         </div>
       </div>
       <nav class="anchor-nav" aria-label="本页导航">
         <a href="#sync">同步</a>
+        <a href="#quickEntry">录入</a>
         <a href="#today">推荐</a>
         <a href="#history">回放</a>
         <a href="#more">设置</a>
@@ -67,11 +68,50 @@
           </div>
           <div class="hint-line" id="syncStatus">读的是仓库里的 <code>data/draws.json</code>（Actions 每日自动抓取），只把缺失期号追加到本机，不改动内置底库。</div>
 
-          <!-- 补位工具（粘贴导入 / 本机开奖）默认收起：一键同步才是第一屏的事 -->
+          <!-- 快速录入开奖：点选 1–49 号码，自动识别 6 正码 + 1 特码 -->
+          <div class="quick-entry" id="quickEntry">
+            <div class="quick-entry-head">
+              <div class="quick-entry-title">
+                <span class="quick-entry-icon" aria-hidden="true">🎯</span>
+                <div>
+                  <div class="quick-entry-name">快速录入开奖</div>
+                  <div class="quick-entry-sub">点号码就行 · 自动识别 1–49 · 正码自动升序 · 第 7 个号码为特码</div>
+                </div>
+              </div>
+              <div class="quick-entry-period">
+                <span class="quick-period-label">下一期</span>
+                <b id="quickPeriod">—</b>
+                <span class="quick-date" id="quickDate">—</span>
+              </div>
+            </div>
+
+            <div class="quick-paste-row">
+              <input type="text" id="quickPasteInput" class="input-ctrl quick-paste-input"
+                placeholder="输入或粘贴当期 7 个开奖号码（1–49，空格/逗号/顿号分隔，正码自动升序），如：02 08 09 13 14 31 + 45" autocomplete="off" />
+              <button type="button" class="btn btn-sm" id="btnQuickRecognize">识别</button>
+              <button type="button" class="btn btn-sm" id="btnQuickDemo">示例</button>
+              <button type="button" class="btn btn-sm" id="btnQuickClear">清空</button>
+            </div>
+
+            <div class="quick-grid-head">
+              <span class="quick-grid-title">点选开奖号码</span>
+              <span class="quick-count" id="quickCount">已选 0 / 7</span>
+            </div>
+            <div class="quick-grid" id="quickGrid" role="group" aria-label="1 到 49 号点选"></div>
+
+            <div class="quick-preview" id="quickPreview"></div>
+
+            <div class="quick-entry-actions">
+              <button type="button" class="btn btn-primary" id="btnQuickSave">✓ 保存到本机开奖</button>
+              <span class="quick-msg" id="quickMsg"></span>
+            </div>
+          </div>
+
+          <!-- 批量粘贴导入 / 本机开奖（兜底工具，默认收起） -->
           <details class="fold fold-sub">
-            <summary>粘贴导入 / 本机开奖</summary>
+            <summary>批量粘贴导入 / 本机开奖</summary>
             <div class="fold-body">
-              <textarea id="pasteBox" class="textarea-ctrl" placeholder="粘贴开奖文本兜底，如「302期 2026-10-29 05 14 23 31 38 45 + 08」"></textarea>
+              <textarea id="pasteBox" class="textarea-ctrl" placeholder="批量粘贴开奖文本兜底，如「302期 2026-10-29 05 14 23 31 38 45 + 08」"></textarea>
               <div class="sync-actions">
                 <button type="button" class="btn btn-sm" id="btnPastePreview">解析预览</button>
                 <button type="button" class="btn btn-sm btn-primary" id="btnPasteMerge">✓ 追加缺失期</button>
@@ -200,12 +240,12 @@
             <button type="button" class="btn btn-sm" id="btnRepairCache">修复缓存（保留本地数据）</button>
             <button type="button" class="btn btn-sm btn-danger" id="btnResetServiceWorker">彻底重置（注销 SW）</button>
           </div>
-          <p class="hint-line" id="updateStatus">当前构建：v2026.10.30-r1</p>
+          <p class="hint-line" id="updateStatus">当前构建：v2026.11.02-r1</p>
         </div>
       </details>
 
       <p class="footer-note">
-        构建版本 <b id="buildTagFooter">v2026.10.30-r1</b> ·
+        构建版本 <b id="buildTagFooter">v2026.11.02-r1</b> ·
         彩票每期独立，任何选号方法都不改变命中概率；本站只做数据整理与娱乐参考，请理性对待、量力而行。
       </p>
     </section>
@@ -295,6 +335,6 @@
     })();
   </script>
 
-  <script type="module" src="./src/app.js?v=2026.10.30-r1"></script>
+  <script type="module" src="./src/app.js?v=2026.11.02-r1"></script>
 </body>
 </html>

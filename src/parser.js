@@ -268,6 +268,99 @@ export function parsePlainTextDraws(text, options = {}) {
 }
 
 /**
+ * 快速录入：把任意文本洗成「只留 1–49 号码」的串
+ *
+ * 自动剔除日期（2026-10-29 / 2026年10月29日）、期号（第 297 期 / 2026-297）、
+ * 时间、生肖与「开奖号码 / 特码 / 正码」等标签，避免把 2026、10、29 这类
+ * 非开奖数字误当成号码。全角数字会先转成半角。
+ * @param {string} text
+ * @returns {string}
+ */
+export function normalizeQuickDrawText(text) {
+  return String(text ?? '')
+    .replace(/[\uFF10-\uFF19]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[＋]/g, '+')
+    .replace(/[，、；;|／]/g, ' ')
+    .replace(/[：]/g, ' ')
+    // 日期：2026-10-29 / 2026/10/29 / 2026年10月29日
+    .replace(/\d{4}\s*[-/.年]\s*\d{1,2}\s*[-/.月]\s*\d{1,2}\s*日?/g, ' ')
+    // 年份+期号：2026-297 / 2026297
+    .replace(/\b20\d{2}\s*[-/]?\s*\d{3}\b/g, ' ')
+    // 号码范围说明（如「（1-49，」「1-80个」）不是开奖号码
+    .replace(/[（(]\s*\d{1,2}\s*[-–—~至]\s*\d{1,2}/g, ' ')
+    .replace(/\d{1,2}\s*[-–—~至]\s*\d{1,2}\s*(个|码|号)/g, ' ')
+    // 数量说明（如「7 个开奖号码」「20 个」）不是开奖号码
+    .replace(/\d{1,2}\s*个/g, ' ')
+    // 期号：第 297 期 / 297期
+    .replace(/第?\s*\d{1,3}\s*期/g, ' ')
+    // 时间：12:30
+    .replace(/\d{1,2}\s*:\s*\d{2}/g, ' ')
+    // 生肖与常见标签
+    .replace(/[鼠牛虎兔龙蛇马羊猴鸡狗猪]/g, ' ')
+    .replace(/(开奖时间|开奖日期|开奖号码|开奖结果|特码|正码|平码|号码|日期|时间|期号|星期|期|号|球)/g, ' ');
+}
+
+/**
+ * 从清洗后的文本里按出现顺序抽取不重复的 1–49 号码
+ * @param {string} cleaned
+ * @returns {number[]}
+ */
+function extractNumbersFromCleaned(cleaned) {
+  const out = [];
+  const seen = new Set();
+  for (const m of String(cleaned).matchAll(/\d{1,3}/g)) {
+    const n = Number(m[0]);
+    if (!Number.isInteger(n) || n < 1 || n > 49 || seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
+/**
+ * 快速录入解析：从一段任意文本里识别「6 正码 + 1 特码」
+ *
+ * 识别规则（与工具玩法一致）：
+ *  - 号码范围固定 1–49，重复号码自动去重；
+ *  - 有「+」分隔时优先把 + 后面的第一个号码当特码（如 `05 14 23 31 38 45 + 08`）；
+ *  - 没有「+」时按出现顺序取前 7 个，第 7 个即特码；
+ *  - 日期、期号、生肖、标签等干扰内容会被忽略。
+ * @param {string} text
+ * @returns {{ numbers: number[], special: number|null, ignored: number }}
+ */
+export function parseQuickDrawInput(text) {
+  const cleaned = normalizeQuickDrawText(text);
+  let regular = [];
+  let special = null;
+  let ignored = 0;
+
+  const plusIndex = cleaned.lastIndexOf('+');
+  if (plusIndex >= 0) {
+    const headNums = extractNumbersFromCleaned(cleaned.slice(0, plusIndex));
+    const tailNums = extractNumbersFromCleaned(cleaned.slice(plusIndex + 1));
+    if (headNums.length >= 6 && tailNums.length >= 1) {
+      regular = headNums.slice(0, 6);
+      // 特码不能与正码重复；若重复则顺延取 + 后面下一个不重复的号码
+      special = tailNums.find((n) => !regular.includes(n)) ?? null;
+      ignored = (headNums.length - 6) + Math.max(0, tailNums.length - 1);
+    }
+  }
+
+  if (special == null) {
+    const all = extractNumbersFromCleaned(cleaned);
+    if (all.length >= 7) {
+      regular = all.slice(0, 6);
+      special = all[6];
+      ignored = all.length - 7;
+    } else {
+      regular = all.slice(0, 6);
+    }
+  }
+
+  return { numbers: regular, special, ignored };
+}
+
+/**
  * 自动识别并解析任意输入（JSON / HTML 源码 / 网页纯文本 / 手工行）
  * @param {string|object} input
  * @param {{ defaultYear?: number }} [options]
