@@ -45,6 +45,7 @@ import {
   safeSet
 } from './storage.js';
 import INITIAL_DB from '../data/draws.js';
+import { combinedPlan, replayRecord, summarize, STRATEGIES } from './combined.js';
 
 const PERIOD_SELECT_LIMIT = 120;
 const REPLAY_PAGE = 40;
@@ -99,6 +100,8 @@ function applyReplayFilter(records = replay.records) {
 }
 
 const planCache = new Map();
+const combined = { includeRandom: true, records: [], token: 0 };
+
 
 /* ==================== 小工具 ==================== */
 
@@ -474,6 +477,7 @@ function renderToday() {
   const ctx = getPeriodContext();
   const plan = getThreePlan(ctx.target);
   const t = ctx.target;
+  renderDualBoard(ctx, plan);
   const cfg = betConfig();
   const odds = currentOdds();
   const baseline = specialBaseline();
@@ -557,6 +561,82 @@ function renderToday() {
       `本期覆盖 ${cov.distinct} 个号，至少中 1 注 <b>${formatPercent(cov.anyHit, 3)}</b>`
     ].join(' · ');
   }
+}
+
+/* 双方案与独立全量回测 */
+function renderDualBoard(ctx, threePlan) {
+  const p = combinedPlan(state.allDraws, ctx.target, threePlan);
+  const a = combined.includeRandom ? p.a : p.aPure;
+  const shared = new Set(a.filter(n => p.b.includes(n)));
+  const balls = (numbers, scheme) => numbers.length ? numbers.map(n => {
+    const tag = scheme === 'a' && p.twelve.styles[n] === 'random' ? '🎲' :
+      scheme === 'b' ? (p.twelve.styles[n] === 'hot' ? '🔥热' : '🎯冷') : '';
+    return `<span class="dual-number${shared.has(n) ? ' dual-shared' : ''}"><b>${pad2(n)}</b>${tag ? `<small>${tag}</small>` : ''}</span>`;
+  }).join('') : '<span class="hint-line">本期没有共同号（0 注）</span>';
+  const result = nums => ctx.draw ? ` · 特码 ${pad2(ctx.draw.special)} ${nums.includes(Number(ctx.draw.special)) ? '✓ 命中' : '未命中'}` : '';
+  $('dualBoard').innerHTML = `<div class="dual-heading"><div><span class="dual-eyebrow">SPECIAL NUMBER / TWO PLANS</span><h2>双方案精选看板</h2><p>两种方案同时呈现 · 金色描边为 A、B 重叠核心号</p></div><span class="dual-core">共同核心 ${shared.size ? [...shared].map(pad2).join(' · ') : '暂无'}</span></div>
+    <div class="dual-grid"><article class="dual-card plan-a"><span class="plan-label">PLAN A · 双工具共振</span><h3>双工具共振共同号</h3><p>工具 1 的 12 码 ∩ 工具 2 三组去重并集</p><div class="dual-balls">${balls(a, 'a')}</div><div class="dual-meta">${a.length} 注${result(a)}</div><label class="random-toggle"><input type="checkbox" id="includeRandom" ${combined.includeRandom ? 'checked' : ''}> 包含 🎲 随机撞号 <small>关闭则只留纯精选共振</small></label></article>
+    <article class="dual-card plan-b"><span class="plan-label">PLAN B · 热冷精选</span><h3>工具 1 热 + 冷精选</h3><p>🔥 热号 3 码 + 🎯 冷号 2 码</p><div class="dual-balls">${balls(p.b, 'b')}</div><div class="dual-meta">${p.b.length} 注${result(p.b)}</div></article></div>
+    <p class="dual-disclaimer">每号 1 注 · 号码仅供参考，任何选号方法均不能改变单注 1/49 的理论命中概率。</p>`;
+  $('tool1Details').innerHTML = p.twelve.breakdown.map(group => `<div class="source-row"><strong>${group.icon} ${escapeHtml(group.name)} ${group.count} 码</strong><span>${group.numbers.map(pad2).join('　')}</span></div>`).join('') + `<p class="hint-line">完整清单：${p.tool1.map(pad2).join('、')} · 固定随机盐 0</p>`;
+}
+
+let combinedTimer;
+function scheduleCombinedReplay() {
+  ++combined.token;
+  clearTimeout(combinedTimer);
+  combined.records = [];
+  $('yearlyBody').innerHTML = '';
+  $('combinedBody').innerHTML = '';
+  $('combinedStatus').textContent = '准备计算全量历史…';
+  combinedTimer = setTimeout(() => {
+    if (typeof document === 'undefined') return;
+    runCombinedReplay().catch(err => {
+      console.error('[combined replay]', err);
+      const status = $('combinedStatus');
+      if (status) status.textContent = `回测计算失败：${err.message}`;
+    });
+  }, 1800);
+}
+
+async function runCombinedReplay() {
+  const token = ++combined.token;
+  const draws = state.allDraws;
+  combined.records = [];
+  $('yearlyBody').innerHTML = '';
+  $('combinedBody').innerHTML = '';
+  const records = [];
+  for (let i = 0; i < draws.length; i += 8) {
+    if (token !== combined.token || typeof document === 'undefined') return;
+    for (const d of draws.slice(i, i + 8)) {
+      const record = replayRecord(draws, d);
+      if (record) records.push(record);
+    }
+    $('combinedStatus').textContent = `正在回放 ${Math.min(i + 8, draws.length)} / ${draws.length} 期…`;
+    await new Promise(r => setTimeout(r, 0));
+  }
+  if (token !== combined.token || typeof document === 'undefined') return;
+  combined.records = records;
+  $('combinedStatus').textContent = `✓ 全量回放 ${records.length} 期，隔离 ${draws.length - records.length} 期无效开奖；最早期历史不足时使用引擎原生兜底。`;
+  renderCombinedReplay();
+}
+
+function renderCombinedReplay() {
+  const select = $('combinedStrategy');
+  if (!select || !select.value || !combined.records.length) return;
+  const key = select.value, stake = currentStake(), odds = currentOdds();
+  const currency = n => `${n > 0 ? '+' : ''}${n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元`;
+  const row = (label, records) => {
+    const v = summarize(records, key, stake, odds);
+    return `<tr><th>${label}</th><td>${v.periods}</td><td>${v.bets}</td><td>${v.hits}</td><td>${(v.hitRate * 100).toFixed(3)}%</td><td>${currency(v.net)}</td><td>${(v.roi * 100).toFixed(2)}%</td><td>${currency(v.maxDrawdown)}</td><td>${v.longestLosing} 期</td></tr>`;
+  };
+  const years = [...new Set([2022, 2023, 2024, 2025, 2026, ...combined.records.map(r => r.draw.year)])].sort((a,b) => a-b);
+  $('yearlyBody').innerHTML = years.map(y => row(y, combined.records.filter(r => r.draw.year === y))).join('') + row('总计', combined.records);
+  $('combinedBody').innerHTML = combined.records.map(r => {
+    const nums = r.picks[key], hits = nums.filter(n => n === Number(r.draw.special)).length;
+    const net = stake * (hits * odds - nums.length);
+    return `<tr><td>${escapeHtml(r.draw.id)}<br><small>${escapeHtml(r.draw.date || '')}</small></td><td>${nums.map(n => n === Number(r.draw.special) ? `<b class="history-hit">${pad2(n)}</b>` : pad2(n)).join(' ') || '—'}</td><td>${pad2(r.draw.special)}</td><td>${nums.length} / ${hits}</td><td>${currency(net)}</td></tr>`;
+  }).join('');
 }
 
 /* ==================== 渲染：③ 历史回放 ==================== */
@@ -896,6 +976,7 @@ function refreshAfterDataChange() {
   renderSyncPanel();
   renderQuickEntry();
   scheduleReplay();
+  scheduleCombinedReplay();
 }
 
 function stepPeriod(dir) {
@@ -1154,6 +1235,9 @@ function bindEvents() {
     renderReplayTable();
   });
 
+  on('dualBoard', 'change', (e) => { if (e.target.id === 'includeRandom') { combined.includeRandom = e.target.checked; renderToday(); } });
+  on('combinedStrategy', 'change', () => renderCombinedReplay());
+
   /* 设置与缓存 */
   ['cfgStake', 'cfgOddsSpecial'].forEach((id) => {
     on(id, 'input', () => {
@@ -1166,6 +1250,7 @@ function bindEvents() {
       renderHeader();
       renderToday();
       if (replay.records.length) renderReplayTable();
+      renderCombinedReplay();
     });
   });
   on('btnResetCfg', 'click', () => {
@@ -1174,6 +1259,7 @@ function bindEvents() {
     renderHeader();
     renderToday();
     if (replay.records.length) renderReplayTable();
+    renderCombinedReplay();
     showToast('已恢复默认本金与赔率');
   });
   on('btnCheckUpdate', 'click', async () => {
@@ -1715,6 +1801,9 @@ function initApp() {
   renderSyncPanel();
   renderQuickEntry();
   renderReplayTable();
+  const strategySelect = $('combinedStrategy');
+  strategySelect.innerHTML = Object.entries(STRATEGIES).map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
+  scheduleCombinedReplay();
   registerServiceWorker();
 
   if (state.storageErrors.length) {
