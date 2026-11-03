@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import INITIAL_DB from '../data/draws.js';
 import { combinedPlan } from '../src/combined.js';
+import { nextPeriodMeta } from '../src/periods.js';
 
 const ROOT = process.cwd();
 
@@ -24,7 +25,7 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     'quickEntry', 'quickPeriod', 'quickDate', 'quickPasteInput', 'btnQuickRecognize', 'btnQuickDemo', 'btnQuickClear',
     'quickPreview', 'btnQuickSave', 'quickMsg',
     'heroPeriod', 'heroMeta', 'heroShare', 'periodSelect', 'btnPrevPeriod', 'btnNextPeriod', 'btnNext', 'btnCopyAll',
-    'dualBoard', 'combinedStrategy', 'historyIncludeRandom', 'combinedStatus', 'yearlyBody', 'combinedBody', 'combinedCount',
+    'dualBoard', 'combinedStrategy', 'combinedStatus', 'yearlyBody', 'combinedBody', 'combinedCount',
     'cfgStake', 'cfgOddsSpecial', 'btnResetCfg', 'cfgOddsNote',
     'btnCheckUpdate', 'btnRepairCache', 'btnResetServiceWorker', 'updateStatus',
     'btnCopyAllMobile', 'toastContainer'
@@ -68,16 +69,23 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     assert.equal(dom.window.__APP_BOOTED__, true, 'app.js 必须无错完成初始化');
     assert.equal(dom.window.document.getElementById('bootError').hidden, true);
 
-    // 双方案首屏：随机撞号开关与双方重叠核心同步更新
+    // NEXT 根据最新底库计算，方案 A 永久剔除随机号。
     const board = dom.window.document.getElementById('dualBoard');
-    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), ['06','23','25','34']);
-    assert.deepEqual([...board.querySelectorAll('.plan-b .dual-number b')].map(x => x.textContent), ['10','23','25','37','43']);
-    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-shared b')].map(x => x.textContent), ['23','25']);
-    const toggle = dom.window.document.getElementById('includeRandom');
-    toggle.checked = false;
-    toggle.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    const next = combinedPlan(INITIAL_DB.draws, nextPeriodMeta(INITIAL_DB.draws[0]));
+    const pad = n => String(n).padStart(2, '0');
+    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), next.a.map(pad));
+    assert.deepEqual([...board.querySelectorAll('.plan-b .dual-number b')].map(x => x.textContent), next.b.map(pad));
+    assert.deepEqual([...board.querySelectorAll('.plan-a .dual-shared b')].map(x => x.textContent), next.a.filter(n => next.b.includes(n)).map(pad));
+    assert.match(board.querySelector('.plan-a p').textContent, /工具 1 精选 9 码（已剔除随机号）/);
+    assert.equal(dom.window.document.getElementById('includeRandom'), null);
+    assert.equal(dom.window.document.getElementById('historyIncludeRandom'), null);
+    // 内置底库含 306 期时，历史期也应稳定显示给定验算基准。
+    const selector = dom.window.document.getElementById('periodSelect');
+    selector.value = '2026-306';
+    selector.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
     assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), ['23','25','34']);
-
+    assert.deepEqual([...board.querySelectorAll('.plan-b .dual-number b')].map(x => x.textContent), ['10','23','25','37','43']);
+    dom.window.document.getElementById('btnNext').click();
 
     // 快速录入：粘贴号码自动识别 6 正码 + 1 特码，正码升序，可保存到本机开奖
     const quickInput = dom.window.document.getElementById('quickPasteInput');
@@ -150,10 +158,11 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     assert.equal(dom.window.document.getElementById('histBody'), null);
     assert.doesNotMatch(body.textContent, /元|¥/);
     const row305 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-305'));
-    const plan305 = combinedPlan(INITIAL_DB.draws, INITIAL_DB.draws[0]);
+    const draw305 = INITIAL_DB.draws.find(d => d.id === '2026-305');
+    const plan305 = combinedPlan(INITIAL_DB.draws, draw305);
     row305.click();
-    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.aPure);
-    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.aPure.includes(INITIAL_DB.draws[0].special));
+    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.a);
+    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.a.includes(draw305.special));
     row305.click();
     const firstRow = body.querySelector('tr.main-row');
     assert.equal(firstRow.querySelectorAll('.d-num').length, 7);
@@ -168,40 +177,25 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     assert.equal(body.querySelector('.feat-detail'), null);
     strategy.value = 'b';
     strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('historyRandomLabel').hidden, true);
     expand = body.querySelector('button');
     expand.click();
     assert.match(body.querySelector('.feat-detail').textContent, /方案 B/);
     assert.equal(body.querySelectorAll('.feat-detail .d-num').length, 5);
     strategy.value = 'ab';
     strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('historyRandomLabel').hidden, false);
     assert.equal(dom.window.document.getElementById('combinedTerms').hidden, false);
     let row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
     const draw303 = INITIAL_DB.draws.find(d => d.id === '2026-303');
     const plan303 = combinedPlan(INITIAL_DB.draws, draw303);
     assert.match(row303.querySelector('.col-hits').textContent, /^命中 2\/8$/);
     row303.click();
-    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.abPure);
+    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.ab);
     assert.match(row303.nextElementSibling.textContent, /方案 A \+ 方案 B/);
     assert.match(row303.nextElementSibling.textContent, /中 2 注/);
     assert.equal(row303.nextElementSibling.querySelectorAll('.d-num.hit').length, 2);
-    const randomAB = dom.window.document.getElementById('historyIncludeRandom');
-    randomAB.checked = true;
-    randomAB.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
-    row303.click();
-    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.ab);
-    assert.equal(dom.window.document.getElementById('includeRandom').checked, true);
-    randomAB.checked = false;
-    randomAB.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    strategy.value = 'a';
-    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('historyIncludeRandom').checked, false);
-    const historyToggle = dom.window.document.getElementById('historyIncludeRandom');
-    historyToggle.checked = true;
-    historyToggle.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('includeRandom').checked, true);
+    assert.equal(dom.window.document.getElementById('includeRandom'), null);
+    assert.equal(dom.window.document.getElementById('historyIncludeRandom'), null);
+    assert.ok(plan303.ab.every(n => plan303.twelve.styles[n] !== 'random'));
   } finally {
     for (const k of keys) {
       if (prevGlobals[k] === undefined) delete globalThis[k];
