@@ -43,7 +43,7 @@ const quickEntry = {
 };
 
 const planCache = new Map();
-const combined = { includeRandom: true, records: [], token: 0 };
+const combined = { records: [], token: 0 };
 
 
 /* ==================== 小工具 ==================== */
@@ -306,16 +306,15 @@ function renderToday() {
 /* 双方案与独立全量回测 */
 function renderDualBoard(ctx, threePlan) {
   const p = combinedPlan(state.allDraws, ctx.target, threePlan);
-  const a = combined.includeRandom ? p.a : p.aPure;
+  const a = p.a;
   const shared = new Set(a.filter(n => p.b.includes(n)));
   const balls = (numbers, scheme) => numbers.length ? numbers.map(n => {
-    const tag = scheme === 'a' && p.twelve.styles[n] === 'random' ? '🎲' :
-      scheme === 'b' ? (p.twelve.styles[n] === 'hot' ? '🔥热' : '🎯冷') : '';
+    const tag = scheme === 'b' ? (p.twelve.styles[n] === 'hot' ? '🔥热' : '🎯冷') : '';
     return `<span class="dual-number${shared.has(n) ? ' dual-shared' : ''}"><b>${pad2(n)}</b>${tag ? `<small>${tag}</small>` : ''}</span>`;
   }).join('') : '<span class="hint-line">本期没有共同号（0 注）</span>';
   const result = nums => ctx.draw ? ` · 特码 ${pad2(ctx.draw.special)} ${nums.includes(Number(ctx.draw.special)) ? '✓ 命中' : '未命中'}` : '';
   $('dualBoard').innerHTML = `<div class="dual-heading"><div><span class="dual-eyebrow">SPECIAL NUMBER / TWO PLANS</span><h2>双方案精选看板</h2><p>两种方案同时呈现 · 金色描边为 A、B 重叠核心号</p></div><span class="dual-core">共同核心 ${shared.size ? [...shared].map(pad2).join(' · ') : '暂无'}</span></div>
-    <div class="dual-grid"><article class="dual-card plan-a"><span class="plan-label">PLAN A · 双工具共振</span><h3>双工具共振共同号</h3><p>工具 1 的 12 码 ∩ 工具 2 三组去重并集</p><div class="dual-balls">${balls(a, 'a')}</div><div class="dual-meta">${a.length} 注${result(a)}</div><label class="random-toggle"><input type="checkbox" id="includeRandom" ${combined.includeRandom ? 'checked' : ''}> 包含 🎲 随机撞号 <small>关闭则只留纯精选共振</small></label></article>
+    <div class="dual-grid"><article class="dual-card plan-a"><span class="plan-label">PLAN A · 双工具共振</span><h3>双工具共振共同号</h3><p>工具 1 精选 9 码（已剔除随机号） ∩ 工具 2 三组去重并集</p><div class="dual-balls">${balls(a, 'a')}</div><div class="dual-meta">${a.length} 注${result(a)}</div></article>
     <article class="dual-card plan-b"><span class="plan-label">PLAN B · 热冷精选</span><h3>工具 1 热 + 冷精选</h3><p>🔥 热号 3 码 + 🎯 冷号 2 码</p><div class="dual-balls">${balls(p.b, 'b')}</div><div class="dual-meta">${p.b.length} 注${result(p.b)}</div></article></div>
     <p class="dual-disclaimer">每号 1 注 · 号码仅供参考，任何选号方法均不能改变单注 1/49 的理论命中概率。</p>`;
 
@@ -363,17 +362,12 @@ async function runCombinedReplay() {
 }
 
 function selectedCombinedKey() {
-  const selection = $('combinedStrategy').value;
-  if (selection === 'b') return 'b';
-  if (selection === 'ab') return combined.includeRandom ? 'ab' : 'abPure';
-  return combined.includeRandom ? 'a' : 'aPure';
+  return $('combinedStrategy').value;
 }
 
 function renderCombinedReplay() {
   const select = $('combinedStrategy');
   if (!select) return;
-  $('historyIncludeRandom').checked = combined.includeRandom;
-  $('historyRandomLabel').hidden = select.value === 'b';
   $('combinedTerms').hidden = select.value !== 'ab';
   if (!combined.records.length) return;
   const key = selectedCombinedKey(), stake = currentStake(), odds = currentOdds();
@@ -576,7 +570,7 @@ function bindEvents() {
   const copyPlans = () => {
     const ctx = getPeriodContext();
     const p = combinedPlan(state.allDraws, ctx.target, getThreePlan(ctx.target));
-    const a = combined.includeRandom ? p.a : p.aPure;
+    const a = p.a;
     copyText(`方案 A：${a.length ? a.map(pad2).join('、') : '无'}\n方案 B：${p.b.map(pad2).join('、')}`, '双方案已复制');
   };
   on('btnCopyAll', 'click', copyPlans);
@@ -587,14 +581,7 @@ function bindEvents() {
     copyText(window.location.href, '链接已复制 · 另一台设备打开就是同一组号码');
   });
 
-  /* 方案开关与回放 */
-  const setIncludeRandom = (checked) => {
-    combined.includeRandom = checked;
-    renderToday();
-    renderCombinedReplay();
-  };
-  on('dualBoard', 'change', (e) => { if (e.target.id === 'includeRandom') setIncludeRandom(e.target.checked); });
-  on('historyIncludeRandom', 'change', (e) => setIncludeRandom(e.target.checked));
+  /* 方案选择与回放 */
   on('combinedStrategy', 'change', () => renderCombinedReplay());
   on('combinedBody', 'click', (e) => {
     const row = e.target.closest('[data-replay-row]');
@@ -615,7 +602,7 @@ function bindEvents() {
     const nums = record.picks[key];
     const hits = nums.filter(n => n === Number(record.draw.special)).length;
     const hit = hits > 0;
-    const label = key === 'b' ? '方案 B · 热冷精选' : key === 'ab' || key === 'abPure' ? '方案 A + 方案 B · 重叠号码各计一注' : '方案 A · 双工具共振';
+    const label = key === 'b' ? '方案 B · 热冷精选' : key === 'ab' ? '方案 A + 方案 B · 重叠号码各计一注' : '方案 A · 双工具共振';
     const balls = nums.map(n => miniBallHtml(n, { hit: n === Number(record.draw.special) })).join('');
     tr.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="4"><div class="fd-head">${label} <span class="fd-nums">${balls || '本期无推荐号码'}</span></div><div class="fd-line"><span class="badge ${hit ? 'hit' : 'miss'}">${hit ? '命中' : '未中'}</span> ${hit ? `命中特码 ${pad2(record.draw.special)} · 中 ${hits} 注` : `本期开奖号码 ${pad2(record.draw.special)} 不在推荐中`}</div></td></tr>`);
     button.setAttribute('aria-expanded', 'true');
