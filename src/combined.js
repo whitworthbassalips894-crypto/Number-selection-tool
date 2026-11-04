@@ -4,6 +4,7 @@ import { generateDailyFive as tool2 } from './dailyfive.js';
 import { isUsableDraw } from './audit.js';
 
 export const STRATEGIES = {
+  opt: '优选实战 · A∪B去重 + 滤近4特码',
   a: '方案 A · 双工具共振（剔除随机）',
   b: '方案 B · 热+冷 5 码',
   ab: '方案 A + 方案 B',
@@ -12,16 +13,31 @@ export const STRATEGIES = {
   tool1: '工具 1 · 原版 12 码'
 };
 
+/** 仅保留严格早于目标期且可用的开奖，并按期号倒序排列。 */
+export function validPriorDraws(draws, target) {
+  return draws
+    .filter(d => d && (d.year < target.year || (d.year === target.year && d.periodNum < target.periodNum)) && isUsableDraw(d))
+    .sort((x, y) => y.year - x.year || y.periodNum - x.periodNum);
+}
+
 export function combinedPlan(draws, target, threePlan = null) {
-  const three = threePlan || tool2(draws, target);
-  const twelve = tool1(draws, target, { mode: 'special', randomSalt: 0 }).five[0];
+  // 两个引擎仅接收按期号倒序的有效历史，避免未指定日期时读取未来最新期的日期。
+  // threePlan 是调用方以同一目标期和有效历史预先计算的工具 2 结果。
+  const prior = validPriorDraws(draws, target);
+  const three = threePlan || tool2(prior, target);
+  const twelve = tool1(prior, target, { mode: 'special', randomSalt: 0 }).five[0];
   const groups = three.five.map(e => e.numbers);
   const union = new Set(groups.flat());
   const a = twelve.numbers.filter(n => twelve.styles[n] !== 'random' && union.has(n));
   const b = twelve.numbers.filter(n => ['hot', 'cold'].includes(twelve.styles[n]));
   // 两套方案各自下注；共同号在两套方案中各计一注，不能去重。
   const ab = [...a, ...b];
-  return { three, twelve, a, b, ab, tool2: groups.flat(), tool2Unique: [...union].sort((a, b) => a - b), tool1: twelve.numbers };
+  const recentSpecials4 = prior.slice(0, 4).map(d => Number(d.special));
+  const recentSet = new Set(recentSpecials4);
+  const abDedup = [...new Set([...a, ...b])].sort((x, y) => x - y);
+  const opt = abDedup.filter(n => !recentSet.has(n));
+  const droppedRecent4 = abDedup.filter(n => recentSet.has(n));
+  return { three, twelve, a, b, ab, opt, droppedRecent4, recentSpecials4, tool2: groups.flat(), tool2Unique: [...union].sort((a, b) => a - b), tool1: twelve.numbers };
 }
 
 export function replayRecord(draws, draw) {

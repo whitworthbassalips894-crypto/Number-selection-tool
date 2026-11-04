@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import db from '../data/draws.js';
-import { combinedPlan, replayRecord, summarize } from '../src/combined.js';
+import { combinedPlan, replayRecord, summarize, validPriorDraws } from '../src/combined.js';
 import { generateDailyFive as original1 } from '../src/tool1/dailyfive.js';
 
 const target = { year: 2026, periodNum: 306, date: '2026-11-02' };
@@ -59,4 +59,88 @@ test('A + B 固定剔除随机号，重叠号码按两注结算', () => {
   assert.equal(result.hits, 2);
   assert.equal(result.net, 880);
   assert.equal(result.hitRate, 2 / 8);
+});
+
+test('优选仅过滤最近四期有效特码，去重且不读取当期或未来', () => {
+  const t = { year: 2026, periodNum: 306, date: '2026-11-02' };
+  const prior = db.draws.filter(d => d.year < t.year || (d.year === t.year && d.periodNum < t.periodNum));
+  const p = combinedPlan(prior, t);
+  assert.deepEqual(p.recentSpecials4, [26, 21, 17, 45]);
+  const unique = [...new Set([...p.a, ...p.b])].sort((a, b) => a - b);
+  assert.deepEqual(p.opt, unique.filter(n => !p.recentSpecials4.includes(n)));
+  assert.deepEqual(p.droppedRecent4, unique.filter(n => p.recentSpecials4.includes(n)));
+  assert.equal(new Set(p.opt).size, p.opt.length);
+  assert.ok(p.opt.every(n => !p.recentSpecials4.includes(n)));
+
+  const invalid = { ...prior[0], numbers: [1, 1, 2, 3, 4, 5], special: 49 };
+  const replaced = [invalid, ...prior.slice(1)];
+  const withInvalid = combinedPlan(replaced, t);
+  assert.deepEqual(withInvalid.recentSpecials4, [21, 17, 45, 17]);
+  assert.ok(withInvalid.opt.every(n => !withInvalid.recentSpecials4.includes(n)));
+  const recentDraws = prior.slice(0, 3);
+  assert.deepEqual(combinedPlan(recentDraws, t).recentSpecials4, [26, 21, 17]);
+  assert.deepEqual(combinedPlan([], t).recentSpecials4, []);
+
+  const withFuture = [...prior, ...db.draws.filter(d => d.year > t.year || (d.year === t.year && d.periodNum >= t.periodNum))];
+  const shuffled = combinedPlan(withFuture, t);
+  assert.deepEqual(shuffled.opt, p.opt);
+  assert.deepEqual(shuffled.recentSpecials4, p.recentSpecials4);
+  assert.deepEqual(shuffled.droppedRecent4, p.droppedRecent4);
+  const undated = { year: t.year, periodNum: t.periodNum };
+  const futureWithDifferentYear = { ...db.draws[0], year: 2027, periodNum: 1, date: '2027-02-10' };
+  assert.deepEqual(combinedPlan([futureWithDifferentYear, ...prior], undated).opt, combinedPlan(prior, undated).opt);
+});
+
+test('截至 2026-307 的优选回测：有效历史与原版口径分别验算', () => {
+  // 固定截止期，后续自动追加的开奖不影响此基准。
+  const draws = db.draws.filter(d => d.year < 2026 || (d.year === 2026 && d.periodNum <= 307));
+  assert.ok(draws.some(d => d.year === 2026 && d.periodNum === 307), '底库必须包含基准截止期');
+  assert.deepEqual(combinedPlan(draws, { year: 2026, periodNum: 308, date: '2026-11-04' }).opt, [3,10,16,17,20,46,48]);
+  const records = draws.map(d => replayRecord(draws, d)).filter(Boolean);
+  const totals = summarize(records, 'opt', 10, 48);
+  assert.equal(totals.periods, 1767);
+  // 工具 1 原版的特码间隔会读取无效的 2022-132；严格有效历史与原版口径不同。
+  assert.equal(totals.bets, 10145);
+  assert.equal(totals.hits, 247);
+  assert.equal(totals.net, 17110);
+  assert.equal(totals.maxDrawdown, 2970);
+  assert.equal(totals.longestLosing, 32);
+  for (const year of [2022, 2023, 2024, 2025, 2026]) {
+    assert.ok(summarize(records.filter(r => r.draw.year === year), 'opt', 10, 48).net > 0, `${year} 净收益应为正`);
+  }
+
+  // 复现题设数值：作为对照，直接将含无效行的原始数据交给未改写的工具 1。
+  // 这只验证题设来源，不是页面的有效历史回测口径。
+  const rawRecords = records.map(record => {
+    const draw = record.draw;
+    const twelve = original1(draws, draw, { mode: 'special', randomSalt: 0 }).five[0];
+    const union = new Set(record.picks.tool2Unique);
+    const a = twelve.numbers.filter(n => twelve.styles[n] !== 'random' && union.has(n));
+    const b = twelve.numbers.filter(n => ['hot', 'cold'].includes(twelve.styles[n]));
+    const recent = new Set(validPriorDraws(draws, draw).slice(0, 4).map(d => Number(d.special)));
+    const opt = [...new Set([...a, ...b])].sort((x, y) => x - y).filter(n => !recent.has(n));
+    return { draw, picks: { opt } };
+  });
+  const raw = summarize(rawRecords, 'opt', 10, 48);
+  assert.equal(raw.periods, 1767);
+  assert.equal(raw.bets, 10148);
+  assert.equal(raw.hits, 247);
+  assert.equal(raw.net, 17080);
+  assert.equal(raw.maxDrawdown, 2990);
+  assert.equal(raw.longestLosing, 32);
+});
+
+
+test('隔离 2022-132 无效期后，工具 1 不得从该行读取特码', () => {
+  const bad = db.draws.find(d => d.id === '2022-132');
+  const draw = db.draws.find(d => d.id === '2022-133');
+  const validPlan = combinedPlan(db.draws, draw);
+  const withoutBad = combinedPlan(db.draws.filter(d => d.id !== bad.id), draw);
+  assert.deepEqual(validPlan.a, withoutBad.a);
+  assert.deepEqual(validPlan.b, withoutBad.b);
+  assert.deepEqual(validPlan.opt, withoutBad.opt);
+  const original = original1(db.draws, draw, {mode: 'special', randomSalt: 0}).five[0];
+  const originalA = original.numbers.filter(n => original.styles[n] !== 'random' && validPlan.tool2Unique.includes(n));
+  assert.deepEqual(originalA, [9,21,22,34,39,48]);
+  assert.deepEqual(validPlan.a, [9,21,22,34,39]);
 });
