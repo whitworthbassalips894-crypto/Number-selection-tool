@@ -21,7 +21,8 @@ import {
   safeSet
 } from './storage.js';
 import INITIAL_DB from '../data/draws.js';
-import { combinedPlan, replayRecord, summarize, validPriorDraws } from './combined.js';
+import { combinedPlan, replayRecord, validPriorDraws } from './combined.js';
+import { REPLAY_KEYS, periodHitSummary } from './replay-stats.js';
 
 const PERIOD_SELECT_LIMIT = 120;
 
@@ -43,7 +44,7 @@ const quickEntry = {
 };
 
 const planCache = new Map();
-const combined = { records: [], token: 0 };
+const combined = { records: [], token: 0, year: 'ALL' };
 
 
 /* ==================== 小工具 ==================== */
@@ -325,22 +326,48 @@ function renderDualBoard(ctx, threePlan) {
 }
 
 let combinedTimer;
+let replayWorker;
 function scheduleCombinedReplay() {
   ++combined.token;
   clearTimeout(combinedTimer);
+  if (replayWorker) { replayWorker.terminate(); replayWorker = null; }
   combined.records = [];
   $('yearlyBody').innerHTML = '';
   $('combinedBody').innerHTML = '';
+  $('replayYearTabs').innerHTML = '';
   $('combinedCount').textContent = '—';
   $('combinedStatus').textContent = '准备计算全量历史…';
   combinedTimer = setTimeout(() => {
     if (typeof document === 'undefined') return;
-    runCombinedReplay().catch(err => {
-      console.error('[combined replay]', err);
-      const status = $('combinedStatus');
-      if (status) status.textContent = `回测计算失败：${err.message}`;
-    });
-  }, 1800);
+    runCombinedReplay().catch(replayFailure);
+  }, 60);
+}
+
+function replayFailure(err) {
+  console.error('[combined replay]', err);
+  const status = $('combinedStatus');
+  if (status) status.textContent = `回测计算失败：${err.message}`;
+}
+
+function finishReplay(draws, records, token) {
+  if (token !== combined.token || typeof document === 'undefined') return;
+  combined.records = records;
+  $('combinedStatus').textContent = `✓ 已回放 ${records.length} 期，排除 ${draws.length - records.length} 期无效开奖。`;
+  renderCombinedReplay();
+}
+
+async function replayOnMain(draws, token) {
+  const records = [];
+  for (let i = 0; i < draws.length; i += 64) {
+    if (token !== combined.token || typeof document === 'undefined') return;
+    for (const d of draws.slice(i, i + 64)) {
+      const record = replayRecord(draws, d);
+      if (record) records.push(record);
+    }
+    $('combinedStatus').textContent = `正在回放 ${Math.min(i + 64, draws.length)} / ${draws.length} 期…`;
+    await new Promise(r => setTimeout(r, 0));
+  }
+  finishReplay(draws, records, token);
 }
 
 async function runCombinedReplay() {
@@ -349,50 +376,86 @@ async function runCombinedReplay() {
   combined.records = [];
   $('yearlyBody').innerHTML = '';
   $('combinedBody').innerHTML = '';
-  const records = [];
-  for (let i = 0; i < draws.length; i += 8) {
-    if (token !== combined.token || typeof document === 'undefined') return;
-    for (const d of draws.slice(i, i + 8)) {
-      const record = replayRecord(draws, d);
-      if (record) records.push(record);
+  // 工作线程不可用（例如旧浏览器或离线加载失败）时退回分批计算。
+  if (typeof window.Worker === 'function') {
+    try {
+      const worker = new window.Worker(new URL('./replay-worker.js', import.meta.url), { type: 'module' });
+      replayWorker = worker;
+      let settled = false;
+      const fallback = () => {
+        if (settled) return;
+        settled = true;
+        worker.terminate();
+        if (replayWorker === worker) replayWorker = null;
+        if (token === combined.token) replayOnMain(draws, token).catch(replayFailure);
+      };
+      worker.onmessage = ({ data }) => {
+        if (token !== combined.token || settled) return;
+        if (data.type === 'progress') $('combinedStatus').textContent = `正在回放 ${data.processed} / ${data.total} 期…`;
+        else if (data.type === 'done') {
+          settled = true;
+          worker.terminate();
+          if (replayWorker === worker) replayWorker = null;
+          finishReplay(draws, data.records, token);
+        } else if (data.type === 'error') fallback();
+      };
+      worker.onerror = (event) => { event.preventDefault(); fallback(); };
+      worker.postMessage({ draws });
+      return;
+    } catch (err) {
+      if (replayWorker) { replayWorker.terminate(); replayWorker = null; }
+      console.warn('[combined replay] 工作线程不可用，改为分批计算', err);
     }
-    $('combinedStatus').textContent = `正在回放 ${Math.min(i + 8, draws.length)} / ${draws.length} 期…`;
-    await new Promise(r => setTimeout(r, 0));
   }
-  if (token !== combined.token || typeof document === 'undefined') return;
-  combined.records = records;
-  $('combinedStatus').textContent = `✓ 全量回放 ${records.length} 期，隔离 ${draws.length - records.length} 期无效开奖；最早期历史不足时使用引擎原生兜底。`;
-  renderCombinedReplay();
+  await replayOnMain(draws, token);
 }
 
-function selectedCombinedKey() {
-  return $('combinedStrategy').value;
-}
-
+/** 四个方案每期最多计一次命中；年表固定汇总所有可用记录。 */
 function renderCombinedReplay() {
-  const select = $('combinedStrategy');
-  if (!select) return;
-  const terms = $('combinedTerms');
-  terms.hidden = select.value !== 'ab' && select.value !== 'opt';
-  terms.textContent = select.value === 'opt'
-    ? 'A、B 合并去重（重叠号只计 1 注），并自动剔除前 4 期有效开奖已开出的冷却特码。'
-    : '两套方案分别下注，A、B 重叠号码各计一注；方案 A 已剔除随机号。';
-  if (!combined.records.length) return;
-  const key = selectedCombinedKey(), stake = currentStake(), odds = currentOdds();
-  const currency = n => `${n > 0 ? '+' : ''}${n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元`;
-  const row = (label, records) => {
-    const v = summarize(records, key, stake, odds);
-    return `<tr><td>${label}</td><td>${v.periods}</td><td>${v.bets}</td><td>${v.hits}</td><td>${(v.hitRate * 100).toFixed(3)}%</td><td>${currency(v.net)}</td><td>${(v.roi * 100).toFixed(2)}%</td><td>${v.maxDrawdown.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 元</td><td>${v.longestLosing} 期</td></tr>`;
+  const records = combined.records;
+  const years = [...new Set(records.map(r => Number(r.draw.year)))].sort((a, b) => b - a);
+  if (combined.year !== 'ALL' && !years.includes(Number(combined.year))) combined.year = 'ALL';
+  const row = (label, subset, year) => {
+    const result = periodHitSummary(subset);
+    const cells = REPLAY_KEYS.map(key => {
+      const { wins, rate, interval } = result.strategies[key];
+      return `<td class="year-rate${key === 'opt' ? ' rate-opt' : ''}"><strong>${rate.toFixed(1)}%</strong><small>(${wins}中 · 均${interval === null ? '—' : interval.toFixed(1)}期)</small></td>`;
+    }).join('');
+    return `<tr data-year="${year}" tabindex="0" role="button" aria-label="查看${label}明细"><td>${label}</td><td>${result.periods}</td>${cells}</tr>`;
   };
-  const years = [...new Set([2022, 2023, 2024, 2025, 2026, ...combined.records.map(r => r.draw.year)])].sort((a,b) => a-b);
-  $('yearlyBody').innerHTML = years.map(y => row(y, combined.records.filter(r => r.draw.year === y))).join('') + row('总计', combined.records);
-  $('combinedCount').textContent = `共 ${combined.records.length} 期`;
-  $('combinedBody').innerHTML = combined.records.map((r, index) => {
-    const nums = r.picks[key], hits = nums.filter(n => n === Number(r.draw.special)).length;
-    const hit = hits > 0;
+  $('yearlyBody').innerHTML = years.map(year => row(year, records.filter(r => Number(r.draw.year) === year), String(year))).join('') + row('总计', records, 'ALL');
+  $('replayYearTabs').innerHTML = [`<button type="button" class="year-tab" data-year="ALL">全部 (${records.length}期)</button>`, ...years.map(year => `<button type="button" class="year-tab" data-year="${year}">${year}年</button>`)].join('');
+  renderReplayDetails();
+}
+
+function setReplayYear(year) {
+  combined.year = year;
+  renderReplayDetails();
+}
+
+function renderReplayDetails() {
+  const year = combined.year;
+  const all = combined.records;
+  $('replayYearTabs').querySelectorAll('[data-year]').forEach(button => {
+    const active = button.dataset.year === year;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  $('yearlyBody').querySelectorAll('[data-year]').forEach(row => {
+    const active = row.dataset.year === year;
+    row.classList.toggle('selected', active);
+    row.setAttribute('aria-pressed', String(active));
+  });
+  const selected = all.map((record, index) => ({ record, index })).filter(({ record }) => year === 'ALL' || String(record.draw.year) === year);
+  $('combinedCount').textContent = `共 ${selected.length} 期`;
+  $('combinedBody').innerHTML = selected.map(({ record: r, index }) => {
+    const special = Number(r.draw.special);
+    const hits = REPLAY_KEYS.map(key => r.picks[key].filter(n => n === special).length);
+    const any = hits.some(count => count > 0);
     const normalBalls = r.draw.numbers.map(n => miniBallHtml(n, { normalBall: true })).join('');
-    const specialBall = miniBallHtml(r.draw.special, { special: true, hit });
-    return `<tr class="main-row${hit ? ' row-win' : ''}" data-replay-row="${index}"><td class="col-period">${escapeHtml(r.draw.id)}<small>${escapeHtml(r.draw.date || '')}</small></td><td class="col-draw"><div class="draw-balls">${normalBalls}<span class="d-sep"></span>${specialBall}</div></td><td class="col-hits"><span class="tk-pill${hit ? ' win' : ''}">${hit ? '命中' : '未中'} ${hits}/${nums.length}</span></td><td class="col-expand"><button type="button" class="replay-expand" data-replay-index="${index}" aria-expanded="false" aria-label="展开 ${escapeHtml(r.draw.id)} 推荐号码">展开 ▾</button></td></tr>`;
+    const specialBall = miniBallHtml(special, { special: true, hit: any });
+    const indicators = hits.map((count, i) => `<td class="scheme-hit" data-scheme="${REPLAY_KEYS[i]}">${count ? `<span class="hit-badge${i === 0 ? ' opt-hit' : ''}">${pad2(special)}${count > 1 ? `×${count}` : ''}</span>` : '<span class="miss-dash">-</span>'}</td>`).join('');
+    return `<tr class="main-row${any ? ' row-win' : ''}" data-replay-row="${index}"><td class="col-period">${escapeHtml(r.draw.id)}<small>${escapeHtml(r.draw.date || '')}</small></td><td class="col-draw"><div class="draw-balls">${normalBalls}<span class="d-sep"></span>${specialBall}</div></td>${indicators}<td class="col-expand"><button type="button" class="replay-expand" data-replay-index="${index}" aria-expanded="false" aria-label="展开 ${escapeHtml(r.draw.id)} 推荐号码">展开 ▾</button></td></tr>`;
   }).join('');
 }
 
@@ -590,29 +653,36 @@ function bindEvents() {
   });
 
   /* 方案选择与回放 */
-  on('combinedStrategy', 'change', () => renderCombinedReplay());
+  on('navSync', 'click', () => { const fold = $('sync').querySelector('details'); if (fold) fold.open = true; });
+  on('replayYearTabs', 'click', (e) => {
+    const button = e.target.closest('button[data-year]');
+    if (button) setReplayYear(button.dataset.year);
+  });
+  const chooseYear = (e) => {
+    const row = e.target.closest('tr[data-year]');
+    if (row) setReplayYear(row.dataset.year);
+  };
+  on('yearlyBody', 'click', chooseYear);
+  on('yearlyBody', 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseYear(e); } });
   on('combinedBody', 'click', (e) => {
     const row = e.target.closest('[data-replay-row]');
     if (!row) return;
     const button = row.querySelector('[data-replay-index]');
-    const index = Number(button.dataset.replayIndex);
-    const record = combined.records[index];
+    const record = combined.records[Number(button.dataset.replayIndex)];
     if (!record) return;
-    const tr = button.closest('tr');
     if (button.getAttribute('aria-expanded') === 'true') {
-      tr.nextElementSibling?.remove();
+      row.nextElementSibling?.remove();
       button.setAttribute('aria-expanded', 'false');
       button.textContent = '展开 ▾';
       button.setAttribute('aria-label', `展开 ${record.draw.id} 推荐号码`);
       return;
     }
-    const key = selectedCombinedKey();
-    const nums = record.picks[key];
-    const hits = nums.filter(n => n === Number(record.draw.special)).length;
-    const hit = hits > 0;
-    const label = key === 'opt' ? '优选实战 · A∪B去重 + 滤近4特码' : key === 'b' ? '方案 B · 热冷精选' : key === 'ab' ? '方案 A + 方案 B · 重叠号码各计一注' : '方案 A · 双工具共振';
-    const balls = nums.map(n => miniBallHtml(n, { hit: n === Number(record.draw.special) })).join('');
-    tr.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="4"><div class="fd-head">${label} <span class="fd-nums">${balls || '本期无推荐号码'}</span></div><div class="fd-line"><span class="badge ${hit ? 'hit' : 'miss'}">${hit ? '命中' : '未中'}</span> ${hit ? `命中特码 ${pad2(record.draw.special)} · 中 ${hits} 注` : `本期开奖号码 ${pad2(record.draw.special)} 不在推荐中`}</div></td></tr>`);
+    const detail = [['opt', '🏆 优选实战'], ['a', '方案 A · 共振'], ['b', '方案 B · 热冷']].map(([key, label]) => {
+      const nums = record.picks[key];
+      const balls = nums.map(n => miniBallHtml(n, { hit: n === Number(record.draw.special) })).join('');
+      return `<div class="fd-five"><div class="fd-head">${label}（${nums.length}码） <span class="fd-nums">${balls || '本期空仓'}</span></div></div>`;
+    }).join('');
+    row.insertAdjacentHTML('afterend', `<tr class="feat-detail"><td colspan="7">${detail}</td></tr>`);
     button.setAttribute('aria-expanded', 'true');
     button.textContent = '收起 ▴';
     button.setAttribute('aria-label', `收起 ${record.draw.id} 推荐号码`);
@@ -629,7 +699,6 @@ function bindEvents() {
       saveConfig();
       renderHeader();
       renderToday();
-      renderCombinedReplay();
     });
   });
   on('btnResetCfg', 'click', () => {
@@ -637,7 +706,6 @@ function bindEvents() {
     saveConfig();
     renderHeader();
     renderToday();
-    renderCombinedReplay();
     showToast('已恢复默认本金与赔率');
   });
   on('btnCheckUpdate', 'click', async () => {
