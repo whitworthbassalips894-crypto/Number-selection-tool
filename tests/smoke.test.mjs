@@ -73,6 +73,9 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     const board = dom.window.document.getElementById('dualBoard');
     const next = combinedPlan(INITIAL_DB.draws, nextPeriodMeta(INITIAL_DB.draws[0]));
     const pad = n => String(n).padStart(2, '0');
+    assert.deepEqual([...board.querySelectorAll('.optimized-card .dual-number b')].map(x => x.textContent), next.opt.map(pad));
+    assert.deepEqual([...board.querySelectorAll('.optimized-card .dual-shared b')].map(x => x.textContent), next.opt.filter(n => next.a.includes(n) && next.b.includes(n)).map(pad));
+    assert.match(board.querySelector('.optimized-footer').textContent, new RegExp(`${next.opt.length} 注`));
     assert.deepEqual([...board.querySelectorAll('.plan-a .dual-number b')].map(x => x.textContent), next.a.map(pad));
     assert.deepEqual([...board.querySelectorAll('.plan-b .dual-number b')].map(x => x.textContent), next.b.map(pad));
     assert.deepEqual([...board.querySelectorAll('.plan-a .dual-shared b')].map(x => x.textContent), next.a.filter(n => next.b.includes(n)).map(pad));
@@ -127,7 +130,7 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     // 复制的是当前可见的 A / B，不再复制已移除的原版三组。
     dom.window.document.getElementById('btnCopyAll').click();
     await new Promise((r) => setTimeout(r, 10));
-    assert.match(copied, /^方案 A：.*\n方案 B：/);
+    assert.match(copied, /^优选实战：.*\n方案 A：.*\n方案 B：/);
 
     // 历史期切换仍保留，双方案展示当前开奖号的命中状态。
     const hitDraw = INITIAL_DB.draws.slice(0, 60).find(d => {
@@ -149,7 +152,9 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     }
     assert.match(status.textContent, /^✓/);
     const strategy = dom.window.document.getElementById('combinedStrategy');
-    assert.deepEqual([...strategy.options].map(o => o.value), ['a', 'b', 'ab']);
+    assert.deepEqual([...strategy.options].map(o => o.value), ['opt', 'a', 'b', 'ab']);
+    assert.equal(strategy.value, 'opt');
+    assert.match(dom.window.document.getElementById('combinedTerms').textContent, /合并去重/);
     const body = dom.window.document.getElementById('combinedBody');
     assert.equal(body.querySelectorAll('tr.main-row').length, INITIAL_DB.draws.length + 1); // 两期本地录入，减去一条无效底库
     assert.equal(dom.window.document.getElementById('yearlyBody').querySelectorAll('tr').length, 6);
@@ -161,8 +166,8 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     const draw305 = INITIAL_DB.draws.find(d => d.id === '2026-305');
     const plan305 = combinedPlan(INITIAL_DB.draws, draw305);
     row305.click();
-    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.a);
-    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.a.includes(draw305.special));
+    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.opt);
+    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.opt.includes(draw305.special));
     row305.click();
     const firstRow = body.querySelector('tr.main-row');
     assert.equal(firstRow.querySelectorAll('.d-num').length, 7);
@@ -170,11 +175,17 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     let expand = firstRow.querySelector('button');
     expand.click();
     assert.equal(expand.getAttribute('aria-expanded'), 'true');
-    assert.match(firstRow.nextElementSibling.textContent, /方案 A/);
+    assert.match(firstRow.nextElementSibling.textContent, /优选实战/);
     assert.doesNotMatch(firstRow.nextElementSibling.textContent, /元|¥/);
     expand.click();
     assert.equal(expand.getAttribute('aria-expanded'), 'false');
     assert.equal(body.querySelector('.feat-detail'), null);
+    strategy.value = 'a';
+    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
+    assert.equal(dom.window.document.getElementById('combinedTerms').hidden, true);
+    expand = body.querySelector('button');
+    expand.click();
+    assert.match(body.querySelector('.feat-detail').textContent, /方案 A/);
     strategy.value = 'b';
     strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
     expand = body.querySelector('button');

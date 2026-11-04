@@ -659,3 +659,20 @@ tr.feat-detail > td { background: #f8fafc; padding: 10px 16px; text-align: left;
   .replay-table td.col-expand { text-align: right; }
   .replay-detail-heading { align-items: flex-start; }
 }
+
+/* 优选实战主推：延续双方案卡片的浅色和金色强调 */
+.optimized-card { border: 1px solid #d6bd7a; border-radius: 16px; padding: 20px; margin-bottom: 14px; background: linear-gradient(125deg, #fffaf0, #fffefb 58%, #f3f8f8); box-shadow: 0 5px 20px rgba(110, 88, 40, .07); }
+.optimized-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.optimized-label { color: #987018; font-size: 11px; font-weight: 800; letter-spacing: .1em; }
+.optimized-heading h3 { color: #263548; font-size: 19px; margin: 5px 0 3px; }
+.optimized-heading p { color: #6b7b8e; font-size: 13px; }
+.optimized-badge { flex-shrink: 0; color: #79580e; background: #fff2c7; border: 1px solid #e8d18d; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 800; }
+.optimized-balls { gap: 12px; padding: 16px 0 12px; }
+.optimized-balls .dual-number { min-width: 54px; height: 54px; font-size: 20px; }
+.optimized-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding-top: 10px; border-top: 1px solid #eee5ce; font-size: 13px; color: #64748b; }
+.optimized-footer strong { color: #765819; }
+@media (max-width: 700px) {
+  .optimized-card { padding: 16px; }
+  .optimized-heading h3 { font-size: 17px; }
+  .optimized-balls .dual-number { min-width: 48px; height: 48px; font-size: 18px; }
+}
