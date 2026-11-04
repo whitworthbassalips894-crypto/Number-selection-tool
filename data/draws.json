@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-11-03T21:55:59.748Z",
+  "updatedAt": "2026-11-04T22:10:06.858Z",
   "source": "https://2026kj.zkclhb.com:2025/am.html",
-  "totalCount": 1768,
-  "latestId": "2026-307",
-  "latestDate": "2026-11-03",
+  "totalCount": 1769,
+  "latestId": "2026-308",
+  "latestDate": "2026-11-04",
   "years": [
     2026,
     2025,
@@ -12,6 +12,40 @@
     2022
   ],
   "draws": [
+    {
+      "id": "2026-308",
+      "year": 2026,
+      "period": "308",
+      "periodNum": 308,
+      "date": "2026-11-04",
+      "numbers": [
+        25,
+        16,
+        28,
+        8,
+        6,
+        40
+      ],
+      "special": 46,
+      "colors": [
+        "blue",
+        "green",
+        "green",
+        "red",
+        "green",
+        "red",
+        "red"
+      ],
+      "zodiacs": [
+        "马",
+        "兔",
+        "兔",
+        "猪",
+        "牛",
+        "兔",
+        "鸡"
+      ]
+    },
     {
       "id": "2026-307",
       "year": 2026,
