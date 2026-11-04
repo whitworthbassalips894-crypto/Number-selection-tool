@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import db from '../data/draws.js';
-import { combinedPlan, replayRecord, summarize } from '../src/combined.js';
+import { combinedPlan, replayRecord, summarize, validPriorDraws } from '../src/combined.js';
 import { generateDailyFive as original1 } from '../src/tool1/dailyfive.js';
 
 const target = { year: 2026, periodNum: 306, date: '2026-11-02' };
@@ -91,22 +91,43 @@ test('优选仅过滤最近四期有效特码，去重且不读取当期或未�
   assert.deepEqual(combinedPlan([futureWithDifferentYear, ...prior], undated).opt, combinedPlan(prior, undated).opt);
 });
 
-test('截至 2026-306 的有效历史全量回测与 2026-307 基准', () => {
-  const draws = db.draws.filter(d => d.year < 2026 || (d.year === 2026 && d.periodNum <= 306));
-  assert.ok(draws.some(d => d.year === 2026 && d.periodNum === 306), '底库必须包含基准截止期');
-  assert.deepEqual(combinedPlan(draws, { year: 2026, periodNum: 307, date: '2026-11-03' }).opt, [6,10,23,38,41,48]);
+test('截至 2026-307 的优选回测：有效历史与原版口径分别验算', () => {
+  // 固定截止期，后续自动追加的开奖不影响此基准。
+  const draws = db.draws.filter(d => d.year < 2026 || (d.year === 2026 && d.periodNum <= 307));
+  assert.ok(draws.some(d => d.year === 2026 && d.periodNum === 307), '底库必须包含基准截止期');
+  assert.deepEqual(combinedPlan(draws, { year: 2026, periodNum: 308, date: '2026-11-04' }).opt, [3,10,16,17,20,46,48]);
   const records = draws.map(d => replayRecord(draws, d)).filter(Boolean);
   const totals = summarize(records, 'opt', 10, 48);
-  assert.equal(totals.periods, 1766);
-  // 原始引擎的特码间隔会读取无效的 2022-132；严格有效历史与原始口径不同。
-  assert.equal(totals.bets, 10139);
+  assert.equal(totals.periods, 1767);
+  // 工具 1 原版的特码间隔会读取无效的 2022-132；严格有效历史与原版口径不同。
+  assert.equal(totals.bets, 10145);
   assert.equal(totals.hits, 247);
-  assert.equal(totals.net, 17170);
+  assert.equal(totals.net, 17110);
   assert.equal(totals.maxDrawdown, 2970);
   assert.equal(totals.longestLosing, 32);
   for (const year of [2022, 2023, 2024, 2025, 2026]) {
     assert.ok(summarize(records.filter(r => r.draw.year === year), 'opt', 10, 48).net > 0, `${year} 净收益应为正`);
   }
+
+  // 复现题设数值：作为对照，直接将含无效行的原始数据交给未改写的工具 1。
+  // 这只验证题设来源，不是页面的有效历史回测口径。
+  const rawRecords = records.map(record => {
+    const draw = record.draw;
+    const twelve = original1(draws, draw, { mode: 'special', randomSalt: 0 }).five[0];
+    const union = new Set(record.picks.tool2Unique);
+    const a = twelve.numbers.filter(n => twelve.styles[n] !== 'random' && union.has(n));
+    const b = twelve.numbers.filter(n => ['hot', 'cold'].includes(twelve.styles[n]));
+    const recent = new Set(validPriorDraws(draws, draw).slice(0, 4).map(d => Number(d.special)));
+    const opt = [...new Set([...a, ...b])].sort((x, y) => x - y).filter(n => !recent.has(n));
+    return { draw, picks: { opt } };
+  });
+  const raw = summarize(rawRecords, 'opt', 10, 48);
+  assert.equal(raw.periods, 1767);
+  assert.equal(raw.bets, 10148);
+  assert.equal(raw.hits, 247);
+  assert.equal(raw.net, 17080);
+  assert.equal(raw.maxDrawdown, 2990);
+  assert.equal(raw.longestLosing, 32);
 });
 
 

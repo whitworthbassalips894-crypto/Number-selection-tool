@@ -314,7 +314,7 @@ function renderDualBoard(ctx, threePlan) {
   }).join('') : `<span class="hint-line">${scheme === 'opt' ? '本期空仓（0 注）' : '本期没有共同号（0 注）'}</span>`;
   const result = nums => ctx.draw ? ` · 特码 ${pad2(ctx.draw.special)} ${nums.includes(Number(ctx.draw.special)) ? '✓ 命中' : '未命中'}` : '';
   const cooling = p.droppedRecent4.length
-    ? `已滤除近4期冷却特码：${p.droppedRecent4.map(pad2).join(' · ')}`
+    ? `已滤除近4期特码：${p.droppedRecent4.map(pad2).join(' · ')}`
     : `近4期冷却池（${p.recentSpecials4.length ? p.recentSpecials4.map(pad2).join(' · ') : '暂无有效历史'}）无撞号`;
   $('dualBoard').innerHTML = `<div class="dual-heading"><div><span class="dual-eyebrow">SPECIAL NUMBER / TWO PLANS</span><h2>双方案精选看板</h2><p>两种方案同时呈现 · 金色描边为 A、B 重叠核心号</p></div><span class="dual-core">共同核心 ${shared.size ? [...shared].map(pad2).join(' · ') : '暂无'}</span></div>
     <article class="optimized-card"><div class="optimized-heading"><div><span class="optimized-label">OPTIMIZED PLAN · 优选实战主推</span><h3>优选实战（A ∪ B 去重 · 自动滤除近 4 特码）</h3><p>两套方案去重合并，避开最近 4 期有效开奖的特码</p></div><span class="optimized-badge">主推方案</span></div><div class="dual-balls optimized-balls">${balls(p.opt, 'opt')}</div><div class="optimized-footer"><strong>${p.opt.length} 注${result(p.opt)}</strong><span>${cooling}</span></div></article>
