@@ -25,7 +25,7 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
     'quickEntry', 'quickPeriod', 'quickDate', 'quickPasteInput', 'btnQuickRecognize', 'btnQuickDemo', 'btnQuickClear',
     'quickPreview', 'btnQuickSave', 'quickMsg',
     'heroPeriod', 'heroMeta', 'heroShare', 'periodSelect', 'btnPrevPeriod', 'btnNextPeriod', 'btnNext', 'btnCopyAll',
-    'dualBoard', 'combinedStrategy', 'combinedStatus', 'yearlyBody', 'combinedBody', 'combinedCount',
+    'dualBoard', 'replayYearTabs', 'combinedStatus', 'yearlyBody', 'combinedBody', 'combinedCount',
     'cfgStake', 'cfgOddsSpecial', 'btnResetCfg', 'cfgOddsNote',
     'btnCheckUpdate', 'btnRepairCache', 'btnResetServiceWorker', 'updateStatus',
     'btnCopyAllMobile', 'toastContainer'
@@ -68,6 +68,13 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
 
     assert.equal(dom.window.__APP_BOOTED__, true, 'app.js 必须无错完成初始化');
     assert.equal(dom.window.document.getElementById('bootError').hidden, true);
+    const doc = dom.window.document;
+    assert.deepEqual([...doc.querySelectorAll('main > section.page-section')].map(el => el.id), ['today', 'history', 'sync', 'more']);
+    assert.deepEqual([...doc.querySelectorAll('.anchor-nav a')].map(el => el.textContent), ['推荐', '回放', '同步/录入', '设置']);
+    assert.equal(doc.querySelector('#sync > details').open, false);
+    assert.ok([...doc.querySelectorAll('#more > details')].every(el => !el.open));
+    assert.equal(doc.getElementById('combinedStrategy'), null);
+
 
     // NEXT 根据最新底库计算，方案 A 永久剔除随机号。
     const board = dom.window.document.getElementById('dualBoard');
@@ -151,62 +158,68 @@ test('DOM 冒烟测试（若安装 jsdom 则完整启动 app.js，否则做静�
       await new Promise(r => setTimeout(r, 100));
     }
     assert.match(status.textContent, /^✓/);
-    const strategy = dom.window.document.getElementById('combinedStrategy');
-    assert.deepEqual([...strategy.options].map(o => o.value), ['opt', 'a', 'b', 'ab']);
-    assert.equal(strategy.value, 'opt');
-    assert.match(dom.window.document.getElementById('combinedTerms').textContent, /合并去重/);
     const body = dom.window.document.getElementById('combinedBody');
-    assert.equal(body.querySelectorAll('tr.main-row').length, INITIAL_DB.draws.length + 1); // 两期本地录入，减去一条无效底库
-    assert.equal(dom.window.document.getElementById('yearlyBody').querySelectorAll('tr').length, 6);
+    const yearly = dom.window.document.getElementById('yearlyBody');
+    const tabs = dom.window.document.getElementById('replayYearTabs');
+    const totalRows = INITIAL_DB.draws.length + 1; // 两期本地录入，减去一条无效底库
+    assert.equal(body.querySelectorAll('tr.main-row').length, totalRows);
+    assert.equal(yearly.querySelectorAll('tr').length, 6);
+    assert.deepEqual([...yearly.querySelectorAll('tr')].map(row => row.dataset.year), ['2026','2025','2024','2023','2022','ALL']);
+    assert.deepEqual([...tabs.querySelectorAll('button')].map(btn => btn.dataset.year), ['ALL','2026','2025','2024','2023','2022']);
+    assert.ok(tabs.querySelector('[data-year="ALL"]').classList.contains('active'));
+    assert.ok(yearly.querySelector('[data-year="ALL"]').classList.contains('selected'));
+    for (const row of yearly.querySelectorAll('tr')) {
+      assert.equal(row.querySelectorAll('.year-rate').length, 4);
+      for (const cell of row.querySelectorAll('.year-rate')) assert.match(cell.textContent, /\d+\.\d%.*中 · 均/);
+    }
+    // 总表数值必须按期统计，而非 A+B 重复注数。
+    const totalSummary = yearly.querySelector('[data-year="ALL"]');
+    for (const [i, key] of ['opt','a','b','ab'].entries()) {
+      const wins = body.querySelectorAll(`td[data-scheme="${key}"] .hit-badge`).length;
+      assert.equal(totalSummary.querySelectorAll('.year-rate strong')[i].textContent, `${(wins / totalRows * 100).toFixed(1)}%`);
+      assert.match(totalSummary.querySelectorAll('.year-rate small')[i].textContent, new RegExp(`\\(${wins}中`));
+    }
     assert.equal(dom.window.document.getElementById('btnMoreHist'), null);
-    assert.equal(dom.window.document.getElementById('fiveGrid'), null);
-    assert.equal(dom.window.document.getElementById('histBody'), null);
     assert.doesNotMatch(body.textContent, /元|¥/);
+    assert.ok([...body.querySelectorAll('tr.main-row')].every(row => row.querySelectorAll('td.scheme-hit').length === 4));
     const row305 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-305'));
     const draw305 = INITIAL_DB.draws.find(d => d.id === '2026-305');
     const plan305 = combinedPlan(INITIAL_DB.draws, draw305);
     row305.click();
-    assert.deepEqual([...row305.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan305.opt);
-    assert.equal(row305.querySelector('.col-hits').textContent.includes('命中'), plan305.opt.includes(draw305.special));
+    const detail305 = row305.nextElementSibling;
+    assert.equal(detail305.querySelector('td').getAttribute('colspan'), '7');
+    assert.equal(detail305.querySelectorAll('.fd-five').length, 3);
+    for (const [i, key] of ['opt','a','b'].entries()) {
+      assert.deepEqual([...detail305.querySelectorAll('.fd-five')[i].querySelectorAll('.d-num')].map(x => Number(x.textContent)), plan305[key]);
+    }
+    assert.match(detail305.textContent, /优选实战.*方案 A · 共振.*方案 B · 热冷/);
+    assert.doesNotMatch(detail305.textContent, /元|¥/);
     row305.click();
+    assert.equal(body.querySelector('.feat-detail'), null);
+    const row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
+    assert.equal(row303.querySelector('[data-scheme="ab"]').textContent, '17×2');
+    assert.equal(row303.querySelector('.special').classList.contains('hit'), true);
+    assert.equal(row303.classList.contains('row-win'), true);
     const firstRow = body.querySelector('tr.main-row');
-    assert.equal(firstRow.querySelectorAll('.d-num').length, 7);
+    assert.equal(firstRow.querySelectorAll('.col-draw .d-num').length, 7);
     assert.equal(firstRow.querySelectorAll('.d-num:not(.special).hit').length, 0);
-    let expand = firstRow.querySelector('button');
+    const expand = firstRow.querySelector('button');
     expand.click();
     assert.equal(expand.getAttribute('aria-expanded'), 'true');
-    assert.match(firstRow.nextElementSibling.textContent, /优选实战/);
-    assert.doesNotMatch(firstRow.nextElementSibling.textContent, /元|¥/);
+    assert.equal(firstRow.nextElementSibling.querySelectorAll('.fd-five').length, 3);
     expand.click();
     assert.equal(expand.getAttribute('aria-expanded'), 'false');
-    assert.equal(body.querySelector('.feat-detail'), null);
-    strategy.value = 'a';
-    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('combinedTerms').hidden, true);
-    expand = body.querySelector('button');
-    expand.click();
-    assert.match(body.querySelector('.feat-detail').textContent, /方案 A/);
-    strategy.value = 'b';
-    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    expand = body.querySelector('button');
-    expand.click();
-    assert.match(body.querySelector('.feat-detail').textContent, /方案 B/);
-    assert.equal(body.querySelectorAll('.feat-detail .d-num').length, 5);
-    strategy.value = 'ab';
-    strategy.dispatchEvent(new dom.window.Event('change', {bubbles:true}));
-    assert.equal(dom.window.document.getElementById('combinedTerms').hidden, false);
-    let row303 = [...body.querySelectorAll('tr.main-row')].find(row => row.querySelector('.col-period').textContent.includes('2026-303'));
-    const draw303 = INITIAL_DB.draws.find(d => d.id === '2026-303');
-    const plan303 = combinedPlan(INITIAL_DB.draws, draw303);
-    assert.match(row303.querySelector('.col-hits').textContent, /^命中 2\/8$/);
-    row303.click();
-    assert.deepEqual([...row303.nextElementSibling.querySelectorAll('.fd-nums .d-num')].map(x => Number(x.textContent)), plan303.ab);
-    assert.match(row303.nextElementSibling.textContent, /方案 A \+ 方案 B/);
-    assert.match(row303.nextElementSibling.textContent, /中 2 注/);
-    assert.equal(row303.nextElementSibling.querySelectorAll('.d-num.hit').length, 2);
-    assert.equal(dom.window.document.getElementById('includeRandom'), null);
-    assert.equal(dom.window.document.getElementById('historyIncludeRandom'), null);
-    assert.ok(plan303.ab.every(n => plan303.twelve.styles[n] !== 'random'));
+
+    tabs.querySelector('[data-year="2026"]').click();
+    assert.ok([...body.querySelectorAll('tr.main-row')].every(row => row.querySelector('.col-period').textContent.startsWith('2026-')));
+    assert.ok(yearly.querySelector('[data-year="2026"]').classList.contains('selected'));
+    assert.ok(tabs.querySelector('[data-year="2026"]').classList.contains('active'));
+    yearly.querySelector('[data-year="2025"]').click();
+    assert.ok([...body.querySelectorAll('tr.main-row')].every(row => row.querySelector('.col-period').textContent.startsWith('2025-')));
+    assert.ok(tabs.querySelector('[data-year="2025"]').classList.contains('active'));
+    tabs.querySelector('[data-year="ALL"]').click();
+    assert.equal(body.querySelectorAll('tr.main-row').length, totalRows);
+    assert.ok(yearly.querySelector('[data-year="ALL"]').classList.contains('selected'));
   } finally {
     for (const k of keys) {
       if (prevGlobals[k] === undefined) delete globalThis[k];

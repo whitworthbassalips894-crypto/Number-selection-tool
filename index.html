@@ -8,30 +8,29 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="六合彩特码双方案选号助手：展示双工具共振与热冷精选，支持分年统计和无未来信息逐期回放。" />
   <title>特码选号 · 双方案精选看板</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r6" />
-  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.11.02-r6" />
-  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.11.02-r6" />
-  <link rel="stylesheet" href="./assets/styles.css?v=2026.11.02-r6" />
+  <link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r7" />
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg?v=2026.11.02-r7" />
+  <link rel="apple-touch-icon" href="./assets/icon.svg?v=2026.11.02-r7" />
+  <link rel="stylesheet" href="./assets/styles.css?v=2026.11.02-r7" />
 </head>
 <body>
   <header class="app-header">
     <div class="header-inner">
       <div class="brand-group">
-        <img src="./assets/icon.svg?v=2026.11.02-r6" alt="" class="brand-icon" />
+        <img src="./assets/icon.svg?v=2026.11.02-r7" alt="" class="brand-icon" />
         <div class="brand-text">
           <div class="brand-title">
             特码 · 双方案精选
             <span class="brand-badge" id="dbBadge">加载中…</span>
-            <span class="build-tag" id="buildTag" title="构建版本号">v2026.11.02-r6</span>
+            <span class="build-tag" id="buildTag" title="构建版本号">v2026.11.02-r7</span>
           </div>
           <div class="brand-subtitle" id="latestLine">正在读取底库…</div>
         </div>
       </div>
       <nav class="anchor-nav" aria-label="本页导航">
-        <a href="#sync">同步</a>
-        <a href="#quickEntry">录入</a>
         <a href="#today">推荐</a>
         <a href="#history">回放</a>
+        <a href="#sync" id="navSync">同步/录入</a>
         <a href="#more">设置</a>
       </nav>
     </div>
@@ -81,9 +80,27 @@
       </div>
     </section>
 
+    <!-- ③ 历史回放 -->
+    <section id="history" class="page-section">
+      <div class="section-head">
+        <h2><span class="sec-bar"></span>历史回放<span class="tag-lite">无未来信息</span></h2>
+
+      </div>
+
+      <div class="card combined-replay">
+        <div class="combined-replay-head"><div><h3>历年四方案命中率对比</h3><p class="hint-line">按期统计 · 点击年份查看明细</p></div></div>
+        <div class="hint-line replay-progress" id="combinedStatus" role="status">准备计算…</div>
+        <div class="table-scroll yearly-scroll"><table class="history yearly-table"><thead><tr><th>年份</th><th>期数</th><th>🏆 优选实战</th><th>方案 A（共振）</th><th>方案 B（热冷）</th><th>方案 A+B</th></tr></thead><tbody id="yearlyBody"></tbody></table></div>
+        <p class="hint-line replay-note">只核对特码；每期命中一次计 1 期。历史表现不代表未来结果。</p>
+        <div class="replay-detail-heading"><div><h3>逐期命中明细</h3><p class="hint-line">点击展开号码 · 下滑查看全部期次</p></div><span class="tag tag-muted" id="combinedCount">—</span></div>
+        <div id="replayYearTabs" class="replay-year-tabs" aria-label="按年份筛选逐期明细"></div>
+        <div class="table-scroll replay-scroll"><table class="history replay-table"><thead><tr><th class="col-period">期号</th><th>开奖号码</th><th>🏆 优选</th><th>方案 A</th><th>方案 B</th><th>A + B</th><th>详情</th></tr></thead><tbody id="combinedBody"></tbody></table></div>
+      </div>
+    </section>
+
     <!-- 数据同步与快速录入 -->
     <section id="sync" class="page-section">
-      <details class="fold" open>
+      <details class="fold">
         <summary>数据同步<span class="summary-note">一键补最新开奖</span></summary>
         <div class="fold-body">
           <div class="sync-grid" id="syncGrid"></div>
@@ -154,30 +171,9 @@
       </details>
     </section>
 
-    <!-- ③ 历史回放 -->
-    <section id="history" class="page-section">
-      <div class="section-head">
-        <h2><span class="sec-bar"></span>历史回放<span class="tag-lite">无未来信息</span></h2>
-
-      </div>
-
-      <div class="card combined-replay">
-        <div class="combined-replay-head">
-          <div><h3>全量历史 · 分年回测</h3><p class="hint-line">仅使用开奖前历史，按特码结算；本金与赔率可在设置中修改。</p></div>
-          <label class="strategy-picker">查看方案 <select id="combinedStrategy" class="select-ctrl select-sm" aria-label="回测方案"><option value="opt" selected>优选实战 · A∪B去重 + 滤近4期</option><option value="a">方案 A · 双工具共振</option><option value="b">方案 B · 热冷精选</option><option value="ab">方案 A + 方案 B</option></select></label>
-        </div>
-        <p class="hint-line combined-terms" id="combinedTerms">A、B 合并去重（重叠号只计 1 注），并自动剔除前 4 期有效开奖已开出的冷却特码。</p>
-        <div class="hint-line replay-progress" id="combinedStatus" role="status">准备计算…</div>
-        <div class="table-scroll yearly-scroll"><table class="history yearly-table"><thead><tr><th>年份</th><th>期数</th><th>总注数</th><th>命中次数</th><th>单注命中率</th><th>净收益</th><th>ROI</th><th>最大回撤</th><th>最长连黑</th></tr></thead><tbody id="yearlyBody"></tbody></table></div>
-        <p class="hint-line replay-note">随机单注基准 1/49 = 2.041%。净收益 = 命中注数 × 本金 × 赔率 − 总注数 × 本金；最大回撤以期末累计净收益从此前峰值（含初始 0）计算，年度内重置，总计跨年连续计算。连黑按未命中期数计算。无效开奖不参与回测；历史表现不代表未来结果。</p>
-        <div class="replay-detail-heading"><div><h3>逐期命中明细</h3><p class="hint-line">仅特码计入命中 · 点击展开推荐号码 · 下滑查看全部期次</p></div><span class="tag tag-muted" id="combinedCount">—</span></div>
-        <div class="table-scroll replay-scroll"><table class="history replay-table"><thead><tr><th class="col-period">期号 / 日期</th><th>当期开奖（橙红底 = 特码命中）</th><th>本期命中</th><th>详情</th></tr></thead><tbody id="combinedBody"></tbody></table></div>
-      </div>
-    </section>
-
     <!-- ④ 设置（折叠） -->
     <section id="more" class="page-section">
-      <details class="fold" open>
+      <details class="fold">
         <summary>本金与赔率</summary>
         <div class="fold-body">
           <div class="cfg-fields">
@@ -189,7 +185,7 @@
         </div>
       </details>
 
-      <details class="fold" open>
+      <details class="fold">
         <summary>版本与缓存维护</summary>
         <div class="fold-body">
           <div class="sync-actions">
@@ -197,12 +193,12 @@
             <button type="button" class="btn btn-sm" id="btnRepairCache">修复缓存（保留本地数据）</button>
             <button type="button" class="btn btn-sm btn-danger" id="btnResetServiceWorker">彻底重置（注销 SW）</button>
           </div>
-          <p class="hint-line" id="updateStatus">当前构建：v2026.11.02-r6</p>
+          <p class="hint-line" id="updateStatus">当前构建：v2026.11.02-r7</p>
         </div>
       </details>
 
       <p class="footer-note">
-        构建版本 <b id="buildTagFooter">v2026.11.02-r6</b> ·
+        构建版本 <b id="buildTagFooter">v2026.11.02-r7</b> ·
         彩票每期独立，任何选号方法都不改变命中概率；本站只做数据整理与娱乐参考，请理性对待、量力而行。
       </p>
     </section>
@@ -292,6 +288,6 @@
     })();
   </script>
 
-  <script type="module" src="./src/app.js?v=2026.11.02-r6"></script>
+  <script type="module" src="./src/app.js?v=2026.11.02-r7"></script>
 </body>
 </html>
