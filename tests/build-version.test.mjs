@@ -36,7 +36,7 @@ test('sw.js 中预缓存的 SHELL_FILES 在仓库中全部真实存在', () => {
   }
 });
 
-test('页面只展示六档选号及命中统计', () => {
+test('页面只展示双档选号及命中统计', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案']) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);

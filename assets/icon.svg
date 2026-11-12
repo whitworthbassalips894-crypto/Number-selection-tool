@@ -23,7 +23,7 @@
 
   <!-- Top Title Badge -->
   <rect x="96" y="54" width="320" height="56" rx="28" fill="#fdf5dd" stroke="#d4a72c" stroke-width="3" />
-  <text x="256" y="91" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#a97d13" text-anchor="middle">特码 · 六档精选</text>
+  <text x="256" y="91" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#a97d13" text-anchor="middle">特码 · 双档精选</text>
 
   <!-- 3 Lottery Balls -->
   <circle cx="136" cy="236" r="68" fill="url(#redBall)" />
@@ -40,6 +40,6 @@
 
   <!-- Bottom Banner -->
   <rect x="68" y="356" width="376" height="84" rx="22" fill="#ffffff" stroke="#dce4ee" stroke-width="3" />
-  <text x="256" y="395" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#263548" text-anchor="middle">特码六档精选工具</text>
-  <text x="256" y="425" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#64748b" text-anchor="middle">3 · 5 · 8 · 11 · 14 · 20</text>
+  <text x="256" y="395" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" fill="#263548" text-anchor="middle">特码精选 · 5码 / 8码</text>
+  <text x="256" y="425" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#64748b" text-anchor="middle">5码精选 · 8码主力</text>
 </svg>

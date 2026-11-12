@@ -1,7 +1,7 @@
 {
-  "name": "mark6-special-7x3-pwa",
+  "name": "mark6-special-5-8-pwa",
   "version": "1.0.0",
-  "description": "六合彩「特码 · 每日三组 7 码」选号助手（PWA 单页版）",
+  "description": "特码精选 · 5码 / 8码（PWA 单页版）",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
