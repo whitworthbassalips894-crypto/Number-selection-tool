@@ -6,8 +6,9 @@ import INITIAL_DB from '../data/draws.js';
 import { nextPeriodMeta } from '../src/periods.js';
 import { isUsableDraw } from '../src/audit.js';
 import { sixTierPlan } from '../src/six-tier.js';
+import { rhythmSummary } from '../src/rhythm.js';
 
-test('六档页面启动、排序、录入、年份筛选、热度与同步', async () => {
+test('双档页面启动、排序、录入、年份筛选、热度与同步', async () => {
   const html = fs.readFileSync('index.html', 'utf8');
   const dom = new JSDOM(html, {url:'https://example.com/Number-selection-tool/', pretendToBeVisual:true});
   const keys = ['window','document','navigator','location','Worker','fetch'];
@@ -35,8 +36,12 @@ test('六档页面启动、排序、录入、年份筛选、热度与同步', as
     assert.equal(dom.window.__APP_BOOTED__, true);
     assert.match(doc.querySelector('#syncNow').textContent, /一键同步/);
     assert.match(doc.querySelector('#chinaSyncDate').textContent, /中国时间 \d{4}-\d{2}-\d{2}/);
-    assert.equal(doc.querySelectorAll('.tier-tab').length, 6);
+    assert.equal(doc.querySelectorAll('.tier-tab').length, 2);
     assert.match(doc.querySelector('.tier-tab.active').textContent, /8码/);
+    assert.match(doc.querySelector('#rhythmBar').textContent, /正在计算/);
+    assert.match(doc.querySelector('.copy-current').textContent, /一键复制当前号码/);
+    assert.equal(doc.querySelectorAll('#tierHero .core5').length, 5);
+    assert.equal([...doc.querySelectorAll('#tierHero .pick-role')].filter(el=>el.textContent==='防守补位').length, 3);
     const next = nextPeriodMeta(INITIAL_DB.draws[0]);
     const nextId = `${next.year}-${next.period}`;
     const subsequent = nextPeriodMeta(next);
@@ -47,15 +52,25 @@ test('六档页面启动、排序、录入、年份筛选、热度与同步', as
     assert.deepEqual([...doc.querySelectorAll('#tierHero .ball')].map(x=>Number(x.textContent)), plan.ranked.slice(0,8));
     doc.querySelector('#tierHero button[data-copy]').click(); await Promise.resolve();
     assert.equal(copied, plan.ranked.slice(0,8).sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(' '));
+    doc.querySelector('[data-tier="5"]').click();
+    assert.equal(doc.querySelectorAll('#tierHero .ball').length, 5);
+    doc.querySelector('#tierHero button[data-copy]').click(); await Promise.resolve();
+    assert.equal(copied, plan.ranked.slice(0,5).sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(' '));
+    doc.querySelector('[data-tier="8"]').click();
     assert.equal(doc.querySelector('details.heat-fold').open, false);
     assert.equal(doc.querySelectorAll('#heatmap .heat-cell').length, 49);
     doc.querySelector('[data-scope="all7"]').click();
     assert.ok([...doc.querySelectorAll('#heatmap small')].some(el=>parseInt(el.textContent)>5));
     await new Promise(r => setTimeout(r, 160));
     assert.equal(sent.length, INITIAL_DB.draws.filter(isUsableDraw).length);
+    const rhythm = rhythmSummary(sent.map((d,i)=>i%49+1).reverse(), {complete:true});
+    assert.equal(doc.querySelector('#rhythmBar').classList.contains(rhythm.state), true);
+    assert.match(doc.querySelector('#rhythmBar').textContent, new RegExp(`命中 ${rhythm.recentHits} 次.*连黑 ${rhythm.losingStreak} 期`));
+    assert.equal(doc.querySelectorAll('.yearly-table th').length, 4);
+    assert.equal(doc.querySelectorAll('.history th').length, 5);
     assert.equal(doc.querySelectorAll('#yearlyBody tr').length, new Set(sent.map(d => d.year)).size + 1);
     const totalRow = doc.querySelector('#yearlyBody tr[data-yr="ALL"]');
-    const expectedHits = sent.filter((d,i) => i % 49 + 1 <= 3).length;
+    const expectedHits = sent.filter((d,i) => i % 49 + 1 <= 5).length;
     assert.match(totalRow.cells[2].textContent, new RegExp(`${expectedHits}/${sent.length}`));
     assert.equal(totalRow.cells[2].querySelector('.rate-main').textContent, `${(expectedHits / sent.length * 100).toFixed(1)}%`);
     assert.equal(doc.querySelectorAll('#historyBody tr').length, 81);

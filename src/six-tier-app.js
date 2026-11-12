@@ -4,6 +4,7 @@ import { isUsableDraw } from './audit.js';
 import { normalizeDrawRecord, mergeDraws, parseDrawsInput } from './parser.js';
 import { nextPeriodMeta } from './periods.js';
 import { compareDrawSets, formatSyncSummary, rawGithubDbUrl, chinaSyncStatus } from './sync.js';
+import { rhythmSummary } from './rhythm.js';
 import { STORAGE_KEYS, loadPersistedState, safeSet } from './storage.js';
 import { sixTierPlan, ALL_49, TIER_DEFS, WAVE_MAP, WAVE_COLOR, pad2, parseLabel, periodToDate, validSevenNums, yearZodiacBaseIdx, zodiacByBase } from './six-tier.js';
 
@@ -66,7 +67,7 @@ function renderRecommendations(usable, nextLabel) {
   const allRows = hasReplay ? usable.map(d => planCache.get(d.label)).filter(Boolean) : [];
   const totalN = allRows.length || 1;
 
-  // 1. 六档切换器
+  // 双档切换器
   const tabsEl = document.getElementById('tierTabs');
   tabsEl.innerHTML = TIER_DEFS.map(td => {
     let hits = 0;
@@ -86,7 +87,7 @@ function renderRecommendations(usable, nextLabel) {
   });
 
   // 2. 当前选中档位主面板（实心圆彩球 + 生肖 + 前5核心暖金底）
-  const curDef = TIER_DEFS.find(t => t.size === activeTier) || TIER_DEFS[2];
+  const curDef = TIER_DEFS.find(t => t.size === activeTier) || TIER_DEFS[1];
   const tierSlice = plan.ranked.slice(0, activeTier);
   const displayBalls = pickOrder === 'num' ? tierSlice.slice().sort((a, b) => a - b) : tierSlice;
   const copyStr = tierSlice.slice().sort((a, b) => a - b).map(pad2).join(' ');
@@ -104,7 +105,6 @@ function renderRecommendations(usable, nextLabel) {
         <span class="hero-badge">${curDef.icon} 当前档位：${curDef.label}（${curDef.desc}）</span>
         ${metaHtml}
       </div>
-      <button type="button" class="btn brand sm" data-copy="${copyStr}">一键复制 ${curDef.label}</button>
     </div>
     <div class="pick-cards">
       ${displayBalls.map(n => {
@@ -114,36 +114,16 @@ function renderRecommendations(usable, nextLabel) {
           <span class="pick-rank">#${rk}</span>
           ${ballHtml(n, 'lg')}
           <span class="pick-zod">${zodiacByBase(n, baseZ)}</span>
+          <span class="pick-role">${isCore5 ? '主力核' : '防守补位'}</span>
         </div>`;
       }).join('')}
     </div>
+    <button type="button" class="btn brand copy-current" data-copy="${copyStr}">一键复制当前号码</button>
   `;
   bindCopyButtons(heroEl);
 
-  // 3. 六档同心圆增量阶梯表
-  let prevK = 0;
-  const ladderEl = document.getElementById('ladderBox');
-  ladderEl.innerHTML = TIER_DEFS.map(td => {
-    const added = plan.ranked.slice(prevK, td.size).sort((a, b) => a - b);
-    const fullSorted = plan.ranked.slice(0, td.size).sort((a, b) => a - b);
-    const copyLine = fullSorted.map(pad2).join(' ');
-    const isBase = prevK === 0;
-    prevK = td.size;
-    return `<div class="ladder-row${td.size === activeTier ? ' is-selected' : ''}">
-      <div class="lr-name">${td.icon} ${td.label} <small>${isBase ? '胆码' : '+' + added.length + '码'}</small></div>
-      <div class="lr-balls">
-        ${isBase ? '' : '<span class="plus-lbl">新增：</span>'}
-        ${added.map(n => ballHtml(n, 'sm')).join('')}
-      </div>
-      <button type="button" class="btn sm" data-copy="${copyLine}">复制${td.size}码</button>
-    </div>`;
-  }).join('');
-  bindCopyButtons(ladderEl);
-
-  // 4. 冷却排除与注码提示条
   document.getElementById('killStrip').innerHTML = `
     <div><b>⛔ 近4期特码冷却排除：</b><span class="kill-balls">${plan.cool4.map(n => ballHtml(n, 'sm')).join('')}</span></div>
-    <div>仅供统计参考，理性娱乐</div>
   `;
 }
 
@@ -207,8 +187,8 @@ function renderReplaySection(usable) {
 
   let hHtml = shown.map(d => {
     const rk = planCache.get(d.label)?.spRank ?? 99;
-    const rowCls = rk <= 5 ? 'row-hit5' : rk <= 20 ? 'row-hit20' : '';
-    const rkCls = rk <= 5 ? 'rk-pill top5' : rk <= 20 ? 'rk-pill top20' : 'rk-pill';
+    const rowCls = rk <= 5 ? 'row-hit5' : rk <= 8 ? 'row-hit20' : '';
+    const rkCls = rk <= 5 ? 'rk-pill top5' : rk <= 8 ? 'rk-pill top20' : 'rk-pill';
     const balls = d.numbers.map(n => `<span class="num" style="background:${WAVE_COLOR[WAVE_MAP[n]]}">${pad2(n)}</span>`).join('')
       + `<span class="num sp" style="background:${WAVE_COLOR[WAVE_MAP[d.special]]}">${pad2(d.special)}</span>`;
     const tierCols = TIER_DEFS.map(td => {
@@ -225,7 +205,7 @@ function renderReplaySection(usable) {
   }).join('');
 
   if (filtered.length > historyLimit) {
-    hHtml += `<tr><td colspan="9" style="padding:10px"><button type="button" class="btn sm" id="loadMoreHist">加载更多（剩余 ${filtered.length - historyLimit} 期）</button></td></tr>`;
+    hHtml += `<tr><td colspan="5" style="padding:10px"><button type="button" class="btn sm" id="loadMoreHist">加载更多（剩余 ${filtered.length - historyLimit} 期）</button></td></tr>`;
   }
   document.getElementById('historyBody').innerHTML = hHtml;
   const moreBtn = document.getElementById('loadMoreHist');
@@ -276,11 +256,24 @@ function renderHeatSection(usable) {
 }
 
 
+function renderRhythm(ranks, complete = false) {
+  const info = rhythmSummary(ranks, { complete });
+  const bar = $('rhythmBar');
+  bar.className = `rhythm ${info.state}`;
+  if (info.state === 'pending') bar.textContent = '近20期节奏：正在计算…';
+  else if (info.state === 'insufficient') bar.textContent = `近20期节奏：仅有 ${info.sample} 期有效记录，样本不足`;
+  else {
+    const icon = { green: '🟢', yellow: '🟡', orange: '🟠' }[info.state];
+    bar.textContent = `${icon} ${info.message} · 近20期8码命中 ${info.recentHits} 次 · 当前连黑 ${info.losingStreak} 期`;
+  }
+}
+
 function rebuild() {
   $('chinaSyncDate').textContent = chinaSyncStatus(allDraws()[0]);
   const token = ++generation;
   worker?.terminate(); worker = null;
   planCache.clear(); cachedKey = '';
+  renderRhythm([], false);
   const all = allDraws();
   usable = all.filter(isUsableDraw).reverse().map(d => ({
     ...d, label: d.id, raw7: [...d.numbers, d.special], usable: true
@@ -294,8 +287,8 @@ function rebuild() {
   $('undoDraw').disabled = !localDraws.length;
   renderRecommendations(usable, nextLabel);
   renderHeatSection(usable);
-  $('yearlyBody').innerHTML = '<tr><td colspan="8">正在计算历史统计…</td></tr>';
-  $('historyBody').innerHTML = '<tr><td colspan="9">正在计算历史回放…</td></tr>';
+  $('yearlyBody').innerHTML = '<tr><td colspan="4">正在计算历史统计…</td></tr>';
+  $('historyBody').innerHTML = '<tr><td colspan="5">正在计算历史回放…</td></tr>';
   $('yearTabs').innerHTML = '';
   const records = [];
   const complete = rows => {
@@ -303,23 +296,29 @@ function rebuild() {
     planCache.clear();
     for (const r of rows) planCache.set(r.id, { spRank: r.spRank });
     cachedKey = 'ready';
+    renderRhythm(usable.slice().reverse().map(d => planCache.get(d.id).spRank), true);
     renderRecommendations(usable, nextLabel);
     renderReplaySection(usable);
   };
   const fallback = () => {
     let i = 0;
+    records.length = 0;
+    renderRhythm([], false);
+    const newest = usable.slice().reverse();
     const batch = () => {
       if (token !== generation) return;
       try {
         const end = Math.min(i + 4, usable.length);
         for (; i < end; i++) {
-          const d = usable[i];
+          const d = newest[i];
           records.push({ id: d.id, spRank: sixTierPlan(usable, d).rankOf[d.special] });
         }
-        $('yearlyBody').innerHTML = `<tr><td colspan="8">正在计算历史统计 ${i}/${usable.length}…</td></tr>`;
+        $('yearlyBody').innerHTML = `<tr><td colspan="4">正在计算历史统计 ${i}/${usable.length}…</td></tr>`;
+        renderRhythm(records.map(r => r.spRank), i === usable.length);
         if (i < usable.length) setTimeout(batch, 0); else complete(records);
       } catch (error) {
         $('yearlyBody').textContent = `历史计算失败：${error.message}`;
+        $('rhythmBar').textContent = '近20期节奏：计算失败';
       }
     };
     setTimeout(batch, 0);
@@ -338,7 +337,11 @@ function rebuild() {
       w.onerror = fail;
       w.onmessage = ({ data }) => {
         if (settled || token !== generation) return;
-        if (data.type === 'progress') $('yearlyBody').innerHTML = `<tr><td colspan="8">正在计算历史统计 ${data.processed}/${data.total}…</td></tr>`;
+        if (data.type === 'progress') {
+          records.push(...data.records);
+          renderRhythm(records.map(r => r.spRank), data.processed === data.total);
+          $('yearlyBody').innerHTML = `<tr><td colspan="4">正在计算历史统计 ${data.processed}/${data.total}…</td></tr>`;
+        }
         else if (data.type === 'done') { settled = true; w.terminate(); worker = null; complete(data.records); }
         else if (data.type === 'error') fail();
       };
@@ -497,7 +500,7 @@ function init() {
   });
   $('exportBtn').addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ draws: localDraws }, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = '特码六档精选_备份.json'; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = '特码精选_备份.json'; a.click(); URL.revokeObjectURL(url);
   });
   $('importBtn').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', async e => {

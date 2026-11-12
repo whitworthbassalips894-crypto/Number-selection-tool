@@ -15,7 +15,10 @@ test('六档 worker 分批汇报真实回放顺位并能报告错误', async () 
     assert.deepEqual(messages.filter(m=>m.type==='progress').map(m=>m.processed), [24,25]);
     const records = messages.at(-1).records;
     assert.equal(records.length,25);
-    assert.equal(records[24].spRank, sixTierPlan(draws, draws[24]).rankOf[draws[24].special]);
+    assert.equal(records[0].id, draws[24].id);
+    assert.equal(records[0].spRank, sixTierPlan(draws, draws[24]).rankOf[draws[24].special]);
+    assert.equal(messages[0].records.length, 24);
+    assert.equal(messages[1].records.length, 1);
     await self.onmessage({data:{}});
     assert.equal(messages.at(-1).type,'error');
   } finally { if (old === undefined) delete globalThis.self; else globalThis.self=old; }

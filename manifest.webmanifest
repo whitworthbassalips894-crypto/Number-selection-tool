@@ -1,7 +1,7 @@
 {
-  "name": "特码六档精选工具",
-  "short_name": "特码六档",
-  "description": "六档特码推荐及历史命中率统计",
+  "name": "特码精选 · 5码 / 8码",
+  "short_name": "特码精选 5/8",
+  "description": "5码及8码精选与历史命中统计",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

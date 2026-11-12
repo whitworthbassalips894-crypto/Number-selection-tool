@@ -1,17 +1,13 @@
-/** 六档融合模型：预测和评分逻辑按附件实现。 */
+/** 双档融合模型：只使用严格早于目标期的有效开奖，不使用伪随机抖动。 */
 import { isUsableDraw } from './audit.js';
 const TIER_DEFS = [
-  { size: 3,  icon: '🎯', label: '3码',  desc: '超核胆' },
-  { size: 5,  icon: '🔥', label: '5码',  desc: '核心狙击' },
-  { size: 8,  icon: '⚡', label: '8码',  desc: '主力精选' },
-  { size: 11, icon: '🛡️', label: '11码', desc: '攻守均衡' },
-  { size: 14, icon: '🧭', label: '14码', desc: '平推上限' },
-  { size: 20, icon: '🌐', label: '20码', desc: '防连黑底' }
+  { size: 5, icon: '🔥', label: '5码精选', desc: '主力核' },
+  { size: 8, icon: '⚡', label: '8码主力', desc: '主力核 + 防守补位' }
 ];
 
 const ALL_49 = Array.from({ length: 49 }, (_, i) => i + 1);
 const SUBZONES = ['z1', 'z2s', 'z2b', 'z3'];
-const IDEAL_MODEL = { z1: 4, z2s: 2, z2b: 2, z3: 4 };
+const ZONE_QUOTAS = { z1: 3, z2s: 2, z2b: 1, z3: 3 };
 
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
@@ -81,26 +77,6 @@ function validSevenNums(arr) {
 function zoneOf(n) { return n <= 16 ? 1 : n <= 33 ? 2 : 3; }
 function subzoneOf(n) { return n <= 16 ? 'z1' : n <= 24 ? 'z2s' : n <= 33 ? 'z2b' : 'z3'; }
 
-function detJitter(year, periodNum, num, salt) {
-  let x = ((year * 1009 + periodNum * 9176 + num * 379 + salt * 131071) >>> 0) || 1;
-  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
-  return ((x >>> 0) % 10000) / 10000;
-}
-function seedFor(year, periodNum) {
-  let h = (year * 2654435761) ^ (periodNum * 2246822519) ^ 3266489917;
-  h = Math.imul(h ^ (h >>> 15), 2246822507);
-  h = Math.imul(h ^ (h >>> 13), 3266489909);
-  return (h ^ (h >>> 16)) >>> 0;
-}
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), a | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 function normArr(arr) {
   let lo = Infinity, hi = -Infinity;
   for (let n = 1; n <= 49; n++) {
@@ -209,81 +185,26 @@ function calcZoneModel(uAsc, P, year, periodNum, sF30, sF60, sLastSeen, sGaps) {
     }
     const pct = gCnt === 0 ? 1 : le / gCnt;
     const isNb = lastSp > 0 && Math.abs(n - lastSp) === 1;
-    hot[n] = 2.6 * ((sF30[n] * 49) / 30) + 1.6 * ((sF60[n] * 49) / 60) + (isNb ? 0.7 : 0) + detJitter(year, periodNum, n, 11) * 0.9;
-    cold[n] = 3.0 * pct + 0.03 * Math.min(cur, 60) + detJitter(year, periodNum, n, 23) * 0.4;
-    bal[n] = 1.6 / (1 + Math.abs(sF30[n] - mean30)) + 0.25 * (1 - Math.abs(pct - 0.5)) + detJitter(year, periodNum, n, 37) * 0.8;
+    hot[n] = 2.6 * ((sF30[n] * 49) / 30) + 1.6 * ((sF60[n] * 49) / 60) + (isNb ? 0.7 : 0);
+    cold[n] = 3.0 * pct + 0.03 * Math.min(cur, 60);
+    bal[n] = 1.6 / (1 + Math.abs(sF30[n] - mean30)) + 0.25 * (1 - Math.abs(pct - 0.5));
   }
 
   const hotN = normArr(hot), coldN = normArr(cold), balN = normArr(bal);
-  const valOf = n => 0.45 * hotN[n] + 0.30 * coldN[n] + 0.25 * balN[n] + detJitter(year, periodNum, n, 71) * 0.06;
+  const valOf = n => 0.45 * hotN[n] + 0.30 * coldN[n] + 0.25 * balN[n];
 
-  const rng = mulberry32(seedFor(year, periodNum));
-  const pool = ALL_49.slice();
-  for (let i = 48; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  const randoms = pool.slice(0, 3).sort((a, b) => a - b);
-  const taken = new Set(randoms);
-
-  const randZ = { z1: 0, z2s: 0, z2b: 0, z3: 0 };
-  for (const n of randoms) randZ[subzoneOf(n)]++;
-  const resid = { z1: Math.max(0, 4 - randZ.z1), z2s: Math.max(0, 2 - randZ.z2s), z2b: Math.max(0, 2 - randZ.z2b), z3: Math.max(0, 4 - randZ.z3) };
-  const totResid = () => resid.z1 + resid.z2s + resid.z2b + resid.z3;
-  let guard = 0;
-  while (totResid() < 9 && guard++ < 60) {
-    let pick = null, bestGap = -Infinity;
-    for (const z of SUBZONES) { const gap = IDEAL_MODEL[z] - (randZ[z] + resid[z]); if (gap > bestGap) { bestGap = gap; pick = z; } }
-    if (!pick) break; resid[pick]++;
-  }
-  guard = 0;
-  while (totResid() > 9 && guard++ < 60) {
-    let pick = null, worst = Infinity;
-    for (const z of SUBZONES) { const gap = IDEAL_MODEL[z] - (randZ[z] + resid[z]); if (resid[z] > 0 && gap < worst) { worst = gap; pick = z; } }
-    if (!pick) break; resid[pick]--;
-  }
-
-  const randOdd = randoms.filter(n => n % 2 === 1).length;
-  let oddLeft = Math.max(0, Math.min(9, 6 - randOdd));
-  const oddQuota = { z1: 0, z2s: 0, z2b: 0, z3: 0 };
-  const order = SUBZONES.slice().sort((a, b) => resid[b] - resid[a] || (a < b ? -1 : 1));
-  let round = 0;
-  while (oddLeft > 0 && round < 8) {
-    let prog = false;
-    for (const z of order) {
-      if (oddLeft <= 0) break;
-      if (oddQuota[z] >= resid[z]) continue;
-      const avail = ALL_49.filter(n => subzoneOf(n) === z && n % 2 === 1 && !taken.has(n)).length;
-      if (oddQuota[z] >= avail) continue;
-      oddQuota[z]++; oddLeft--; prog = true;
-    }
-    if (!prog) break; round++;
-  }
-
+  // 每个子区按综合分降序、同分按号码升序，固定配额并限制全局同尾最多两码。
   const tailCount = new Int8Array(10);
-  for (const n of randoms) tailCount[n % 10]++;
   const curated = [];
-  for (const z of SUBZONES) {
-    if (resid[z] <= 0) continue;
-    const zPool = ALL_49.filter(n => subzoneOf(n) === z && !taken.has(n)).sort((a, b) => valOf(b) - valOf(a) || a - b);
-    for (const [par, cnt] of [[1, oddQuota[z]], [0, resid[z] - oddQuota[z]]]) {
-      let filled = 0;
-      for (const relax of [false, true]) {
-        for (const n of zPool) {
-          if (filled >= cnt) break;
-          if (taken.has(n) || (n % 2 === 1 ? 1 : 0) !== par) continue;
-          if (!relax && tailCount[n % 10] >= 2) continue;
-          taken.add(n); curated.push(n); tailCount[n % 10]++; filled++;
-        }
-      }
-    }
-  }
-  for (let t = 0; t < 10; t++) {
-    let g2 = 0;
-    while (tailCount[t] > 2 && g2++ < 6) {
-      const idx = curated.findIndex(n => n % 10 === t);
-      if (idx < 0) break;
-      const out = curated[idx];
-      const inn = ALL_49.find(n => !taken.has(n) && subzoneOf(n) === subzoneOf(out) && (n % 2 === 1) === (out % 2 === 1) && tailCount[n % 10] < 2);
-      if (inn == null) break;
-      taken.delete(out); taken.add(inn); curated[idx] = inn; tailCount[out % 10]--; tailCount[inn % 10]++;
+  for (const zone of SUBZONES) {
+    const candidates = ALL_49.filter(n => subzoneOf(n) === zone)
+      .sort((a, b) => valOf(b) - valOf(a) || a - b);
+    let count = 0;
+    for (const n of candidates) {
+      if (tailCount[n % 10] >= 2) continue;
+      curated.push(n);
+      tailCount[n % 10]++;
+      if (++count === ZONE_QUOTAS[zone]) break;
     }
   }
   const byHot = curated.slice().sort((a, b) => hotN[b] - hotN[a] || a - b);
@@ -459,7 +380,7 @@ function predictAt(usableAsc, P, year, periodNum, dateStr) {
       (diffSp === 1 ? 0.95 : diffSp === 2 ? 0.45 : 0) +
       (lastSpTail >= 0 && (n % 10) === lastSpTail && !isLastSp ? 0.40 : 0) +
       (nF3[n] > 0 ? 0.45 + Math.min(0.6, convRate * 12) : 0) +
-      0.55 * tailNorm + 0.35 * zodiacNorm - (isLastSp ? 0.65 : 0) + detJitter(year, periodNum, n, 17) * 0.42;
+      0.55 * tailNorm + 0.35 * zodiacNorm - (isLastSp ? 0.65 : 0);
 
     const omDepth = Math.min(sCur, 100) / 50;
     const normalWarmup = (lastNormMask[n] ? 0.65 : nF3[n] > 0 ? 0.35 : 0) + (nF15[n] >= 2 && nF15[n] <= 4 ? 0.35 : 0);
@@ -467,14 +388,14 @@ function predictAt(usableAsc, P, year, periodNum, dateStr) {
 
     coldMap[n] =
       2.35 * sPct + 0.95 * omDepth + 0.55 * tailColdNorm + normalWarmup + zoneShift +
-      (sCur > medianGap ? 0.45 : 0) - (sCur <= 6 ? 1.80 : 0) + detJitter(year, periodNum, n, 43) * 0.85;
+      (sCur > medianGap ? 0.45 : 0) - (sCur <= 6 ? 1.80 : 0);
 
     const gapRatio = medianGap > 0 ? sCur / medianGap : 1;
     const cycleWindow = Math.exp(-Math.pow(gapRatio - 0.95, 2) / 0.55);
     const steadyFreq = 1 / (1 + Math.abs(sF120[n] - 120 / 49));
     cycleMap[n] =
       1.75 * cycleWindow + 1.45 * transScore + 1.10 * steadyFreq + 0.60 * (ema45[n] * 49) +
-      (lastNormMask[n] ? 0.35 : 0) - (isLastSp ? 0.80 : 0) + detJitter(year, periodNum, n, 89) * 0.45;
+      (lastNormMask[n] ? 0.35 : 0) - (isLastSp ? 0.80 : 0);
   }
 
   const hot = selectBalancedSeven(hotMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
@@ -535,11 +456,10 @@ function predictAt(usableAsc, P, year, periodNum, dateStr) {
 
   for (let n = 1; n <= 49; n++) {
     if (cool4Set.has(n)) {
-      master[n] = -100 + 0.1 * n;
+      master[n] = -Infinity;
       
       continue;
     }
-    let sc = 0;
     const inOnline = onlineOptSet.has(n);
     const inT2 = t2OptSet.has(n);
     const inT3 = t3OptSet.has(n);
@@ -553,13 +473,14 @@ function predictAt(usableAsc, P, year, periodNum, dateStr) {
     master[n] = votes - kills + contAvg;
   }
 
-  const ranked = ALL_49.slice().sort((a, b) => master[b] - master[a] || a - b);
+  const ranked = ALL_49.slice().sort((a, b) => (cool4Set.has(a) - cool4Set.has(b)) || master[b] - master[a] || a - b);
   const rankOf = new Uint8Array(50);
   for (let i = 0; i < 49; i++) rankOf[ranked[i]] = i + 1;
 
   return {
     ranked,
     rankOf,
+    curated9: t1.curated9,
         cool4,
     killPools: [...new Set([...cycle, ...drain])].filter(n => !cool4Set.has(n)).sort((a, b) => a - b)
   };
