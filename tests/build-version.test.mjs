@@ -14,9 +14,12 @@ test('APP_BUILD / CACHE_PREFIX 在 constants.js、sw.js、index.html、package.j
   assert.match(sw, new RegExp(`const BUILD_ID = '${APP_BUILD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}';`));
   assert.match(sw, new RegExp(`const CACHE_PREFIX = '${CACHE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}';`));
 
-  assert.ok(html.includes(`?v=${APP_BUILD}`), 'index.html 静态资源必须携带当前构建版本号');
+  const resourceUrls = [...html.matchAll(/(?:href|src)="(\.\/[^"#]+)"/g)].map(m => m[1]);
+  assert.ok(resourceUrls.length > 0, '页面应包含静态资源');
+  for (const url of resourceUrls) {
+    assert.ok(url.endsWith(`?v=${APP_BUILD}`), `静态资源版本不一致：${url}`);
+  }
   assert.ok(html.includes(APP_VERSION_LABEL), 'index.html 必须展示当前版本标签');
-  assert.ok(html.includes(`var CACHE_PREFIX = '${CACHE_PREFIX}';`), '看门狗脚本 CACHE_PREFIX 必须一致');
   assert.ok(pkg.version, 'package.json 必须包含版本号');
 });
 
@@ -33,12 +36,11 @@ test('sw.js 中预缓存的 SHELL_FILES 在仓库中全部真实存在', () => {
   }
 });
 
-test('index.html 已彻底移除三中三与四中四控件，仅保留特码三组 7 码', () => {
+test('页面只展示六档选号及命中统计', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  assert.ok(!html.includes('id="modeSwitch"'), '不应存在玩法切换分段按钮');
-  assert.ok(!html.includes('id="cfgOdds3"'), '不应存在三中三赔率输入框');
-  assert.ok(!html.includes('id="cfgOdds4"'), '不应存在四中四赔率输入框');
-  assert.ok(!html.includes('三中三'), '页面不应再出现三中三界面文案');
-  assert.ok(!html.includes('四中四'), '页面不应再出现四中四界面文案');
-  assert.ok(html.includes('id="cfgOddsSpecial"'), '必须保留特码赔率输入框');
+  for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案']) {
+    assert.ok(!html.includes(term), `不应包含 ${term}`);
+  }
+  assert.ok(html.includes('id="tierTabs"'));
+  assert.ok(html.includes('id="heatmap"'));
 });

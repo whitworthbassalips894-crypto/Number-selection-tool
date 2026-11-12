@@ -1,7 +1,7 @@
 {
-  "name": "六合彩 · 特码双方案选号助手",
-  "short_name": "特码双方案",
-  "description": "六合彩特码双方案选号工具，提供分年回测与逐期无未来函数历史回放",
+  "name": "特码六档精选工具",
+  "short_name": "特码六档",
+  "description": "六档特码推荐及历史命中率统计",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

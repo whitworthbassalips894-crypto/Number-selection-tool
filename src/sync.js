@@ -7,9 +7,9 @@
  *  3. 本模块只做纯计算（不碰 DOM / localStorage），便于单元测试。
  */
 
-import { parseIsoDate } from './periods.js';
+import { parseIsoDate, daysInYear } from './periods.js';
 
-/** 每年期号上限（用于跨年递推：第 366 期之后归入下一年第 1 期） */
+/** 每年期号最大上限（实际跨年递推以年份天数为准） */
 export const MAX_PERIODS_PER_YEAR = 366;
 
 /** 单次同步最多写入的期数（避免 localStorage 被一次性写爆） */
@@ -25,7 +25,7 @@ export function nextPeriodMeta(year, periodNum) {
   const y = Number(year);
   const p = Number(periodNum);
   if (!Number.isInteger(y) || !Number.isInteger(p)) return { year: y, periodNum: p };
-  return p >= MAX_PERIODS_PER_YEAR
+  return p >= daysInYear(y)
     ? { year: y + 1, periodNum: 1 }
     : { year: y, periodNum: p + 1 };
 }

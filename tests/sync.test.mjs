@@ -212,3 +212,9 @@ test('rawGithubDbUrl：只对 GitHub Pages 的 project 站点推导，其它一�
   // 分支可配置（tag / 分支都行）
   assert.match(rawGithubDbUrl('https://alice.github.io/repo/', 'master'), /\/master\/data\/draws\.json$/);
 });
+
+test('跨年按实际年份天数进位', () => {
+  assert.deepEqual(nextPeriodMeta(2026, 365), { year: 2027, periodNum: 1 });
+  assert.deepEqual(nextPeriodMeta(2024, 365), { year: 2024, periodNum: 366 });
+  assert.deepEqual(nextPeriodMeta(2024, 366), { year: 2025, periodNum: 1 });
+});
