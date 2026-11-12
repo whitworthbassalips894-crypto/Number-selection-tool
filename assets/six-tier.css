@@ -171,4 +171,4 @@ details.heat-fold:not([open]) .fold-hint::after{content:"展开查看 ▾"}
 }
 
 .sync-actions { align-items: center; margin: 0 0 12px; }
-#syncStatus, #buildTag { color: var(--muted); font-size: 12px; }
+#syncStatus, #chinaSyncDate, #buildTag { color: var(--muted); font-size: 12px; }

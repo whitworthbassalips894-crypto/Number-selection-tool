@@ -3,7 +3,7 @@ import { APP_BUILD, DEFAULT_CONFIG } from './constants.js';
 import { isUsableDraw } from './audit.js';
 import { normalizeDrawRecord, mergeDraws, parseDrawsInput } from './parser.js';
 import { nextPeriodMeta } from './periods.js';
-import { compareDrawSets, formatSyncSummary, rawGithubDbUrl } from './sync.js';
+import { compareDrawSets, formatSyncSummary, rawGithubDbUrl, chinaSyncStatus } from './sync.js';
 import { STORAGE_KEYS, loadPersistedState, safeSet } from './storage.js';
 import { sixTierPlan, ALL_49, TIER_DEFS, WAVE_MAP, WAVE_COLOR, pad2, parseLabel, periodToDate, validSevenNums, yearZodiacBaseIdx, zodiacByBase } from './six-tier.js';
 
@@ -277,6 +277,7 @@ function renderHeatSection(usable) {
 
 
 function rebuild() {
+  $('chinaSyncDate').textContent = chinaSyncStatus(allDraws()[0]);
   const token = ++generation;
   worker?.terminate(); worker = null;
   planCache.clear(); cachedKey = '';
@@ -380,7 +381,8 @@ async function fetchUpstream() {
 
 async function syncNow(write = true) {
   const btn = $('syncNow'), status = $('syncStatus');
-  btn.disabled = true; status.textContent = '正在读取仓库开奖数据…';
+  const showStatus = text => { status.textContent = text; $('chinaSyncDate').textContent = chinaSyncStatus(allDraws()[0]); };
+  btn.disabled = true; showStatus('正在读取仓库开奖数据…');
   try {
     const urls = [new URL(`./data/draws.json?_r=${Date.now()}`, location.href).href];
     const raw = rawGithubDbUrl(location.href);
@@ -394,26 +396,29 @@ async function syncNow(write = true) {
       return newest(b) - newest(a);
     });
     let r = compareDrawSets(allDraws(), sources[0]);
-    if (r.conflictCount || r.gapCount) { status.textContent = `未写入：${formatSyncSummary(r)}`; return; }
+    if (r.conflictCount || r.gapCount) { showStatus(`未写入：${formatSyncSummary(r)}。`); return; }
     const valid = r.appendable.every(isUsableDraw);
-    if (!valid) { status.textContent = '未写入：数据源包含无效开奖，请检查仓库数据。'; return; }
-    if (!write) { status.textContent = `自动检查：${formatSyncSummary(r)}${r.appendable.length ? '，可点击同步最新开奖。' : '。'}`; return; }
+    if (!valid) { showStatus('未写入：数据源包含无效开奖，请检查仓库数据。'); return; }
+    if (!write) { showStatus(`自动检查：${formatSyncSummary(r)}${r.appendable.length ? '，可点击同步最新开奖。' : '。'}`); return; }
+    let upstreamUnavailable = false;
     if (!r.appendable.length && results.some(x => x.status === 'fulfilled')) {
-      status.textContent = '仓库暂无新期次，正在尝试上游开奖源…';
+      showStatus('仓库暂无新期次，正在尝试上游开奖源…');
       const upstream = await fetchUpstream();
+      if (!upstream.length) upstreamUnavailable = true;
       if (upstream.length) {
         r = compareDrawSets(allDraws(), upstream);
-        if (r.conflictCount || r.gapCount) { status.textContent = `未写入：${formatSyncSummary(r)}`; return; }
-        if (!r.appendable.every(isUsableDraw)) { status.textContent = '未写入：上游包含无效开奖。'; return; }
+        if (r.conflictCount || r.gapCount) { showStatus(`未写入：${formatSyncSummary(r)}。`); return; }
+        if (!r.appendable.every(isUsableDraw)) { showStatus('未写入：上游包含无效开奖。'); return; }
       }
     }
     if (r.appendable.length) {
       const updated = mergeDraws(localDraws, r.appendable).merged;
-      if (!saveDraws(updated)) { status.textContent = '同步失败：无法写入本地存储'; return; }
+      if (!saveDraws(updated)) { showStatus('同步失败：无法写入本地存储。'); return; }
       rebuild();
-      status.textContent = `已同步 ${r.appendable.length} 期，最新 ${r.appendable.at(-1).id}。`;
-    } else status.textContent = `同步完成：${formatSyncSummary(r)}。`;
-  } catch (error) { status.textContent = `同步失败：${error.message}。可稍后重试或手动录入。`; }
+      showStatus(`已同步 ${r.appendable.length} 期，最新 ${r.appendable.at(-1).id}。`);
+    } else if (upstreamUnavailable) showStatus('仓库暂无新期次，上游暂不可用，请稍后重试或手动录入。');
+    else showStatus(`同步完成：${formatSyncSummary(r)}。`);
+  } catch (error) { showStatus(`同步失败：${error.message}。可稍后重试或手动录入。`); }
   finally { btn.disabled = false; }
 }
 

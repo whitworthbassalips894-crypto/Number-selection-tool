@@ -203,3 +203,13 @@ test('解析不出记录要报错，不能静默把底库写成空', async () =>
   assert.ok(['fetch-failed', 'invalid'].includes(result.status), `实际 ${result.status}`);
   assert.ok(result.error);
 });
+
+test('门控默认目标日期按中国时间跨年，而非运行机器时区', async () => {
+  const existing = [{ id: '2026-365', year: 2026, periodNum: 365, date: '2026-12-31' }];
+  const before = await syncDraws({ existing, gateOnly: true, now: new Date('2026-12-31T15:59:00Z') });
+  const after = await syncDraws({ existing, gateOnly: true, now: new Date('2026-12-31T16:00:00Z') });
+  assert.equal(before.waitFor, '2026-12-31');
+  assert.equal(before.status, 'fresh');
+  assert.equal(after.waitFor, '2027-01-01');
+  assert.equal(after.status, 'needs-sync');
+});

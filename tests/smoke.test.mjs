@@ -33,6 +33,8 @@ test('六档页面启动、排序、录入、年份筛选、热度与同步', as
     style.textContent = fs.readFileSync('assets/six-tier.css', 'utf8');
     doc.head.append(style);
     assert.equal(dom.window.__APP_BOOTED__, true);
+    assert.match(doc.querySelector('#syncNow').textContent, /一键同步/);
+    assert.match(doc.querySelector('#chinaSyncDate').textContent, /中国时间 \d{4}-\d{2}-\d{2}/);
     assert.equal(doc.querySelectorAll('.tier-tab').length, 6);
     assert.match(doc.querySelector('.tier-tab.active').textContent, /8码/);
     const next = nextPeriodMeta(INITIAL_DB.draws[0]);
@@ -119,6 +121,47 @@ test('六档页面启动、排序、录入、年份筛选、热度与同步', as
     assert.match(doc.querySelector('#syncStatus').textContent, /已同步 1 期/);
     assert.equal(doc.querySelector('#nextTargetHead').textContent, subsequentId);
     assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_nst_local_draws_v1'))[0].id, nextId);
+    assert.match(doc.querySelector('#chinaSyncDate').textContent, new RegExp(nextId));
+
+    // 仓库暂无更新时，仍可以从原上游补齐连续的新期开奖。
+    const nextUp = nextPeriodMeta(fresh);
+    const nextUpId = `${nextUp.year}-${nextUp.period}`;
+    const balls = [8,9,10,11,12,13,14].map(n => `<div class="ball red"><span class="red">${n}</span><b>鼠</b></div>`).join('');
+    const page = `<dt><b>${nextUp.periodNum}</b>期(开奖时间:${nextUp.date})</dt><dl>${balls}</dl>`;
+    globalThis.fetch = async url => String(url).includes('/data/draws.json')
+      ? {ok:true,json:async()=>({draws:[fresh,...INITIAL_DB.draws]})}
+      : {ok:true,text:async()=>page};
+    doc.querySelector('#syncNow').click();
+    await new Promise(r => setTimeout(r, 60));
+    assert.match(doc.querySelector('#syncStatus').textContent, /已同步 1 期/);
+    assert.match(doc.querySelector('#chinaSyncDate').textContent, new RegExp(nextUpId));
+    const stored = () => JSON.parse(dom.window.localStorage.getItem('mark6_nst_local_draws_v1'));
+    assert.equal(stored().length, 2);
+
+    // 数据冲突、缺口和网络错误不允许悄悄写入本机。
+    const conflict = { ...fresh, special: 8 };
+    globalThis.fetch = async () => ({ok:true,json:async()=>({draws:[conflict,...INITIAL_DB.draws]})});
+    doc.querySelector('#syncNow').click(); await new Promise(r => setTimeout(r, 30));
+    assert.match(doc.querySelector('#syncStatus').textContent, /未写入.*冲突/);
+    assert.equal(stored().length, 2);
+    const missing = nextPeriodMeta(nextUp);
+    const beyond = nextPeriodMeta(missing);
+    const gapRecord = { ...beyond, id:`${beyond.year}-${beyond.period}`, numbers:[1,2,3,4,5,6], special:7 };
+    globalThis.fetch = async () => ({ok:true,json:async()=>({draws:[gapRecord,...INITIAL_DB.draws]})});
+    doc.querySelector('#syncNow').click(); await new Promise(r => setTimeout(r, 30));
+    assert.match(doc.querySelector('#syncStatus').textContent, /未写入.*缺口/);
+    assert.equal(stored().length, 2);
+    globalThis.fetch = async url => {
+      if (String(url).includes('/data/draws.json')) return {ok:true,json:async()=>({draws:[...stored(),...INITIAL_DB.draws]})};
+      throw new Error('offline');
+    };
+    doc.querySelector('#syncNow').click(); await new Promise(r => setTimeout(r, 30));
+    assert.match(doc.querySelector('#syncStatus').textContent, /仓库暂无新期次，上游暂不可用/);
+    assert.equal(stored().length, 2);
+    globalThis.fetch = async () => { throw new Error('offline'); };
+    doc.querySelector('#syncNow').click(); await new Promise(r => setTimeout(r, 30));
+    assert.match(doc.querySelector('#syncStatus').textContent, /同步失败/);
+    assert.equal(stored().length, 2);
     await new Promise(r => setTimeout(r, 180));
   } finally {
     dom.window.close();

@@ -5,7 +5,7 @@
 ## 使用
 
 - 选择档位，按号码或优选顺位查看，支持一键复制；近四期的特码不会进入前 20 码。
-- 同步按钮读取仓库 `data/draws.json`，GitHub Pages 部署时也尝试仓库原始文件。仓库暂无更新时，手动同步会尝试原有上游及代理。仅连续且无冲突的有效新期会写入本机；缺口或冲突需要先核对。页面启动时会自动检查，新增数据需点击同步。
+- 同步按钮读取仓库 `data/draws.json`，GitHub Pages 部署时也尝试仓库原始文件。仓库暂无更新时，手动同步会尝试原有上游及代理。仅连续且无冲突的有效新期会写入本机；缺口或冲突需要先核对。页面启动时会自动检查，新增数据需点击同步。页面日期和期号提示、自动同步脚本均以中国时间（Asia/Shanghai，UTC+8）为准，不依赖设备时区；当天未入库不代表已经开奖。
 - 本地录入、撤销、备份与导入保存在当前浏览器；保留原站 `mark6_nst_local_draws_v1` 数据。清空本地记录也会清除同步到本机的记录，但不会修改仓库底库。
 - 历年表点击年份可筛选回放；回放在 Web Worker 中逐期计算，浏览器不支持 Worker 时分批回退。每次统计只读取严格早于目标期的有效开奖；无效开奖不计入期数。明细分页加载。
 - 离线缓存由 `sw.js` 管理，首次使用或升级需要联网。联网后才可同步。
@@ -19,4 +19,4 @@ npm start
 npm run sync
 ```
 
-`scripts/sync_latest.mjs` 与 GitHub Actions 保持自动更新仓库底库。模型见 `src/six-tier.js`，三个维度及等权融合均按附件 `predictAt` 实现；原有选号引擎文件保持不变。`src/six-tier-worker.js` 在后台执行历史回放。构建版本需同步更新 `src/constants.js`、`index.html` 与 `sw.js`。
+`scripts/sync_latest.mjs` 与 GitHub Actions 保持自动更新仓库底库；现有定时任务对应中国时间 20:35、21:00–23:55 每 5 分钟以及次日 00:15，GitHub 调度可能延迟。模型见 `src/six-tier.js`，三个维度及等权融合均按附件 `predictAt` 实现；原有选号引擎文件保持不变。`src/six-tier-worker.js` 在后台执行历史回放。构建版本需同步更新 `src/constants.js`、`index.html` 与 `sw.js`。
