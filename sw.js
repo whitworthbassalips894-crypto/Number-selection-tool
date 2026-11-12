@@ -8,7 +8,7 @@
  *  4. BUILD_ID 必须与 src/constants.js 的 APP_BUILD、index.html 的 ?v= 参数一致，由单测自动校验。
  */
 
-const BUILD_ID = '2026.11.02-r9';
+const BUILD_ID = '2026.11.02-r10';
 const CACHE_PREFIX = 'mark6-nst-';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 
@@ -31,6 +31,7 @@ const SHELL_FILES = [
   './src/statistics.js',
   './src/storage.js',
   './src/sync.js',
+  './src/china-time.js',
   './src/copy.js',
   './src/audit.js',
   './src/periods.js',

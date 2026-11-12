@@ -35,6 +35,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_CONFIG } from '../src/constants.js';
+import { chinaDate, chinaClock } from '../src/china-time.js';
 import { mergeDraws, parseDrawsInput } from '../src/parser.js';
 import { writeDatabaseFiles } from './build_history_db.mjs';
 
@@ -54,24 +55,12 @@ export const EXIT = {
 
 /** 北京时间的「今天」'YYYY-MM-DD'（不依赖运行机器时区，CI 是 UTC） */
 export function todayInShanghai(now = new Date()) {
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  return fmt.format(now);
+  return chinaDate(now);
 }
 
 /** 北京时间的 'HH:MM'（用于判断是否已过截止时刻） */
 export function clockInShanghai(now = new Date()) {
-  const fmt = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Shanghai',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-  return fmt.format(now);
+  return chinaClock(now);
 }
 
 /** 'HH:MM' → 当天第几分钟（用来比较先后） */

@@ -218,3 +218,20 @@ test('跨年按实际年份天数进位', () => {
   assert.deepEqual(nextPeriodMeta(2024, 365), { year: 2024, periodNum: 366 });
   assert.deepEqual(nextPeriodMeta(2024, 366), { year: 2025, periodNum: 1 });
 });
+
+test('同步日期提示以中国时间跨日、跨年和闰年计算，未来期号不会误报已入库', async () => {
+  const { chinaSyncStatus } = await import('../src/sync.js');
+  const { chinaDate, chinaClock } = await import('../src/china-time.js');
+  const before = new Date('2026-12-31T15:59:00Z');
+  const after = new Date('2026-12-31T16:00:00Z');
+  assert.equal(chinaDate(before), '2026-12-31');
+  assert.equal(chinaClock(before), '23:59');
+  assert.equal(chinaDate(after), '2027-01-01');
+  assert.equal(chinaClock(after), '00:00');
+  const latest = d(2026, 365, undefined, undefined, '2026-12-31');
+  assert.match(chinaSyncStatus(latest, before), /2026-12-31（2026-365）.*今天这期已入库/);
+  assert.match(chinaSyncStatus(latest, after), /2027-01-01（2027-001）.*距今天 1 期/);
+  assert.match(chinaSyncStatus(d(2027, 1), before), /晚于中国时间今天/);
+  assert.doesNotMatch(chinaSyncStatus(d(2027, 1), before), /今天这期已入库/);
+  assert.match(chinaSyncStatus(null, new Date('2024-02-28T16:00:00Z')), /2024-02-29（2024-060）/);
+});

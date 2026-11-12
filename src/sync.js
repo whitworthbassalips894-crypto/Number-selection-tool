@@ -8,6 +8,7 @@
  */
 
 import { parseIsoDate, daysInYear } from './periods.js';
+import { chinaDate } from './china-time.js';
 
 /** 每年期号最大上限（实际跨年递推以年份天数为准） */
 export const MAX_PERIODS_PER_YEAR = 366;
@@ -246,6 +247,21 @@ export function describeSourceLag(localLatest, todayIso, options = {}) {
     base,
     hint
   };
+}
+
+/** 同步提示使用中国日历，与访问设备的时区无关；未开奖不等于同步失败。 */
+export function chinaSyncStatus(latest, now = new Date()) {
+  const today = chinaDate(now);
+  const expectedId = periodId(Number(today.slice(0, 4)), dayOfYear(today));
+  if (!latest) return `中国时间 ${today}（${expectedId}）；本机暂无开奖记录`;
+  const id = latest.id || periodId(latest.year, latest.periodNum);
+  const ordinal = drawOrdinal(latest.year, latest.periodNum);
+  const expectedOrdinal = drawOrdinal(Number(today.slice(0, 4)), dayOfYear(today));
+  const prefix = `中国时间 ${today}（${expectedId}）；本机最新 ${id}${latest.date ? `（${latest.date}）` : ''}`;
+  if (ordinal == null) return `${prefix}；期号无效，请核对`;
+  if (ordinal > expectedOrdinal) return `${prefix}；最新期号晚于中国时间今天，请核对数据或设备时间`;
+  if (ordinal === expectedOrdinal) return `${prefix}；今天这期已入库`;
+  return `${prefix}；距今天 ${expectedOrdinal - ordinal} 期，今天的开奖可能尚未公布`;
 }
 
 /**
