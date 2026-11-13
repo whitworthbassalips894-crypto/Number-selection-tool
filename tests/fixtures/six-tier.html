@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f1f5f9"><title>特码精选 · 5码 / 8码</title><link rel="manifest" href="./manifest.webmanifest?v=2026.11.02-r11"><link rel="icon" href="./assets/icon.svg?v=2026.11.02-r11"><link rel="stylesheet" href="./assets/six-tier.css?v=2026.11.02-r11"></head>
+<body>
+<div class="page">
+  <header>
+    <div class="title-wrap">
+      <h1>特码精选 · 5码 / 8码</h1>
+      <span id="buildTag">v2026.11.02-r11</span><span class="rule-pill">5码 ⊂ 8码</span>
+    </div>
+    <div class="header-stats">
+      <div class="count"><b id="totalCount">--</b>有效期数</div>
+      <div class="count next-target"><b id="nextTargetHead">--</b>下期目标</div>
+    </div>
+  </header>
+
+  <div id="rhythmBar" class="rhythm pending" role="status">近20期节奏：正在计算…</div>
+
+  <!-- 1. 录入开奖 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>1. 同步与录入开奖</h2>
+    </div>
+    <div class="actions sync-actions"><button class="btn brand" id="syncNow">一键同步最新开奖</button><span id="syncStatus" role="status">可从仓库同步最新开奖</span><span id="chinaSyncDate"></span></div>
+    <div class="form-row">
+      <label for="periodLabel">期号</label>
+      <input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-316">
+      <input id="quickPaste" class="paste-input" placeholder="粘贴7个开奖号自动填入（前6平码 + 第7特码）">
+    </div>
+    <div class="balls-wrap" id="ballInputs"></div>
+    <div class="actions">
+      <button class="btn brand" id="submitDraw">保存开奖</button>
+      <button class="btn" id="undoDraw">撤销上期</button>
+      <button class="btn" id="exportBtn">导出备份</button>
+      <button class="btn" id="importBtn">导入备份</button>
+      <button class="btn danger" id="clearData">清空新增</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <div id="entryFlash" class="entry-flash"></div>
+  </section>
+
+  <!-- 2. 下期双档精选 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>2. 下期双档精选 <span class="tag" id="recPeriodTag">--</span></h2>
+      <div class="seg-group" id="sortModeGroup">
+        <button type="button" class="seg-btn active" data-order="num">按号码升序</button>
+        <button type="button" class="seg-btn" data-order="rank">按优选顺位</button>
+      </div>
+    </div>
+
+    <div class="tier-tabs" id="tierTabs"></div>
+    <div class="tier-hero" id="tierHero"></div>
+    <div class="kill-strip" id="killStrip"></div>
+  </section>
+
+  <!-- 3. 历史回放与历年命中率 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>3. 往年命中率与历史回放</h2>
+      <span class="tag">严格逐期无未来函数回测</span>
+    </div>
+
+    <div class="yearly-wrap">
+      <table class="yearly-table">
+        <thead>
+          <tr>
+            <th>年份</th>
+            <th>期数</th>
+            <th>🔥 5码精选<small>理论 10.2%</small></th>
+            <th>⚡ 8码主力<small>理论 16.3%</small></th>
+          </tr>
+        </thead>
+        <tbody id="yearlyBody"><tr><td colspan="4">正在计算历史统计…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="detail-bar">
+      <span class="detail-title">逐期开奖与双档命中核对</span>
+      <div class="tabs" id="yearTabs"></div>
+    </div>
+
+    <div class="scroll">
+      <table class="history">
+        <thead>
+          <tr>
+            <th class="col-period">期号</th>
+            <th>开奖号码（平码 + 特码）</th>
+            <th>命中顺位</th>
+            <th>5码</th>
+            <th>8码</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"><tr><td colspan="5">正在计算历史回放…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. 近100期热度追踪（折叠收纳，点开即看） -->
+  <section class="card">
+    <details class="heat-fold">
+      <summary>
+        <h2>4. 近 100 期号码热度分布</h2>
+        <span class="fold-hint"></span>
+      </summary>
+      <div class="heat-body">
+        <div class="heat-toolbar">
+          <div class="seg-group" id="heatScopeGroup">
+            <button type="button" class="seg-btn active" data-scope="special">只看特码</button>
+            <button type="button" class="seg-btn" data-scope="all7">全部 7 码（含平码）</button>
+          </div>
+          <div class="seg-group" id="heatSortGroup">
+            <button type="button" class="seg-btn active" data-sort="num">按号码排序</button>
+            <button type="button" class="seg-btn" data-sort="freq">按热度高低</button>
+          </div>
+        </div>
+        <div class="heat" id="heatmap"></div>
+      </div>
+    </details>
+  </section>
+
+  <div class="foot-note">客观统计 · 双档同心（5码 ⊂ 8码）· 仅供统计参考，理性娱乐</div>
+</div>
+
+<script type="module" src="./src/six-tier-app.js?v=2026.11.02-r11"></script>
+</body></html>

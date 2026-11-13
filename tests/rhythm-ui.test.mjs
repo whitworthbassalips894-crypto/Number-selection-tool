@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 
 test('最新期回放优先展示节奏灯，全量年度统计完成前保持计算中', async () => {
-  const html = fs.readFileSync('index.html','utf8');
+  const html = fs.readFileSync('tests/fixtures/six-tier.html','utf8');
   const dom = new JSDOM(html, {url:'https://example.com/app/', pretendToBeVisual:true});
   const names = ['window','document','navigator','location','Worker'];
   const saved = Object.fromEntries(names.map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));

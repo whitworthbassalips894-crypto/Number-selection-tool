@@ -9,7 +9,7 @@ import { sixTierPlan } from '../src/six-tier.js';
 import { rhythmSummary } from '../src/rhythm.js';
 
 test('双档页面启动、排序、录入、年份筛选、热度与同步', async () => {
-  const html = fs.readFileSync('index.html', 'utf8');
+  const html = fs.readFileSync('tests/fixtures/six-tier.html', 'utf8');
   const dom = new JSDOM(html, {url:'https://example.com/Number-selection-tool/', pretendToBeVisual:true});
   const keys = ['window','document','navigator','location','Worker','fetch'];
   const saved = Object.fromEntries(keys.map(k => [k, Object.getOwnPropertyDescriptor(globalThis,k)]));

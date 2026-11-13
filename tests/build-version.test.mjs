@@ -36,11 +36,12 @@ test('sw.js 中预缓存的 SHELL_FILES 在仓库中全部真实存在', () => {
   }
 });
 
-test('页面只展示双档选号及命中统计', () => {
+test('页面展示新版本选号和同步入口', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案']) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);
   }
-  assert.ok(html.includes('id="tierTabs"'));
-  assert.ok(html.includes('id="heatmap"'));
+  assert.ok(html.includes('id="selectionSize"'));
+  assert.ok(html.includes('id="syncNow"'));
+  assert.ok(html.includes('id="heatScope"'));
 });
