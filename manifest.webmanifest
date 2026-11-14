@@ -1,7 +1,7 @@
 {
   "name": "选号工具",
   "short_name": "选号工具",
-  "description": "选号及历史命中统计",
+  "description": "固定12码选号及历史命中统计，号码按波色显示",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

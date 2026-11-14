@@ -36,12 +36,16 @@ test('sw.js 中预缓存的 SHELL_FILES 在仓库中全部真实存在', () => {
   }
 });
 
-test('页面展示新版本选号和同步入口', () => {
+test('页面展示固定 12 码版本、波色与同步入口', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案']) {
+  for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案', '选号与补位规则', 'signal-rules', 'cdn-cgi']) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);
   }
-  assert.ok(html.includes('id="selectionSize"'));
+  assert.ok(html.includes('固定 12 码'));
+  assert.ok(html.includes('id="hotNumbers"'));
   assert.ok(html.includes('id="syncNow"'));
+  assert.ok(html.includes('id="syncStatus"'));
   assert.ok(html.includes('id="heatScope"'));
+  assert.ok(html.includes('const waveColor'));
+  assert.ok(html.includes('data-wave='));
 });
