@@ -71,11 +71,16 @@ test('推荐、信号、开奖与热度号码按波色显示', async () => {
     assert.equal(doc.querySelectorAll('#mainBalls .ball').length, 5);
     assert.equal(doc.querySelectorAll('#backupBalls .ball').length, 7);
     assert.equal(doc.querySelectorAll('.signal-ball').length, 12);
-    assert.ok(doc.querySelector('.wave-hint').textContent.includes('波色'));
+    const hint = doc.getElementById('allocationHint').textContent;
+    assert.ok(hint.includes('波色'));
+    assert.ok(hint.includes('分配'));
+    assert.ok(hint.includes('→'));
+    assert.ok(doc.getElementById('syncNow').classList.contains('sync'));
+    assert.equal(doc.querySelectorAll('#recommendation .card-head .wave-dot').length, 3);
     assert.equal(doc.querySelectorAll('#heatLegend .wave-dot').length, 3);
 
     const balls = [
-      ...doc.querySelectorAll('#mainBalls .ball, #backupBalls .ball, .signal-ball, .draw-num, .special-ball, .small-ball, .detail-num, .result-badge, .lock-ball')
+      ...doc.querySelectorAll('#mainBalls .ball, #backupBalls .ball, .signal-ball, .draw-num, .special-ball, .small-ball, .detail-num, .result-badge, .lock-ball, .hc-number')
     ];
     assert.ok(balls.length > 0, '页面应展示波色号码');
     for (const ball of balls) {
@@ -86,12 +91,15 @@ test('推荐、信号、开奖与热度号码按波色显示', async () => {
       assert.equal(dom.window.getComputedStyle(ball).backgroundColor, WAVE_RGB[wave], `号码 ${n} 未按波色着色`);
     }
 
-    const dots = [...doc.querySelectorAll('#heatGrid .hc-wave')];
-    assert.ok(dots.length > 0, '热度格应展示波色圆点');
-    for (const dot of dots) {
-      const wave = dot.parentElement.dataset.wave;
+    const heatNumbers = [...doc.querySelectorAll('#heatGrid .hc-number')];
+    assert.ok(heatNumbers.length > 0, '热度格号码本体应按波色显示');
+    for (const el of heatNumbers) {
+      const n = Number(el.textContent.trim());
+      const wave = NUMBER_TO_COLOR[n];
       assert.ok(['red', 'blue', 'green'].includes(wave));
-      assert.equal(dom.window.getComputedStyle(dot).backgroundColor, WAVE_RGB[wave]);
+      assert.equal(el.dataset.wave, wave, `热度号码 ${n} 的波色标记错误`);
+      assert.equal(el.parentElement.dataset.wave, wave, `热度格 ${n} 的波色标记错误`);
+      assert.equal(dom.window.getComputedStyle(el).backgroundColor, WAVE_RGB[wave], `热度号码 ${n} 未按波色着色`);
     }
     for (const [index, key] of ['red', 'blue', 'green'].entries()) {
       const chip = doc.querySelectorAll('#heatLegend .wave-dot')[index];
