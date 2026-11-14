@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>选号工具</title>
-<meta name="app-version" content="v2026.11.13-r12">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.13-r12">
+<meta name="app-version" content="v2026.11.14-r13">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.14-r13">
 <style>
 :root{--ink:#1e293b;--muted:#64748b;--paper:#f2f7f6;--card:#fff;--line:#d8e4e2;--teal:#0d9488;--blue:#2563eb;--hot:#e54b4b;--green:#10a878;--gold:#d97706;--purple:#7c3aed;--shadow:0 6px 20px rgba(15,23,42,.05);font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif}
 *{box-sizing:border-box}
@@ -74,6 +74,19 @@ h2{font-size:16px;line-height:1.35;padding-left:9px;border-left:4px solid var(--
 }
 @media(max-width:380px){.history-hint{display:inline-block}}
 
+.fixed-count{display:inline-flex;align-items:center;border:1px solid #99f6e4;background:#f0fdfa;color:#0f766e;border-radius:99px;padding:5px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}
+.wave-hint{font-size:10.5px;color:#64748b;white-space:nowrap}
+.wave-legend-label{font-weight:800;color:#475569}
+.legend-dot.wave-dot{border-radius:50%;border:1px solid rgba(15,23,42,.1)}
+.recommendation-picks .ball-wrap{min-width:58px}.recommendation-picks .ball-wrap.secondary{min-width:58px}.recommendation-picks .ball-origin{max-width:100px;text-align:center;line-height:1.25;white-space:normal}
+.signal-panel.hot{border-top:3px solid #ef4444}.signal-panel.omit{border-top:3px solid #3b82f6}.signal-panel.cycle{border-top:3px solid #10a878}.signal-description{font-size:10.5px;color:#64748b;margin:-3px 0 9px;line-height:1.5}.signal-picks{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:65px}.signal-number{min-width:58px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}.signal-ball{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font:800 13px Consolas,monospace}.signal-rank{font:700 9.5px Consolas,"Microsoft YaHei",monospace;color:#64748b}.signal-resonance{font-size:9px;line-height:1.25;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:2px 4px;max-width:110px;white-space:normal}
+.benchmark-note{font-size:10.5px;color:#64748b;margin:6px 0 14px;line-height:1.5}
+.hc-wave{position:absolute;top:5px;left:5px;width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
+.detail-num,.detail-group span.detail-num{display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:3px 5px;border-radius:5px;color:#fff;font:800 11px Consolas,monospace;line-height:1.2}.detail-num.is-hit{box-shadow:0 0 0 2px #d97706}
+.lock-ball,.lock-record .numbers .lock-ball{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:2px 4px;margin:1px;border-radius:5px;color:#fff;font:800 11px Consolas,monospace}
+@media(max-width:780px){.fixed-count{white-space:normal}.wave-hint{white-space:normal}}
+
+
 </style>
 </head>
 <body>
@@ -99,13 +112,13 @@ h2{font-size:16px;line-height:1.35;padding-left:9px;border-left:4px solid var(--
     </form><div class="flash" id="entryFlash" role="status"></div>
   </section>
 
-  <section class="card" id="recommendation" aria-labelledby="resultTitle"><div class="card-head"><h2 id="resultTitle">2. 下期综合推荐 <span class="tag" id="targetLabel">--</span></h2><div class="size-wrap"><label for="selectionSize">总选号</label><select id="selectionSize" aria-label="总选号数量"><option value="10">10 码</option><option value="11">11 码</option><option value="12" selected>12 码 · 建议</option><option value="13">13 码</option><option value="14">14 码</option><option value="15">15 码</option><option value="16">16 码</option></select></div></div>
-    <div class="opt-hero"><div><div class="opt-top"><span class="opt-badge">🎯 综合主攻 5 码</span></div><div id="mainBalls" class="balls" aria-live="polite"><span class="picks-note">正在整理号码…</span></div></div><div class="opt-actions"><button class="btn gold" type="button" id="copyAll" disabled><span id="copyAllLabel">复制完整 12 码</span></button><button class="btn" type="button" id="copyMain" disabled>复制主攻 5 码</button></div></div>
-    <div class="summary-box"><div><h3>备选 <b id="backupCount">7</b> 码 <span class="sub">总数 <b id="totalCountLabel">12</b> 码</span></h3><div id="backupBalls" class="balls backup-balls"><span class="picks-note">正在整理号码…</span></div></div><div class="lockbar"><div class="lock-text"><b id="lockTitle">未锁定</b><span id="lockDescription"></span></div><button type="button" class="btn sm" id="lockBtn" disabled>锁定本期</button></div></div>
-    <div class="engine-grid">
-      <div class="panel a"><div class="ep-head"><span class="ep-title">🔵 方案 A</span><span class="ep-meta" id="originalACount">原主推</span></div><table class="prediction"><thead><tr><th>原主推号码</th><th>本次去向</th></tr></thead><tbody id="originalA"></tbody></table></div>
-      <div class="panel b"><div class="ep-head"><span class="ep-title">🟢 方案 B</span><span class="ep-meta" id="originalBCount">原主推</span></div><table class="prediction"><thead><tr><th>原主推号码</th><th>本次去向</th></tr></thead><tbody id="originalB"></tbody></table></div>
-      <div class="panel c"><div class="ep-head"><span class="ep-title">📊 方案对照</span><span class="ep-meta" id="leaderPeriod">近 50 期</span></div><table class="prediction"><thead><tr><th>项目</th><th>数量</th></tr></thead><tbody><tr><td>方案 A · 5 码</td><td id="leaderHistory">—</td></tr><tr><td>方案 B · 5 码</td><td id="leaderHistoryB">—</td></tr><tr><td>主攻分配</td><td id="allocationText">—</td></tr><tr><td>总号分配</td><td id="allocationTotal">—</td></tr></tbody></table></div>
+  <section class="card" id="recommendation" aria-labelledby="resultTitle"><div class="card-head"><h2 id="resultTitle">2. 下期特码选号 <span class="tag" id="targetLabel">--</span></h2><span class="fixed-count">固定 12 码 · 热势 4 + 遗漏 4 + 周期 4</span><span class="wave-hint">号码按波色显示</span></div>
+    <div class="opt-hero recommendation-picks"><div><div class="opt-top"><span class="opt-badge">🎯 核心 5 码 · 12 码子集</span><span class="opt-stat" id="zoneSummary">四区分布待计算</span></div><div id="mainBalls" class="balls" aria-live="polite"><span class="picks-note">正在整理号码…</span></div></div><div class="opt-actions"><button class="btn gold" type="button" id="copyAll" disabled><span id="copyAllLabel">复制完整 12 码</span></button><button class="btn" type="button" id="copyMain" disabled>复制核心 5 码</button></div></div>
+    <div class="summary-box"><div><h3>补充 <b id="backupCount">7</b> 码 <span class="sub">固定总数 <b id="totalCountLabel">12</b> 码</span></h3><div id="backupBalls" class="balls backup-balls"><span class="picks-note">正在整理号码…</span></div></div><div class="lockbar"><div class="lock-text"><b id="lockTitle">未锁定</b><span id="lockDescription"></span></div><button type="button" class="btn sm" id="lockBtn" disabled>锁定本期</button></div></div>
+    <div class="engine-grid signal-grid">
+      <div class="panel signal-panel hot"><div class="ep-head"><span class="ep-title">🔥 热势配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">按热势排名取 4 个独立号码</p><div id="hotNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
+      <div class="panel signal-panel omit"><div class="ep-head"><span class="ep-title">⏳ 遗漏配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">重合号标注共鸣，不重复占额；继续补选</p><div id="omitNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
+      <div class="panel signal-panel cycle"><div class="ep-head"><span class="ep-title">🔁 周期配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">重合号标注共鸣，不重复占额；继续补选</p><div id="cycleNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
     </div>
   </section>
 
@@ -115,12 +128,13 @@ h2{font-size:16px;line-height:1.35;padding-left:9px;border-left:4px solid var(--
     <div class="card-head"><h2 id="reviewTitle">4. 历史回放 <span class="tag">模拟</span></h2></div>
     <div class="detail-bar"><span class="detail-title">近期统计</span><div class="segmented" id="rangeButtons" aria-label="选择统计期数"><button type="button" data-range="50">近50期</button><button type="button" class="active" data-range="100" aria-pressed="true">近100期</button><button type="button" data-range="300">近300期</button><button type="button" data-range="all">全部</button></div></div>
     <p class="section-sub" id="reviewSubtitle">正在计算…</p>
-    <div class="metrics"><div class="metric"><div class="metric-label">主攻 5 码命中 <span class="metric-badge">主攻</span></div><div class="metric-value" id="mainRate">—</div><div class="metric-meta" id="mainHits">正在计算…</div><div class="bar"><span id="mainBar" style="width:0"></span></div></div><div class="metric"><div class="metric-label"><span>完整 <span id="metricTotal">12</span> 码命中</span><span class="metric-badge">总选号</span></div><div class="metric-value" id="totalRate">—</div><div class="metric-meta" id="totalHits">正在计算…</div><div class="bar"><span id="totalBar" style="width:0"></span></div></div></div>
+    <div class="metrics"><div class="metric"><div class="metric-label">核心 5 码命中 <span class="metric-badge">核心</span></div><div class="metric-value" id="mainRate">—</div><div class="metric-meta" id="mainHits">正在计算…</div><div class="bar"><span id="mainBar" style="width:0"></span></div></div><div class="metric"><div class="metric-label"><span>完整 <span id="metricTotal">12</span> 码命中</span><span class="metric-badge">总选号</span></div><div class="metric-value" id="totalRate">—</div><div class="metric-meta" id="totalHits">正在计算…</div><div class="bar"><span id="totalBar" style="width:0"></span></div></div></div>
+    <p class="benchmark-note">同区间随机基准按每期特码所在区间，使用相同号码数及该期推荐的区间配额计算理论覆盖率；只作比较参照，不证明预测优势。</p>
     <div class="detail-bar"><span class="detail-title">历年命中率</span></div>
-    <div class="yearly-wrap" role="region" aria-label="历年命中率" tabindex="0"><table class="yearly-table" id="yearlyTable"><thead><tr id="yearlyHead"><th>年份</th><th>回放期数</th><th>🎯 主攻 5 码</th><th>完整 12 码</th></tr></thead><tbody id="yearlyBody"><tr><td colspan="4">正在计算…</td></tr></tbody></table></div>
+    <div class="yearly-wrap" role="region" aria-label="历年命中率" tabindex="0"><table class="yearly-table" id="yearlyTable"><thead><tr id="yearlyHead"><th>年份</th><th>回放期数</th><th>🎯 核心 5 码</th><th>完整 12 码</th></tr></thead><tbody id="yearlyBody"><tr><td colspan="4">正在计算…</td></tr></tbody></table></div>
     <div id="records">
       <div class="detail-bar"><span class="detail-title">逐期命中明细 <span class="scroll-hint history-hint" aria-hidden="true">↔</span></span><div id="yearTabs" class="tabs" aria-label="选择年份"></div></div>
-      <div class="table-wrap" id="historyScroll" role="region" aria-label="逐期命中明细，可左右滚动" tabindex="0"><table class="history" id="historyTable"><thead><tr id="historyHead"><th>期号</th><th>开奖号码</th><th>🎯 主攻 5 码</th><th>完整 12 码</th><th>荐号</th></tr></thead><tbody id="historyBody"><tr><td colspan="5">正在计算…</td></tr></tbody></table></div>
+      <div class="table-wrap" id="historyScroll" role="region" aria-label="逐期命中明细，可左右滚动" tabindex="0"><table class="history" id="historyTable"><thead><tr id="historyHead"><th>期号</th><th>开奖号码</th><th>🎯 核心 5 码</th><th>完整 12 码</th><th>荐号</th></tr></thead><tbody id="historyBody"><tr><td colspan="5">正在计算…</td></tr></tbody></table></div>
     </div>
     <details class="fold-card"><summary class="wide-summary"><span class="left"><b>本地锁定记录 <span id="lockHistoryCount">0 条</span></b></span><span class="arrow">⌄</span></summary><div class="fold-content"><div id="lockHistory" class="lock-list"><div class="empty">暂无记录</div></div></div></details>
   </section>
@@ -434,6 +448,10 @@ const WAVE_MAP = (() => {
   return m;
 })();
 const WAVE_COLOR = { red: '#e54b4b', blue: '#3b82f6', green: '#10a878' };
+const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
+const waveKey = n => WAVE_MAP[n];
+const waveColor = n => WAVE_COLOR[waveKey(n)] || '#64748b';
+const waveLabel = n => WAVE_LABEL[waveKey(n)] || '';
 const ZODIACS = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
 const LUNAR_NEW_YEAR_DATES = {
   2020: { date: '2020-01-25', zodiac: '鼠', prevZodiac: '猪' },
@@ -496,507 +514,145 @@ function validSevenNums(arr) {
 }
 
 
-function zoneOf(n) { return n <= 16 ? 1 : n <= 33 ? 2 : 3; }
-
-function selectBalancedSeven(scoreMap, opts) {
-  const size = 7;
-  const minZ = opts.minPerZone, maxZ = opts.maxPerZone;
-  const minC = opts.minPerColor, maxC = opts.maxPerColor;
-  const oddLo = opts.oddRange[0], oddHi = opts.oddRange[1];
-  const bigLo = opts.bigRange[0], bigHi = opts.bigRange[1];
-  const maxTail = opts.maxTailRepeat;
-
-  let lo = Infinity, hi = -Infinity;
-  for (let n = 1; n <= 49; n++) {
-    const v = scoreMap[n];
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
-  }
-  const span = hi - lo;
-  const norm = new Float64Array(50);
-  for (let n = 1; n <= 49; n++) norm[n] = span > 1e-12 ? (scoreMap[n] - lo) / span : 0.5;
-
-  const candidates = Array.from({ length: 49 }, (_, i) => i + 1)
-    .sort((a, b) => norm[b] - norm[a] || a - b);
-
-  const chosen = [];
-  const chosenMask = new Uint8Array(50);
-  const zCnt = [0, 0, 0, 0];
-  const cCnt = { red: 0, blue: 0, green: 0 };
-  const tCnt = new Uint8Array(10);
-  let oddCnt = 0, bigCnt = 0;
-
-  while (chosen.length < size) {
-    let bestNum = 0, bestVal = -Infinity;
-    const remAfter = size - (chosen.length + 1);
-
-    for (const strict of [true, false]) {
-      for (let idx = 0; idx < 49; idx++) {
-        const n = candidates[idx];
-        if (chosenMask[n]) continue;
-        const z = zoneOf(n), c = WAVE_MAP[n], tl = n % 10;
-        const isOdd = n & 1, isBig = n >= 25 ? 1 : 0;
-
-        if (strict) {
-          if (zCnt[z] + 1 > maxZ) continue;
-          if (cCnt[c] + 1 > maxC) continue;
-          if (tCnt[tl] + 1 > maxTail) continue;
-
-          const zDef = Math.max(0, minZ - (zCnt[1] + (z === 1 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[2] + (z === 2 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[3] + (z === 3 ? 1 : 0)));
-          if (zDef > remAfter) continue;
-
-          const cDef = Math.max(0, minC - (cCnt.red + (c === 'red' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.blue + (c === 'blue' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.green + (c === 'green' ? 1 : 0)));
-          if (cDef > remAfter) continue;
-
-          const nextOdd = oddCnt + isOdd;
-          if (nextOdd > oddHi || nextOdd + remAfter < oddLo) continue;
-          const nextBig = bigCnt + isBig;
-          if (nextBig > bigHi || nextBig + remAfter < bigLo) continue;
-        }
-
-        let val = norm[n];
-        if (zCnt[z] < minZ) val += 0.18;
-        else if (zCnt[z] >= maxZ - 1) val -= 0.06;
-
-        if (cCnt[c] < minC) val += 0.14;
-        else if (cCnt[c] >= maxC - 1) val -= 0.05;
-
-        if (tCnt[tl] > 0) val -= 0.12 * tCnt[tl];
-
-        val -= 0.05 * Math.abs(oddCnt + isOdd - 3.5) - 0.05 * Math.abs(bigCnt + isBig - 3.5);
-        if (val > bestVal) {
-          bestVal = val;
-          bestNum = n;
-        }
-      }
-      if (bestNum) break;
-    }
-    if (!bestNum) break;
-    chosen.push(bestNum);
-    chosenMask[bestNum] = 1;
-    zCnt[zoneOf(bestNum)]++;
-    cCnt[WAVE_MAP[bestNum]]++;
-    tCnt[bestNum % 10]++;
-    if (bestNum & 1) oddCnt++;
-    if (bestNum >= 25) bigCnt++;
-  }
-  return chosen.sort((a, b) => a - b);
-}
-
-function runTool2BaseAt(usableAsc, P, year, periodNum, dateStr) {
-  const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : `${year}-01-01`);
-  const baseZIdx = yearZodiacBaseIdx(effDate);
-
-  const nF15 = new Int16Array(50);
-  const w180Len = Math.min(180, P);
-  for (let i = 0; i < Math.min(15, w180Len); i++) {
-    const norms = usableAsc[P - 1 - i].numbers;
-    for (let j = 0; j < 6; j++) nF15[norms[j]]++;
-  }
-
-  const lastNormMask = new Uint8Array(50);
-  const rec3NormMask = new Uint8Array(50);
-  if (P > 0) for (const n of usableAsc[P - 1].numbers) lastNormMask[n] = 1;
-  for (let i = 0; i < Math.min(3, P); i++) for (const n of usableAsc[P - 1 - i].numbers) rec3NormMask[n] = 1;
-
-  const sWin = Math.min(420, P);
-  const sF15 = new Int16Array(50), sF30 = new Int16Array(50), sF60 = new Int16Array(50), sF120 = new Int16Array(50);
-  const sLastSeen = new Int16Array(50).fill(-1);
-  const sPrevSeen = new Int16Array(50).fill(-1);
-  const sGaps = Array.from({ length: 50 }, () => []);
-
-  for (let i = 0; i < sWin; i++) {
-    const s = usableAsc[P - 1 - i].special;
-    if (i < 120) {
-      sF120[s]++;
-      if (i < 60) sF60[s]++;
-      if (i < 30) sF30[s]++;
-      if (i < 15) sF15[s]++;
-    }
-    if (sLastSeen[s] < 0) sLastSeen[s] = i;
-    if (sPrevSeen[s] >= 0) sGaps[s].push(i - sPrevSeen[s] - 1);
-    sPrevSeen[s] = i;
-  }
-  const sOmitDefault = sWin || 1;
-
-  const computeEma = (span) => {
-    const alpha = 2 / (span + 1), keep = 1 - alpha;
-    const out = new Float64Array(50).fill(1 / 49);
-    const len = Math.min(span * 3, sWin);
-    for (let idx = P - len; idx < P; idx++) {
-      const s = usableAsc[idx].special;
-      for (let n = 1; n <= 49; n++) out[n] *= keep;
-      out[s] += alpha;
-    }
-    return out;
-  };
-  const ema20 = computeEma(20);
-  const ema45 = computeEma(45);
-
-  const sTail60 = new Int16Array(10);
-  const sZod60 = new Int16Array(12);
-  for (let i = 0; i < Math.min(60, sWin); i++) {
-    const s = usableAsc[P - 1 - i].special;
-    sTail60[s % 10]++;
-    const zIdx = ((baseZIdx - (s - 1)) % 12 + 12) % 12;
-    sZod60[zIdx]++;
-  }
-  const maxSTail = Math.max(1, ...sTail60);
-  const minSTail = Math.min(...sTail60);
-  let maxSZod = 1;
-  for (let z = 0; z < 12; z++) if (sZod60[z] > maxSZod) maxSZod = sZod60[z];
-
-  const lastSpecial = sWin > 0 ? usableAsc[P - 1].special : null;
-  const lastSpTail = lastSpecial != null ? lastSpecial % 10 : -1;
-
-  const normToSpecHits = new Int16Array(50);
-  const normApp = new Int16Array(50);
-  const convLim = Math.min(240, Math.max(0, sWin - 1));
-  const seenPrev = new Int32Array(50);
-  let stamp = 1;
-  for (let i = 0; i < convLim; i++) {
-    stamp++;
-    const curSpec = usableAsc[P - 1 - i].special;
-    const d1 = usableAsc[P - 2 - i];
-    if (d1) {
-      for (const pn of d1.numbers) {
-        if (seenPrev[pn] !== stamp) {
-          seenPrev[pn] = stamp;
-          normApp[pn]++;
-          if (pn === curSpec) normToSpecHits[pn]++;
-        }
-      }
-    }
-    if (i + 2 < sWin) {
-      const d2 = usableAsc[P - 3 - i];
-      if (d2) {
-        for (const pn of d2.numbers) {
-          if (seenPrev[pn] !== stamp) {
-            seenPrev[pn] = stamp;
-            normApp[pn]++;
-            if (pn === curSpec) normToSpecHits[pn]++;
-          }
-        }
-      }
-    }
-  }
-
-  const colorTrans = { red: 1 / 3, blue: 1 / 3, green: 1 / 3 };
-  const zoneTrans = [0, 1 / 3, 1 / 3, 1 / 3];
-  const parityTrans = [0.5, 0.5];
-  if (lastSpecial != null && sWin >= 10) {
-    const lastColor = WAVE_MAP[lastSpecial];
-    const lastZone = zoneOf(lastSpecial);
-    const lastOdd = lastSpecial & 1;
-    const cCnt = { red: 1, blue: 1, green: 1 }; let cTot = 3;
-    const zCnt = [0, 1, 1, 1]; let zTot = 3;
-    const pCnt = [1, 1]; let pTot = 2;
-    const transLen = Math.min(240, sWin - 1);
-    for (let i = 0; i < transLen; i++) {
-      const cur = usableAsc[P - 1 - i].special;
-      const prev = usableAsc[P - 2 - i].special;
-      if (WAVE_MAP[prev] === lastColor) { cCnt[WAVE_MAP[cur]]++; cTot++; }
-      if (zoneOf(prev) === lastZone) { zCnt[zoneOf(cur)]++; zTot++; }
-      if ((prev & 1) === lastOdd) { pCnt[cur & 1]++; pTot++; }
-    }
-    colorTrans.red = cCnt.red / cTot;
-    colorTrans.blue = cCnt.blue / cTot;
-    colorTrans.green = cCnt.green / cTot;
-    zoneTrans[1] = zCnt[1] / zTot;
-    zoneTrans[2] = zCnt[2] / zTot;
-    zoneTrans[3] = zCnt[3] / zTot;
-    parityTrans[0] = pCnt[0] / pTot;
-    parityTrans[1] = pCnt[1] / pTot;
-  }
-
-  const jitter = (num, salt) => {
-    let x = ((year * 1009 + periodNum * 9176 + num * 379 + salt * 131071) >>> 0) || 1;
-    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
-    return ((x >>> 0) % 10000) / 10000;
-  };
-
-  const hotMap = new Float64Array(50);
-  const coldMap = new Float64Array(50);
-  const cycleMap = new Float64Array(50);
-  const lastSpZone = lastSpecial != null ? zoneOf(lastSpecial) : -1;
-  const tailSpan = Math.max(1, maxSTail - minSTail);
-
-  for (let n = 1; n <= 49; n++) {
-    const color = WAVE_MAP[n];
-    const zIdx = ((baseZIdx - (n - 1)) % 12 + 12) % 12;
-    const zone = zoneOf(n);
-    const isOdd = n & 1;
-
-    const sCur = sLastSeen[n] >= 0 ? sLastSeen[n] : sOmitDefault;
-    const gArr = sGaps[n];
-    let sPct = 1, medianGap = 34;
-    if (gArr.length > 0) {
-      let le = 0;
-      for (let k = 0; k < gArr.length; k++) if (gArr[k] <= sCur) le++;
-      sPct = le / gArr.length;
-      const sg = gArr.slice().sort((a, b) => a - b);
-      medianGap = sg[sg.length >> 1];
-    }
-
-    const convRate = normApp[n] >= 3 ? normToSpecHits[n] / normApp[n] : 1 / 49;
-    const isLastSp = lastSpecial === n;
-    const diffSp = lastSpecial != null ? Math.abs(n - lastSpecial) : 99;
-    const tailNorm = sTail60[n % 10] / maxSTail;
-    const tailColdNorm = (maxSTail - sTail60[n % 10]) / tailSpan;
-    const zodiacNorm = sZod60[zIdx] / maxSZod;
-    const transScore = 0.45 * (colorTrans[color] * 3) + 0.35 * (zoneTrans[zone] * 3) + 0.20 * (parityTrans[isOdd] * 2);
-
-    hotMap[n] =
-      1.35 * ((sF15[n] * 49) / 15) +
-      1.65 * ((sF30[n] * 49) / 30) +
-      1.05 * ((sF60[n] * 49) / 60) +
-      1.20 * (ema20[n] * 49) +
-      (diffSp === 1 ? 0.95 : diffSp === 2 ? 0.45 : 0) +
-      (lastSpTail >= 0 && (n % 10) === lastSpTail && !isLastSp ? 0.40 : 0) +
-      (rec3NormMask[n] ? 0.45 + Math.min(0.6, convRate * 12) : 0) +
-      0.55 * tailNorm +
-      0.35 * zodiacNorm -
-      (isLastSp ? 0.65 : 0) +
-      jitter(n, 17) * 0.42;
-
-    const omDepth = Math.min(sCur, 100) / 50;
-    const normalWarmup = (lastNormMask[n] ? 0.65 : rec3NormMask[n] ? 0.35 : 0)
-      + (nF15[n] >= 2 && nF15[n] <= 4 ? 0.35 : 0);
-    const zoneShift = lastSpecial != null && zone !== lastSpZone ? 0.30 : 0;
-
-    coldMap[n] =
-      2.35 * sPct +
-      0.95 * omDepth +
-      0.55 * tailColdNorm +
-      normalWarmup +
-      zoneShift +
-      (sCur > medianGap ? 0.45 : 0) -
-      (sCur <= 6 ? 1.80 : 0) +
-      jitter(n, 43) * 0.85;
-
-    const gapRatio = medianGap > 0 ? sCur / medianGap : 1;
-    const cycleWindow = Math.exp(-Math.pow(gapRatio - 0.95, 2) / 0.55);
-    const steadyFreq = 1 / (1 + Math.abs(sF120[n] - 120 / 49));
-
-    cycleMap[n] =
-      1.75 * cycleWindow +
-      1.45 * transScore +
-      1.10 * steadyFreq +
-      0.60 * (ema45[n] * 49) +
-      (lastNormMask[n] ? 0.35 : 0) -
-      (isLastSp ? 0.80 : 0) +
-      jitter(n, 89) * 0.45;
-  }
-
-  const hot = selectBalancedSeven(hotMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
-  const cold = selectBalancedSeven(coldMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
-  const cycle = selectBalancedSeven(cycleMap, { minPerZone: 2, maxPerZone: 3, minPerColor: 2, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 1 });
-
-  const t2Union = [...new Set([...hot, ...cold, ...cycle])].sort((a, b) => a - b);
-  const recentCool = [];
-  for (let k = 1; k <= COOLDOWN_LOOKBACK && P - k >= 0; k++) {
-    const s = usableAsc[P - k].special;
-    if (!recentCool.includes(s)) recentCool.push(s);
-  }
-  const coolSet = new Set(recentCool);
-  const cycSet = new Set(cycle);
-  const t2Opt = [...new Set([...hot, ...cold])].sort((a, b) => a - b).filter(n => !cycSet.has(n) && !coolSet.has(n));
-
-  return { t2Union, t2Opt, recentCool, coolSet, baseZIdx, groups: { hot, cold, cycle }, scores: { hot: hotMap, cold: coldMap, cycle: cycleMap } };
-}
-
-/* ==================== 底层2：工具3 盲区错位互补三组7码引擎（与工具2 100% 零重叠） ==================== */
-function selectPoolSeven(pool, scoreMap) {
-  const sorted = [...pool].sort((a, b) => scoreMap[b] - scoreMap[a] || a - b);
-  const chosen = [];
-  const zCnt = [0, 0, 0, 0];
-  const cCnt = { red: 0, blue: 0, green: 0 };
-  const tCnt = new Uint8Array(10);
-  const used = new Set();
-
-  for (const strict of [true, false]) {
-    for (const n of sorted) {
-      if (chosen.length >= 7) break;
-      if (used.has(n)) continue;
-      const z = zoneOf(n), c = WAVE_MAP[n], tl = n % 10;
-      if (strict && (zCnt[z] >= 3 || cCnt[c] >= 3 || tCnt[tl] >= 2)) continue;
-      chosen.push(n);
-      used.add(n);
-      zCnt[z]++;
-      cCnt[c]++;
-      tCnt[tl]++;
-    }
-  }
-  return chosen.sort((a, b) => a - b);
-}
-
-function runTool3At(usableAsc, P, year, periodNum, dateStr) {
-  const t2 = runTool2BaseAt(usableAsc, P, year, periodNum, dateStr);
-  const banned = new Set(t2.t2Union);
-  const coolSet = t2.coolSet;
-  const baseZ = t2.baseZIdx;
-
-  const pool = [];
-  for (let n = 1; n <= 49; n++) if (!banned.has(n)) pool.push(n);
-
-  const nF3 = new Int16Array(50), nF10 = new Int16Array(50), aF30 = new Int16Array(50);
-  const allOmit = new Int16Array(50).fill(60);
-  const spOmit = new Int16Array(50).fill(100);
-  const zSp25 = new Int16Array(12);
-  const tSp25 = new Int16Array(10);
-
-  for (let k = 1; k <= 90 && P - k >= 0; k++) {
-    const rec = usableAsc[P - k];
-    if (spOmit[rec.special] === 100) spOmit[rec.special] = k - 1;
-    for (const x of rec.raw7) {
-      if (allOmit[x] === 60) allOmit[x] = k - 1;
-      if (k <= 30) aF30[x]++;
-    }
-    if (k <= 3) for (const x of rec.numbers) nF3[x]++;
-    if (k <= 10) for (const x of rec.numbers) nF10[x]++;
-    if (k <= 25) {
-      zSp25[((baseZ - (rec.special - 1)) % 12 + 12) % 12]++;
-      tSp25[rec.special % 10]++;
-    }
-  }
-
-  const lastNorm = new Set(P > 0 ? usableAsc[P - 1].numbers : []);
-  const lastRaw = new Set(P > 0 ? usableAsc[P - 1].raw7 : []);
-  const lastSp = P > 0 ? usableAsc[P - 1].special : -1;
-
-  const relayMap = new Float64Array(50);
-  const midMap = new Float64Array(50);
-  const drainMap = new Float64Array(50);
-  const spMeta = new Array(50);
-
-  for (let n = 1; n <= 49; n++) {
-    const zIdx = ((baseZ - (n - 1)) % 12 + 12) % 12;
-    spMeta[n] = { zodiac: ZODIACS[zIdx], omission: spOmit[n], n3: nF3[n] };
-    if (banned.has(n)) continue;
-
-    const tl = n % 10;
-    const clamp = (n > 1 && n < 49 && lastRaw.has(n - 1) && lastRaw.has(n + 1)) ? 0.45 : 0;
-    const mirror = (lastSp > 0 && n + lastSp === 50) ? 0.50 : 0;
-
-    // #1 正码传导：近1~3期正码预热 + 30期全奖托底 + 夹号/合50联动
-    relayMap[n] = (lastNorm.has(n) ? 1.35 : 0)
-                + 1.10 * nF3[n]
-                + 0.45 * nF10[n]
-                + 0.25 * aF30[n]
-                + clamp + mirror
-                + 0.20 * tSp25[tl];
-
-    // #2 中段蓄力：特码遗漏16~30期黄金断层窗（工具2极热与极冷之间的真空带）
-    const midPeak = Math.exp(-Math.pow((spOmit[n] - 23) / 7.5, 2));
-    midMap[n] = 2.40 * midPeak
-              + (spOmit[n] >= 16 && spOmit[n] <= 30 ? 0.85 : 0)
-              + 0.25 * tSp25[tl]
-              + (zSp25[zIdx] <= 1 ? 0.45 : 0)
-              + (nF3[n] >= 1 ? 0.40 : 0);
-
-    // #3 肖热透支（反向杀号池）：近25期过热生肖剩余球 + 7~15期尴尬浅冷 + 全奖沉寂
-    drainMap[n] = (zSp25[zIdx] >= 4 ? 1.80 : zSp25[zIdx] === 3 ? 0.85 : 0)
-                + (spOmit[n] >= 7 && spOmit[n] <= 15 ? 1.15 : 0)
-                + (allOmit[n] >= 10 ? 0.75 : 0)
-                + (tSp25[tl] <= 1 ? 0.40 : 0);
-  }
-
-  const relay = selectPoolSeven(pool, relayMap);
-  const mid = selectPoolSeven(pool, midMap);
-  const drain = selectPoolSeven(pool, drainMap);
-
-  const drainSet = new Set(drain);
-  const rmUnion = [...new Set([...relay, ...mid])].sort((a, b) => a - b);
-  const optPicks = rmUnion.filter(n => !drainSet.has(n) && !coolSet.has(n));
-  const goldenCore = relay.filter(n => mid.includes(n) && !drainSet.has(n) && !coolSet.has(n));
-  const killedByDrain = rmUnion.filter(n => drainSet.has(n));
-  const killedByCool = rmUnion.filter(n => !drainSet.has(n) && coolSet.has(n));
-  const relayKept = relay.filter(n => !drainSet.has(n) && !coolSet.has(n));
-  const midKept = mid.filter(n => !drainSet.has(n) && !coolSet.has(n));
-  const union = [...new Set([...relay, ...mid, ...drain])].sort((a, b) => a - b);
-
-  return {
-    groups: { relay, mid, drain },
-    scores: { relay: relayMap, mid: midMap, drain: drainMap },
-    spMeta,
-    union,
-    optPicks,
-    goldenCore,
-    killedByDrain,
-    killedByCool,
-    relayKept,
-    midKept,
-    drainSet,
-    coolSet,
-    recentCool: t2.recentCool,
-    t2Union: t2.t2Union,
-    t2Opt: t2.t2Opt,
-    toolA: t2
-  };
-}
-
-
-// 将两个原工具的结果整理为互不重复的候选队列。
-// 先用原主推，再按原组内排序补位；这里的排序只是整理规则，不是概率。
+function selectionZoneOf(n) { return n <= 12 ? 0 : n <= 24 ? 1 : n <= 36 ? 2 : 3; }
+const SIGNAL_META = [
+  { id: 'hot', name: '热势' },
+  { id: 'omit', name: '遗漏' },
+  { id: 'cycle', name: '周期' }
+];
+const SIGNAL_IDS = new Set(SIGNAL_META.map(x => x.id));
+const FIXED_SELECTION_SIZE = 12;
+const SIGNAL_QUOTA = 4;
+const ZONE_MIN_COUNT = 2;
+const ZONE_MAX_COUNT = 4;
 const WARMUP = 100;
-const LEADER_WINDOW = 50;
-const MIN_LEADER_ROWS = 30;
+const MIN_LEADER_ROWS = 30; // 仅用于读取旧版锁定快照中的历史字段
 
-function candidateRanking(plan, side) {
-  const a = plan.toolA;
-  const groups = side === 'A' ? [a.groups.hot, a.groups.cold] : [plan.groups.relay, plan.groups.mid];
-  const maps = side === 'A' ? [a.scores.hot, a.scores.cold] : [plan.scores.relay, plan.scores.mid];
-  const preferred = new Set(side === 'A' ? a.t2Opt : plan.optPicks);
-  const positive = new Set(groups.flat());
-  const other = new Set(side === 'A' ? a.groups.cycle : plan.groups.drain);
-  const aDomain = new Set(a.t2Union);
-  const domain = side === 'A' ? [...aDomain] : Array.from({length:49}, (_,i)=>i+1).filter(n => !aDomain.has(n));
-  const rankMaps = groups.map((g, ix) => {
-    const sorted = [...g].sort((x,y) => maps[ix][y] - maps[ix][x] || x-y);
-    return new Map(sorted.map((n, rank) => [n, (sorted.length - rank) / sorted.length]));
-  });
-  return domain.map(n => {
-    const tier = preferred.has(n) ? 0 : positive.has(n) ? 1 : other.has(n) ? 2 : 3;
-    const score = rankMaps.reduce((sum, m) => sum + (m.has(n) ? 10 + m.get(n) : 0), 0);
-    return {n, source: side, tier, score};
-  }).sort((x,y)=>x.tier-y.tier || y.score-x.score || x.n-y.n)
-    .map(({n, source, tier}) => ({n, source, tier}));
+function medianValue(values, fallback) {
+  if (!values.length) return fallback;
+  const sorted = values.slice().sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
-function leaderFor(rows) {
-  const recent = rows.slice(-LEADER_WINDOW);
-  let a = 0, b = 0;
-  for (const r of recent) { if (r.hitA) a++; if (r.hitB) b++; }
-  const enough = recent.length >= MIN_LEADER_ROWS;
-  return {side: enough && b > a ? 'B' : 'A', a, b, count:recent.length, enough};
-}
-function mergeRankings(a, b, leader) {
-  const sides = leader === 'A' ? [a,b] : [b,a];
-  const indices=[0,0], out=[];
-  let turn=0;
-  while (out.length < 16 && (indices[0]<sides[0].length || indices[1]<sides[1].length)) {
-    const wanted=turn%2;
-    const pick=indices[wanted]<sides[wanted].length ? wanted : 1-wanted;
-    if (indices[pick] < sides[pick].length) out.push(sides[pick][indices[pick]++]);
-    turn++;
+
+// 只读取前 P 条历史；不使用目标期或未来期。
+function runSignalModelAt(usableAsc, P) {
+  const length = Math.max(0, Math.min(Number(P) || 0, usableAsc.length));
+  const hot20 = new Uint16Array(50), hot60 = new Uint16Array(50), hot120 = new Uint16Array(50);
+  const w20 = Math.min(20, length), w60 = Math.min(60, length), w120 = Math.min(120, length);
+  for (let back = 0; back < w120; back++) {
+    const n = usableAsc[length - 1 - back].special;
+    if (back < w20) hot20[n]++;
+    if (back < w60) hot60[n]++;
+    hot120[n]++;
   }
-  return out;
-}
-function makeSelection(plan, priorRows) {
-  const a = candidateRanking(plan,'A');
-  const b = candidateRanking(plan,'B');
-  const leader = leaderFor(priorRows);
-  return {
-    a5:a.slice(0,5).map(x=>x.n),
-    b5:b.slice(0,5).map(x=>x.n),
-    order:mergeRankings(a,b,leader.side),
-    leader,
-    originalA:plan.toolA.t2Opt.slice(),
-    originalB:plan.optPicks.slice()
+
+  const lastSeen = new Int32Array(50).fill(-1);
+  for (let i = 0; i < length; i++) lastSeen[usableAsc[i].special] = i;
+  const gapStart = Math.max(0, length - 420);
+  const gapLastSeen = new Int32Array(50).fill(-1);
+  const gaps = Array.from({ length: 50 }, () => []);
+  for (let i = gapStart; i < length; i++) {
+    const n = usableAsc[i].special;
+    if (gapLastSeen[n] >= 0) gaps[n].push(i - gapLastSeen[n] - 1);
+    gapLastSeen[n] = i;
+  }
+
+  const scores = {
+    hot: new Float64Array(50),
+    omit: new Float64Array(50),
+    cycle: new Float64Array(50)
   };
+  const details = { omission: new Int32Array(50), medianGap: new Float64Array(50), gapCount: new Uint16Array(50) };
+  for (let n = 1; n <= 49; n++) {
+    const omission = lastSeen[n] >= 0 ? length - 1 - lastSeen[n] : length;
+    const recentRate = w20 ? hot20[n] * 49 / w20 : 0;
+    const middleRate = w60 ? hot60[n] * 49 / w60 : 0;
+    const longRate = w120 ? hot120[n] * 49 / w120 : 0;
+    scores.hot[n] = 0.55 * recentRate + 0.30 * middleRate + 0.15 * longRate;
+    scores.omit[n] = omission;
+
+    const medianGap = medianValue(gaps[n], 48);
+    const meanGap = gaps[n].length ? gaps[n].reduce((a, b) => a + b, 0) / gaps[n].length : 48;
+    const variance = gaps[n].length ? gaps[n].reduce((a, b) => a + (b - meanGap) ** 2, 0) / gaps[n].length : 576;
+    const regularity = 1 / (1 + Math.sqrt(variance) / (meanGap + 1));
+    const ratio = (omission + 1) / (medianGap + 1);
+    scores.cycle[n] = Math.exp(-Math.abs(Math.log(ratio))) * (0.8 + 0.2 * regularity);
+    details.omission[n] = omission;
+    details.medianGap[n] = medianGap;
+    details.gapCount[n] = gaps[n].length;
+  }
+  return { scores, details, historyLength: length };
+}
+
+function rankSignals(plan) {
+  const rankings = Object.create(null), rankBySignal = Object.create(null);
+  for (const meta of SIGNAL_META) {
+    const list = Array.from({ length: 49 }, (_, i) => ({ n: i + 1, score: plan.scores[meta.id][i + 1] }))
+      .sort((a, b) => b.score - a.score || a.n - b.n);
+    const ranks = new Uint8Array(50);
+    list.forEach((item, i) => { item.rank = i + 1; ranks[item.n] = i + 1; });
+    rankings[meta.id] = list;
+    rankBySignal[meta.id] = ranks;
+  }
+  return { rankings, rankBySignal };
+}
+
+function canAddSelection(n, zoneCounts, chosenCount) {
+  const zone = selectionZoneOf(n);
+  if (zoneCounts[zone] >= ZONE_MAX_COUNT) return false;
+  const next = zoneCounts.map((count, i) => count + (i === zone ? 1 : 0));
+  const remaining = FIXED_SELECTION_SIZE - chosenCount - 1;
+  const stillNeeded = next.reduce((sum, count) => sum + Math.max(0, ZONE_MIN_COUNT - count), 0);
+  return stillNeeded <= remaining;
+}
+
+// 各路各取 4 个新号码。号码若在其他路原始前 4 名，也只获得共鸣标签，不重复占额。
+function makeSelection(plan) {
+  const { rankings, rankBySignal } = rankSignals(plan);
+  const rawTop = Object.create(null);
+  for (const meta of SIGNAL_META) rawTop[meta.id] = new Set(rankings[meta.id].slice(0, SIGNAL_QUOTA).map(x => x.n));
+
+  const used = new Set(), zoneCounts = [0, 0, 0, 0], groups = Object.create(null);
+  for (const meta of SIGNAL_META) {
+    const picks = [];
+    for (const candidate of rankings[meta.id]) {
+      if (used.has(candidate.n) || !canAddSelection(candidate.n, zoneCounts, used.size)) continue;
+      const item = { n: candidate.n, source: meta.id, tier: candidate.rank > SIGNAL_QUOTA ? 1 : 0, rank: candidate.rank, signals: [] };
+      picks.push(item);
+      used.add(candidate.n);
+      zoneCounts[selectionZoneOf(candidate.n)]++;
+      if (picks.length === SIGNAL_QUOTA) break;
+    }
+    if (picks.length !== SIGNAL_QUOTA) throw new Error(`${meta.name} 路未能补足 4 个号码`);
+    groups[meta.id] = picks;
+  }
+
+  const allocated = SIGNAL_META.flatMap(meta => groups[meta.id]);
+  if (allocated.length !== FIXED_SELECTION_SIZE || used.size !== FIXED_SELECTION_SIZE) throw new Error('选号总池未达到 12 个互不重复号码');
+  for (const pick of allocated) {
+    pick.signals = SIGNAL_META.filter(meta => rawTop[meta.id].has(pick.n)).map(meta => meta.id);
+    if (!pick.signals.includes(pick.source)) pick.signals.unshift(pick.source);
+    pick.resonance = pick.signals.filter(id => id !== pick.source);
+    pick.signalRanks = Object.fromEntries(SIGNAL_META.map(meta => [meta.id, rankBySignal[meta.id][pick.n]]));
+    pick.composite = SIGNAL_META.reduce((sum, meta) => sum + (50 - rankBySignal[meta.id][pick.n]) / 49, 0);
+  }
+
+  const byComposite = allocated.slice().sort((a, b) => b.composite - a.composite || a.n - b.n);
+  const core = [];
+  for (let zone = 0; zone < 4; zone++) {
+    const pick = byComposite.find(x => selectionZoneOf(x.n) === zone);
+    if (pick) core.push(pick);
+  }
+  if (core.length !== 4) throw new Error('核心号码未能覆盖四个区间');
+  const coreSet = new Set(core.map(x => x.n));
+  const fifth = byComposite.find(x => !coreSet.has(x.n));
+  if (!fifth) throw new Error('无法补足核心第 5 码');
+  core.push(fifth);
+  const finalCore = new Set(core.map(x => x.n));
+  const backup = byComposite.filter(x => !finalCore.has(x.n));
+  const order = core.concat(backup);
+  return { order, core, backup, groups, zoneCounts: zoneCounts.slice(), scores: plan.scores, details: plan.details };
 }
 
 /* 本页的整理、存储与界面。所有计算均在本地进行。 */
@@ -1034,15 +690,19 @@ function sameDraw(a,b) {
   return a.length===7 && b.length===7 && a[6]===b[6] &&
     a.slice(0,6).sort((x,y)=>x-y).every((n,i)=>n===b.slice(0,6).sort((x,y)=>x-y)[i]);
 }
-function emptyState() { return {manual:[],corrections:{},locked:null,lockedResults:[],selectionSize:12}; }
+function emptyState() { return {manual:[],corrections:{},locked:null,legacyLocked:null,lockedResults:[],selectionSize:FIXED_SELECTION_SIZE}; }
 function sanitizeSnapshot(raw) {
   if (!raw || typeof raw !== 'object') throw new Error('锁定记录格式无效');
   const p=readLabel(raw.label), size=Number(raw.size);
   if (!p || !Number.isInteger(size) || size<10 || size>16 || !Array.isArray(raw.picks) || raw.picks.length!==size) throw new Error('锁定记录的期号或号码数量无效');
   const picks=raw.picks.map(item => {
     const n=Number(item && item.n), source=item && item.source, tier=Number(item && item.tier);
-    if (!Number.isInteger(n) || n<1 || n>49 || !['A','B'].includes(source) || !Number.isInteger(tier) || tier<0 || tier>3) throw new Error('锁定号码无效');
-    return {n,source,tier};
+    if (!Number.isInteger(n) || n<1 || n>49 || !(SIGNAL_IDS.has(source) || ['A','B'].includes(source)) || !Number.isInteger(tier) || tier<0 || tier>3) throw new Error('锁定号码无效');
+    const signals=Array.isArray(item.signals) ? [...new Set(item.signals.filter(id=>SIGNAL_IDS.has(id)))] : [];
+    if (SIGNAL_IDS.has(source) && !signals.includes(source)) signals.unshift(source);
+    const rank=item.rank==null ? null : Number(item.rank);
+    if (rank!=null && (!Number.isInteger(rank) || rank<1 || rank>49)) throw new Error('锁定号码排名无效');
+    return {n,source,tier,rank,signals};
   });
   if (new Set(picks.map(x=>x.n)).size !== size) throw new Error('锁定号码存在重复');
   const date=typeof raw.createdAt==='string' && raw.createdAt.length<50 && !Number.isNaN(Date.parse(raw.createdAt)) ? raw.createdAt : '';
@@ -1052,6 +712,12 @@ function sanitizeSnapshot(raw) {
   const count=safeCount(rawLeader.count);
   const leader={side:rawLeader.side==='B'?'B':'A',a:safeCount(rawLeader.a),b:safeCount(rawLeader.b),count,enough:count>=MIN_LEADER_ROWS};
   return {label:p.label,size,picks,createdAt:date,basedOn:based ? based.label : '',leader};
+}
+function isCurrentRuleSnapshot(snapshot) {
+  if (!snapshot || snapshot.size!==FIXED_SELECTION_SIZE || snapshot.picks.some(p=>!SIGNAL_IDS.has(p.source))) return false;
+  const counts={hot:0,omit:0,cycle:0};
+  for (const pick of snapshot.picks) counts[pick.source]++;
+  return SIGNAL_META.every(meta=>counts[meta.id]===SIGNAL_QUOTA);
 }
 function readPayload(obj) {
   if (!obj || typeof obj!=='object' || Array.isArray(obj)) throw new Error('不是可识别的备份文件');
@@ -1090,14 +756,13 @@ function readPayload(obj) {
       corrections[p.label]=checkedNumbers(value,`${p.label} 更正记录`);
     }
   }
-  const result={manual,corrections,locked:null,lockedResults:[],selectionSize:12};
-  const size=Number(obj.selectionSize);
-  if (Number.isInteger(size) && size>=10 && size<=16) result.selectionSize=size;
+  const result={manual,corrections,locked:null,legacyLocked:null,lockedResults:[],selectionSize:FIXED_SELECTION_SIZE};
   if (obj.locked!=null) {
-    result.locked=sanitizeSnapshot(obj.locked);
-    if (result.locked.label!==nextLabelOf(prev)) throw new Error('锁定期号与当前下一期不一致');
-    result.selectionSize=result.locked.size;
+    const snapshot=sanitizeSnapshot(obj.locked);
+    if (isCurrentRuleSnapshot(snapshot) && snapshot.label===nextLabelOf(prev)) result.locked=snapshot;
+    else result.legacyLocked=snapshot;
   }
+  if (obj.legacyLocked!=null) result.legacyLocked=sanitizeSnapshot(obj.legacyLocked);
   const existingLabels = new Set([...BASE_LOOKUP.keys(),...manual.map(r=>r.label)]);
   if(obj.lockedResults!=null){
     if(!Array.isArray(obj.lockedResults)||obj.lockedResults.length>MAX_MANUAL_RECORDS) throw new Error('锁定核对记录格式无效');
@@ -1112,7 +777,7 @@ function readPayload(obj) {
   return {state:result,overlap};
 }
 function exportPayload() {
-  return {app:'号码手记',schemaVersion:1,exportedAt:new Date().toISOString(),labels:state.manual.map(r=>r.label),draws:state.manual.map(r=>r.nums),corrections:state.corrections,selectionSize:state.selectionSize,locked:state.locked,lockedResults:state.lockedResults};
+  return {app:'号码手记',schemaVersion:1,exportedAt:new Date().toISOString(),labels:state.manual.map(r=>r.label),draws:state.manual.map(r=>r.nums),corrections:state.corrections,selectionSize:FIXED_SELECTION_SIZE,locked:state.locked,legacyLocked:state.legacyLocked,lockedResults:state.lockedResults};
 }
 function allRecords() {
   const base=BASE_ROWS.map(r => Object.hasOwn(state.corrections,r.label) ? makeRecord(r.label,state.corrections[r.label],true) : r);
@@ -1177,13 +842,14 @@ function recalculate() {
   renderDataStatus(all); setCalculating(true);
   $('mainBalls').innerHTML='<span class="picks-note">正在整理号码…</span>';
   $('backupBalls').innerHTML='<span class="picks-note">正在整理号码…</span>';
-  $('leaderHistory').textContent='—';$('leaderHistoryB').textContent='—';$('allocationText').textContent='—';$('allocationTotal').textContent='—';
+  $('zoneSummary').textContent='正在计算区间分布…';
+  for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='<span class="picks-note">正在计算…</span>';
   $('mainRate').textContent='—';$('totalRate').textContent='—';$('mainHits').textContent='正在计算…';$('totalHits').textContent='正在计算…';
-  const nCols=historyColumns(state.locked?state.locked.size:state.selectionSize).length;
+  const nCols=historyColumns().length;
   $('yearlyBody').innerHTML=`<tr><td colspan="${nCols+2}">正在计算…</td></tr>`;
   $('historyBody').innerHTML=`<tr><td colspan="${nCols+3}">正在计算…</td></tr>`;$('yearTabs').innerHTML='';
-  let index=0,segment=[],prior=[],rows=[],lastLabel=null;
-  const reset=()=>{segment=[];prior=[];lastLabel=null;};
+  let index=0,segment=[],rows=[],lastLabel=null;
+  const reset=()=>{segment=[];lastLabel=null;};
   function batch(){
     if(id!==calculationId || !$('saveDraw')) return;
     const started=performance.now(); let count=0;
@@ -1193,11 +859,11 @@ function recalculate() {
         if(!record.usable){reset();continue;}
         if(lastLabel && nextLabelOf(lastLabel)!==record.label) reset();
         if(segment.length>=WARMUP){
-          const plan=runTool3At(segment,segment.length,record.year,record.periodNum,record.date);
-          const selected=makeSelection(plan,prior);
+          const plan=runSignalModelAt(segment,segment.length);
+          const selected=makeSelection(plan);
           const row={label:record.label,raw7:record.raw7,special:record.special,order:selected.order,
-            hitA:selected.a5.includes(record.special),hitB:selected.b5.includes(record.special)};
-          rows.push(row);prior.push(row);if(prior.length>LEADER_WINDOW) prior.shift();
+            hitCore:selected.order.slice(0,5).some(p=>p.n===record.special),hitTotal:selected.order.some(p=>p.n===record.special)};
+          rows.push(row);
         }
         segment.push(record);lastLabel=record.label;
       }
@@ -1205,26 +871,42 @@ function recalculate() {
       replayRows=rows;latestSegment=segment;
       const next=parseLabel(nextLabelOf(all.at(-1).label));
       if(next && segment.length>=WARMUP){
-        const plan=runTool3At(segment,segment.length,next.year,next.periodNum,periodToDate(next.year,next.periodNum));
-        live={...makeSelection(plan,prior),label:next.label,basedOn:all.at(-1).label};
+        const plan=runSignalModelAt(segment,segment.length);
+        live={...makeSelection(plan),label:next.label,basedOn:all.at(-1).label};
       }
       setCalculating(false);renderAll();
     }catch(err){
       console.error(err);setCalculating(false);
       $('mainBalls').innerHTML='<span class="picks-note">计算暂时失败，请检查数据或刷新页面。</span>';
-      $('backupBalls').innerHTML='';$('leaderHistory').textContent='—';$('leaderHistoryB').textContent='—';$('allocationText').textContent='—';$('allocationTotal').textContent='—';
+      $('backupBalls').innerHTML='';$('zoneSummary').textContent='计算失败';
+      for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='';
       $('formError').textContent='计算未完成：'+String(err.message || '请检查数据');
     }
   }
   setTimeout(batch,0);
 }
 function sortedPicks(picks){return picks.slice().sort((a,b)=>a.n-b.n);}
+function signalName(id){const meta=SIGNAL_META.find(x=>x.id===id);return meta?meta.name:String(id||'旧版');}
+function waveTextHTML(n, className = 'detail-num') {
+  return `<span class="${className}" data-wave="${waveKey(n)}" style="background:${waveColor(n)}" title="${waveLabel(n)}">${pad2(n)}</span>`;
+}
 function numbersHTML(picks, isMain){
-  return picks.map(p=>`<span class="ball-wrap ${isMain?'':'secondary'}" title="方案 ${p.source}${p.tier>0?'，补位号码':''}"><span class="ball ${isMain?'main':'secondary'}" style="background:${WAVE_COLOR[WAVE_MAP[p.n]]}">${pad2(p.n)}</span><span class="ball-origin">${p.source}${p.tier>0?' · 补':''}</span></span>`).join('');
+  return picks.map(p=>{
+    const owner=signalName(p.source), resonance=(Array.isArray(p.signals)?p.signals:[]).filter(id=>id!==p.source);
+    const origin=`${owner} · ${waveLabel(p.n)}${p.rank>4?' · 递补':''}${resonance.length?' · 共鸣 '+resonance.map(signalName).join('、'):''}`;
+    return `<span class="ball-wrap ${isMain?'':'secondary'}" title="${escapeHtml(origin)}"><span class="ball ${isMain?'main':'secondary'}" data-wave="${waveKey(p.n)}" style="background:${waveColor(p.n)}">${pad2(p.n)}</span><span class="ball-origin">${escapeHtml(origin)}</span></span>`;
+  }).join('');
+}
+function signalGroupHTML(picks, source){
+  return picks.map(p=>{
+    const resonance=(Array.isArray(p.signals)?p.signals:[]).filter(id=>id!==source);
+    const note=`${signalName(source)}排名第${p.rank||'—'}${p.tier>0?'，递补号码':''}${resonance.length?'；多路共鸣：'+resonance.map(signalName).join('、'):''}；${waveLabel(p.n)}`;
+    return `<span class="signal-number" title="${escapeHtml(note)}"><span class="signal-ball" data-wave="${waveKey(p.n)}" style="background:${waveColor(p.n)}">${pad2(p.n)}</span><span class="signal-rank">${p.rank?`第 ${p.rank} 名${p.tier>0?' · 递补':''}`:'旧版锁定号码'}</span>${resonance.length?`<span class="signal-resonance">共鸣 ${escapeHtml(resonance.map(signalName).join(' · '))}</span>`:''}</span>`;
+  }).join('');
 }
 function selectedNow(){
   if(!live) return [];
-  return state.locked && state.locked.label===live.label ? state.locked.picks : live.order.slice(0,state.selectionSize);
+  return state.locked && state.locked.label===live.label ? state.locked.picks : live.order.slice(0,FIXED_SELECTION_SIZE);
 }
 function formattedDate(iso){
   if(!iso) return '时间未记录';
@@ -1232,67 +914,72 @@ function formattedDate(iso){
   return d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
 }
 function renderRecommendation(){
-  const count=state.locked?state.locked.size:state.selectionSize;
-  $('selectionSize').value=String(count);$('selectionSize').disabled=!!state.locked;
-  $('backupCount').textContent=String(count-5);$('totalCountLabel').textContent=String(count);$('copyAllLabel').textContent=`复制完整 ${count} 码`;
+  const count=FIXED_SELECTION_SIZE;
+  $('backupCount').textContent='7';$('totalCountLabel').textContent=String(count);$('copyAllLabel').textContent='复制完整 12 码';
   if(!live){
-    $('mainBalls').innerHTML='<span class="picks-note">连续有效记录不足 100 期，暂不生成号码。</span>';$('backupBalls').innerHTML='';
-    $('leaderHistory').textContent='—';$('leaderHistoryB').textContent='—';$('allocationText').textContent='—';$('allocationTotal').textContent='—';
+    $('mainBalls').innerHTML='<span class="picks-note">连续有效记录不足 100 期，暂不生成号码。</span>';
+    $('backupBalls').innerHTML='';$('zoneSummary').textContent='四区分布待计算';
+    for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='<span class="picks-note">暂无号码</span>';
+    $('lockTitle').textContent='未锁定';$('lockDescription').textContent='';
     $('copyAll').disabled=true;$('copyMain').disabled=true;$('lockBtn').disabled=true;
     return;
   }
   const picks=selectedNow(),main=sortedPicks(picks.slice(0,5)),backup=sortedPicks(picks.slice(5));
   $('mainBalls').innerHTML=numbersHTML(main,true);$('backupBalls').innerHTML=numbersHTML(backup,false);
-  const activeLeader=state.locked ? state.locked.leader : live.leader;
-  const aCount=main.filter(p=>p.source==='A').length,bCount=main.filter(p=>p.source==='B').length;
-  const allA=picks.filter(p=>p.source==='A').length,allB=picks.filter(p=>p.source==='B').length;
-  $('leaderPeriod').textContent=`近 ${activeLeader.count} 期`;
-  $('leaderHistory').textContent=activeLeader.count?`${activeLeader.a} / ${activeLeader.count}`:'—';
-  $('leaderHistoryB').textContent=activeLeader.count?`${activeLeader.b} / ${activeLeader.count}`:'—';
-  $('allocationText').textContent=`A ${aCount} · B ${bCount}`;
-  $('allocationTotal').textContent=`A ${allA} · B ${allB}`;
-  if(state.locked){
-    const changed=live.order.slice(0,count).some((p,i)=>p.n!==picks[i].n||p.source!==picks[i].source);
+  for(const meta of SIGNAL_META){
+    const group=picks.filter(p=>p.source===meta.id).sort((a,b)=>(a.rank||99)-(b.rank||99));
+    $(`${meta.id}Numbers`).innerHTML=signalGroupHTML(group,meta.id)||'<span class="picks-note">本路暂无号码</span>';
+  }
+  const zones=[0,0,0,0];for(const p of picks)zones[selectionZoneOf(p.n)]++;
+  $('zoneSummary').textContent=`区间 01–12 ${zones[0]} · 13–24 ${zones[1]} · 25–36 ${zones[2]} · 37–49 ${zones[3]}`;
+  if(state.locked && state.locked.label===live.label){
+    const changed=live.order.slice(0,count).some((p,i)=>p.n!==picks[i].n||p.source!==picks[i].source||JSON.stringify(p.signals||[])!==JSON.stringify(picks[i].signals||[]));
     $('lockTitle').textContent='本期号码已锁定';
     $('lockDescription').textContent=changed?'数据已更正 · 请重新锁定':formattedDate(state.locked.createdAt);
     $('lockBtn').textContent='解除锁定';
   } else {
-    $('lockTitle').textContent='未锁定';$('lockDescription').textContent='';$('lockBtn').textContent='锁定本期';
+    $('lockTitle').textContent=state.legacyLocked?'旧版锁定已存档':'未锁定';
+    $('lockDescription').textContent=state.legacyLocked?`${state.legacyLocked.label} 原规则快照已保留；当前展示按 4:4:4 重新生成。`:'';
+    $('lockBtn').textContent='锁定本期';
   }
   $('copyAll').disabled=false;$('copyMain').disabled=false;$('lockBtn').disabled=false;
-  const originalRows = nums => nums.length ? nums.map(n=>{
-    const isMain=main.some(p=>p.n===n), isBackup=backup.some(p=>p.n===n);
-    const badge=isMain?'<span class="pick-tag">主攻</span>':isBackup?'<span class="pick-tag back">备选</span>':'<span class="not-picked">未选</span>';
-    return `<tr class="${isMain||isBackup?'is-kept':''}"><td><span class="small-ball" style="background:${WAVE_COLOR[WAVE_MAP[n]]}">${pad2(n)}</span></td><td>${badge}</td></tr>`;
-  }).join(''):'<tr><td colspan="2">本期无原主推</td></tr>';
-  $('originalA').innerHTML=originalRows(live.originalA);
-  $('originalB').innerHTML=originalRows(live.originalB);
-  $('originalACount').textContent=`原主推 ${live.originalA.length} 码`;
-  $('originalBCount').textContent=`原主推 ${live.originalB.length} 码`;
 }
 function hitsIn(rows,test){let n=0;for(const row of rows) if(test(row))n++;return n;}
 function pct(h,n){return n?(100*h/n).toFixed(1)+'%':'—';}
+function expectedZoneBaseline(rows,getNumbers){
+  if(!rows.length)return 0;
+  let total=0;
+  for(const row of rows){
+    const zone=selectionZoneOf(row.special),zoneSize=zone===3?13:12;
+    const inTargetZone=getNumbers(row).filter(n=>selectionZoneOf(n)===zone).length;
+    total+=inTargetZone/zoneSize;
+  }
+  return total/rows.length;
+}
 function renderStats(){
-  const rows=rangeSetting==='all'?replayRows:replayRows.slice(-rangeSetting), n=rows.length, size=state.locked?state.locked.size:state.selectionSize;
+  const rows=rangeSetting==='all'?replayRows:replayRows.slice(-rangeSetting), n=rows.length, size=FIXED_SELECTION_SIZE;
   const main=hitsIn(rows,r=>r.order.slice(0,5).some(p=>p.n===r.special));
   const total=hitsIn(rows,r=>r.order.slice(0,size).some(p=>p.n===r.special));
+  const mainBaseline=expectedZoneBaseline(rows,r=>r.order.slice(0,5).map(p=>p.n));
+  const totalBaseline=expectedZoneBaseline(rows,r=>r.order.slice(0,size).map(p=>p.n));
   $('reviewSubtitle').textContent=n?`${n} 期 · ${rows[0].label} — ${rows.at(-1).label}`:'暂无数据';
   $('mainRate').textContent=pct(main,n);$('totalRate').textContent=pct(total,n);
-  $('mainHits').textContent=n?`命中 ${main} / ${n} 期`:'暂无数据';$('totalHits').textContent=n?`命中 ${total} / ${n} 期`:'暂无数据';
+  $('mainHits').textContent=n?`命中 ${main} / ${n} · 同区间随机 ${(mainBaseline*100).toFixed(1)}%`:'暂无数据';$('totalHits').textContent=n?`命中 ${total} / ${n} · 同区间随机 ${(totalBaseline*100).toFixed(1)}%`:'暂无数据';
   $('mainBar').style.width=n?`${main/n*100}%`:'0%';$('totalBar').style.width=n?`${total/n*100}%`:'0%';
   $('metricTotal').textContent=String(size);
   for(const btn of $('rangeButtons').querySelectorAll('button')) { const on=String(rangeSetting)===btn.dataset.range;btn.classList.toggle('active',on);btn.setAttribute('aria-pressed',String(on)); }
 }
-function historyColumns(size){
+function historyColumns(){
   return [
-    {name:'🎯 主攻 5 码',key:'主攻 5 码',get:r=>r.order.slice(0,5).map(p=>p.n)},
-    {name:`完整 ${size} 码`,key:`完整 ${size} 码`,get:r=>r.order.slice(0,size).map(p=>p.n)}
+    {name:'🎯 核心 5 码',key:'核心 5 码',get:r=>r.order.slice(0,5).map(p=>p.n)},
+    {name:'完整 12 码',key:'完整 12 码',get:r=>r.order.slice(0,FIXED_SELECTION_SIZE).map(p=>p.n)}
   ];
 }
 function renderYearly(years,columns){
   const cell=(rows,column,index)=>{
     const h=hitsIn(rows,r=>column.get(r).includes(r.special)), n=rows.length;
-    return `<td><span class="rate-main${index===0?' primary':' total'}">${pct(h,n)}</span><span class="rate-sub">${n?`${h} 中`:'—'}</span></td>`;
+    const baseline=expectedZoneBaseline(rows,r=>column.get(r));
+    return `<td><span class="rate-main${index===0?' primary':' total'}">${pct(h,n)}</span><span class="rate-sub">${n?`${h} 中 · 随机 ${ (baseline*100).toFixed(1) }%`:'—'}</span></td>`;
   };
   const makeRow=(year,rows,isTotal=false)=>{
     const active=historyYear===year;
@@ -1302,11 +989,10 @@ function renderYearly(years,columns){
   $('yearlyBody').innerHTML=years.map(y=>makeRow(y,replayRows.filter(r=>r.label.startsWith(y+'-')))).join('')+makeRow('ALL',replayRows,true);
 }
 function renderHistory(){
-  const size=state.locked?state.locked.size:state.selectionSize;
   const records=allRecords();
   const years=[...new Set(records.map(r=>String(r.year)))].sort().reverse();
   if(historyYear!=='ALL'&&!years.includes(historyYear))historyYear='ALL';
-  const columns=historyColumns(size);
+  const columns=historyColumns();
   renderYearly(years,columns);
   const yearCounts=new Map(years.map(y=>[y,records.filter(r=>String(r.year)===y).length]));
   const tabs=[{id:'ALL',label:`全部 (${records.length}期)`},...years.map(y=>({id:y,label:`${y}年`}))];
@@ -1315,15 +1001,15 @@ function renderHistory(){
   const lookup=new Map(replayRows.map(r=>[r.label,r]));
   const filtered=(historyYear==='ALL'?records:records.filter(r=>String(r.year)===historyYear)).slice().reverse();
   if(!filtered.length){$('historyBody').innerHTML=`<tr><td colspan="${columns.length+3}">暂无数据</td></tr>`;return;}
-  const list=(nums,special)=>nums.slice().sort((a,b)=>a-b).map(n=>n===special?`<strong class="hit-tag">${pad2(n)}</strong>`:`<span class="detail-num">${pad2(n)}</span>`).join('')||'—';
+  const list=(nums,special)=>nums.slice().sort((a,b)=>a-b).map(n=>waveTextHTML(n,`detail-num${n===special?' is-hit':''}`)).join('')||'—';
   $('historyBody').innerHTML=filtered.map(record=>{
     const r=lookup.get(record.label),special=record.special;
-    const draw=record.raw7.slice(0,6).map(n=>`<span class="draw-num">${pad2(n)}</span>`).join('');
+    const draw=record.raw7.slice(0,6).map(n=>`<span class="draw-num" data-wave="${waveKey(n)}" style="background:${waveColor(n)};border-color:${waveColor(n)};color:#fff" title="${waveLabel(n)}">${pad2(n)}</span>`).join('');
     const hits=r?columns.map(c=>c.get(r).includes(special)):[];
-    const cells=r?hits.map((hit,i)=>`<td>${hit?`<span class="result-badge ${i===0?'primary':'total'}">${pad2(special)}</span>`:'<span class="miss-dash">—</span>'}</td>`).join(''):`<td colspan="${columns.length}"><span class="unavailable${record.usable?'':' invalid'}">${record.usable?'未回放':'数据异常'}</span></td>`;
+    const cells=r?hits.map((hit,i)=>`<td>${hit?`<span class="result-badge ${i===0?'primary':'total'}" data-wave="${waveKey(special)}" style="background:${waveColor(special)}" title="${waveLabel(special)}">${pad2(special)}</span>`:'<span class="miss-dash">—</span>'}</td>`).join(''):`<td colspan="${columns.length}"><span class="unavailable${record.usable?'':' invalid'}">${record.usable?'未回放':'数据异常'}</span></td>`;
     const expanded=r && openedHistory.has(record.label);
     const details=expanded?`<tr class="detail-row"><td colspan="${columns.length+3}">${columns.map(c=>`<div class="detail-group"><b>${c.key}</b><span class="detail-numbers">${list(c.get(r),special)}</span></div>`).join('')}</td></tr>`:'';
-    return `<tr class="history-row${hits.some(Boolean)?' row-hit':''}" data-period="${record.label}"><td>${record.label}</td><td class="draw-text">${draw}<span class="special-ball" style="background:${WAVE_COLOR[WAVE_MAP[special]]}">${pad2(special)}</span></td>${cells}<td>${r?`<button type="button" class="show-link" data-history="${record.label}" aria-expanded="${!!expanded}">${expanded?'收起':'展开'} ${expanded?'⌃':'⌄'}</button>`:'<span class="miss-dash">—</span>'}</td></tr>${details}`;
+    return `<tr class="history-row${hits.some(Boolean)?' row-hit':''}" data-period="${record.label}"><td>${record.label}</td><td class="draw-text">${draw}<span class="special-ball" data-wave="${waveKey(special)}" style="background:${waveColor(special)}" title="${waveLabel(special)}">${pad2(special)}</span></td>${cells}<td>${r?`<button type="button" class="show-link" data-history="${record.label}" aria-expanded="${!!expanded}">${expanded?'收起':'展开'} ${expanded?'⌃':'⌄'}</button>`:'<span class="miss-dash">—</span>'}</td></tr>${details}`;
   }).join('');
 }
 function renderLockHistory(){
@@ -1334,7 +1020,9 @@ function renderLockHistory(){
     const rec=lookup.get(log.label),special=rec?.special;
     if(!rec || !rec.usable) return '';
     const m=log.picks.slice(0,5).some(p=>p.n===special),t=log.picks.some(p=>p.n===special);
-    return `<div class="lock-record"><strong>${log.label}</strong> &nbsp; 特码 ${pad2(special)} &nbsp;·&nbsp; 主攻 ${m?'命中':'未中'} &nbsp;·&nbsp; 完整 ${log.size} 码 ${t?'命中':'未中'}<br><small>锁定于 ${escapeHtml(formattedDate(log.createdAt))}（本机时间）</small><div class="numbers">主攻：${sortedPicks(log.picks.slice(0,5)).map(p=>pad2(p.n)).join(' ')}　｜　完整：${sortedPicks(log.picks).map(p=>pad2(p.n)).join(' ')}</div></div>`;
+    const core=sortedPicks(log.picks.slice(0,5)).map(p=>waveTextHTML(p.n,'lock-ball')).join('');
+    const full=sortedPicks(log.picks).map(p=>waveTextHTML(p.n,'lock-ball')).join('');
+    return `<div class="lock-record"><strong>${log.label}</strong> &nbsp; 特码 ${waveTextHTML(special,'lock-ball')} &nbsp;·&nbsp; 核心 ${m?'命中':'未中'} &nbsp;·&nbsp; 完整 ${log.size} 码 ${t?'命中':'未中'}<br><small>锁定于 ${escapeHtml(formattedDate(log.createdAt))}（本机时间）</small><div class="numbers">核心：${core}　｜　完整：${full}</div></div>`;
   }).join('')+(logs.length>100?'<div class="empty">最近 100 条</div>':'');
 }
 function renderHeat(){
@@ -1356,14 +1044,15 @@ function renderHeat(){
     return ['#e0f2fe','#0369a1'];
   };
   const inc=numbers.filter(n=>freq[n]>prev[n]),dec=numbers.filter(n=>freq[n]<prev[n]);
-  const deltaItems=list=>list.length?list.map(n=>`<span class="delta-item"><span class="small-ball" style="background:${WAVE_COLOR[WAVE_MAP[n]]}">${pad2(n)}</span><b>${prev[n]}→${freq[n]}</b></span>`).join(''):'<span>无</span>';
+  const deltaItems=list=>list.length?list.map(n=>`<span class="delta-item"><span class="small-ball" data-wave="${waveKey(n)}" style="background:${waveColor(n)}" title="${waveLabel(n)}">${pad2(n)}</span><b>${prev[n]}→${freq[n]}</b></span>`).join(''):'<span>无</span>';
   $('heatDelta').innerHTML=`<div class="delta-card inc"><div class="delta-head"><span>增加 +1</span><span class="delta-source">${entered?entered.label+' 纳入':'暂无数据'}</span></div><div class="delta-items">${deltaItems(inc)}</div></div><div class="delta-card dec"><div class="delta-head"><span>减少 -1</span><span class="delta-source">${exited?exited.label+' 移出':'未满百期'}</span></div><div class="delta-items">${deltaItems(dec)}</div></div>`;
   const chips=heatScope==='special'?[['#9333ea','≥7次'],['#dc2626','5–6次'],['#f97316','3–4次'],['#fef3c7','1–2次'],['#e0f2fe','0次']]:[['#9333ea','≥22次'],['#dc2626','18–21次'],['#f97316','14–17次'],['#fef3c7','10–13次'],['#e0f2fe','≤9次']];
-  $('heatLegend').innerHTML=chips.map(([c,label])=>`<span class="legend-chip"><span class="legend-dot" style="background:${c}"></span>${label}</span>`).join('');
+  const waveChips=Object.entries(WAVE_COLOR).map(([key,color])=>`<span class="legend-chip"><span class="legend-dot wave-dot" style="background:${color}"></span>${WAVE_LABEL[key]}</span>`).join('');
+  $('heatLegend').innerHTML=chips.map(([c,label])=>`<span class="legend-chip"><span class="legend-dot" style="background:${c}"></span>${label}</span>`).join('')+'<span class="legend-chip wave-legend-label">号码圆点＝波色</span>'+waveChips;
   $('heatGrid').innerHTML=numbers.map(n=>{
     const [bg,color]=colour(freq[n]),diff=freq[n]-prev[n],cls=diff>0?'is-inc':diff<0?'is-dec':'';
     const badge=diff>0?'<span class="hc-delta up">+1</span>':diff<0?'<span class="hc-delta down">-1</span>':'';
-    return `<div class="heat-cell ${cls}" style="background:${bg};color:${color}" title="号码 ${pad2(n)}：${freq[n]} 次">${badge}${pad2(n)}<small>${freq[n]} 次</small></div>`;
+    return `<div class="heat-cell ${cls}" data-wave="${waveKey(n)}" style="background:${bg};color:${color}" title="号码 ${pad2(n)}：${freq[n]} 次 · ${waveLabel(n)}">${badge}<span class="hc-wave" style="background:${waveColor(n)}"></span>${pad2(n)}<small>${freq[n]} 次</small></div>`;
   }).join('');
   for(const b of $('heatScope').querySelectorAll('button')){const on=b.dataset.scope===heatScope;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));}
   for(const b of $('heatSort').querySelectorAll('button')){const on=b.dataset.sort===heatSort;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));}
@@ -1382,8 +1071,9 @@ function prepareCorrection(label){
 function paintInput(el){
   const n=Number(el.value);
   if(el.value && Number.isInteger(n) && n>=1 && n<=49){
-    const color=WAVE_COLOR[WAVE_MAP[n]];el.style.backgroundColor=color;el.style.borderColor=color;el.style.color='#fff';
-  } else {el.removeAttribute('style');}
+    const color=waveColor(n);el.style.backgroundColor=color;el.style.borderColor=color;el.style.color='#fff';
+    el.dataset.wave=waveKey(n);el.title=waveLabel(n);
+  } else {el.removeAttribute('style');delete el.dataset.wave;el.removeAttribute('title');}
 }
 function parsePasted(value){
   const tokens=String(value).trim().replace(/[，、；;|/＋+]/g,' ').split(/\s+/).filter(Boolean);
@@ -1403,17 +1093,15 @@ function saveFile(name,obj){
   const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function setupEvents(){
-  $('selectionSize').value=String(state.selectionSize);
-  $('selectionSize').addEventListener('change',e=>{const n=Number(e.target.value);if(!Number.isInteger(n)||n<10||n>16||state.locked)return;state.selectionSize=n;persist();if(!calculating)renderAll();});
-  $('copyAll').addEventListener('click',()=>copyText(sortedPicks(selectedNow()).map(p=>pad2(p.n)).join(' ')));
-  $('copyMain').addEventListener('click',()=>copyText(sortedPicks(selectedNow().slice(0,5)).map(p=>pad2(p.n)).join(' ')));
+  $('copyAll').addEventListener('click',()=>copyText(sortedPicks(selectedNow()).map(p=>pad2(p.n)).join('，')));
+  $('copyMain').addEventListener('click',()=>copyText(sortedPicks(selectedNow().slice(0,5)).map(p=>pad2(p.n)).join('，')));
   $('lockBtn').addEventListener('click',()=>{
     if(!live || calculating)return;
     if(state.locked){
-      if(!confirm(`解除 ${state.locked.label} 的号码锁定？解除后可调整数量或重新锁定。`))return;
+      if(!confirm(`解除 ${state.locked.label} 的号码锁定？解除后可按当前 4:4:4 规则重新锁定。`))return;
       state.locked=null;persist();renderAll();toast('已解除锁定');return;
     }
-    state.locked={label:live.label,size:state.selectionSize,picks:live.order.slice(0,state.selectionSize).map(p=>({...p})),createdAt:new Date().toISOString(),basedOn:live.basedOn,leader:{...live.leader}};
+    state.locked={label:live.label,size:FIXED_SELECTION_SIZE,picks:live.order.slice(0,FIXED_SELECTION_SIZE).map(p=>({...p,signals:(p.signals||[]).slice()})),createdAt:new Date().toISOString(),basedOn:live.basedOn};state.legacyLocked=null;
     persist();renderAll();toast(storageAvailable&&!storageBlocked?'已锁定本期号码':'已在当前页面临时锁定，请导出备份');
   });
   $('rangeButtons').addEventListener('click',e=>{const btn=e.target.closest('button[data-range]');if(!btn)return;rangeSetting=btn.dataset.range==='all'?'all':Number(btn.dataset.range);if(!calculating)renderStats();});
@@ -1460,7 +1148,7 @@ function setupEvents(){
       if(locked){
         state.lockedResults=state.lockedResults.filter(r=>r.label!==label.label);state.lockedResults.push(locked);state.locked=null;
         const mainHit=locked.picks.slice(0,5).some(p=>p.n===nums[6]),totalHit=locked.picks.some(p=>p.n===nums[6]);
-        message=`已保存 ${label.label}（特码 ${pad2(nums[6])}）。锁定记录：主攻${mainHit?'命中':'未中'}，完整 ${locked.size} 码${totalHit?'命中':'未中'}。`;
+        message=`已保存 ${label.label}（特码 ${pad2(nums[6])}）。锁定记录：核心${mainHit?'命中':'未中'}，完整 ${locked.size} 码${totalHit?'命中':'未中'}。`;
       } else message=`已保存 ${label.label} · 特码 ${pad2(nums[6])}`;
     }
     persist();openedHistory.clear();resetForm();$('entryFlash').textContent=message;$('entryFlash').classList.add('show');recalculate();
@@ -1482,16 +1170,17 @@ function setupEvents(){
     const last=state.manual.at(-1),oldLog=state.lockedResults.find(r=>r.label===last.label);
     const warning=state.locked?` 当前 ${state.locked.label} 的锁定也将被清除。`:'';
     if(!confirm(`撤销最后录入的 ${last.label}？${warning}${oldLog?' 该期原锁定号码会恢复。':''}`))return;
-    state.manual.pop();state.locked=oldLog?{...oldLog,picks:oldLog.picks.map(p=>({...p}))}:null;
+    state.manual.pop();
+    if(oldLog && isCurrentRuleSnapshot(oldLog)) state.locked={...oldLog,picks:oldLog.picks.map(p=>({...p,signals:(p.signals||[]).slice()}))};
+    else {state.locked=null;if(oldLog)state.legacyLocked=oldLog;}
     state.lockedResults=state.lockedResults.filter(r=>r.label!==last.label);
-    if(state.locked)state.selectionSize=state.locked.size;
     persist();resetForm();$('entryFlash').textContent=`已撤销 ${last.label}。`;$('entryFlash').classList.add('show');recalculate();
   });
   $('clearBtn').addEventListener('click',()=>{
-    const n=state.manual.length+Object.keys(state.corrections).length+state.lockedResults.length+(state.locked?1:0);
+    const n=state.manual.length+Object.keys(state.corrections).length+state.lockedResults.length+(state.locked?1:0)+(state.legacyLocked?1:0);
     if(!n){alert('没有需要清除的手动数据。');return;}
     if(!confirm('清除本页所有新增开奖、更正和锁定记录？内置历史数据会保留。建议先导出备份。'))return;
-    const size=state.selectionSize;state=emptyState();state.selectionSize=size;persist();openedHistory.clear();resetForm();$('entryFlash').textContent='已清除手动数据';$('entryFlash').classList.add('show');recalculate();
+    state=emptyState();persist();openedHistory.clear();resetForm();$('entryFlash').textContent='已清除手动数据';$('entryFlash').classList.add('show');recalculate();
   });
 }
 setupEvents();resetForm();recalculate();
@@ -1501,7 +1190,7 @@ window.noteSync = {
     if (!storageAvailable || storageBlocked) throw new Error('本地存储不可用，请先检查或导出备份');
     if (state.manual.length + rows.length > MAX_MANUAL_RECORDS) throw new Error('本地记录超过 5000 期上限');
     const previous = state;
-    state = {...state, manual: [...state.manual], lockedResults: [...state.lockedResults]};
+    state = {...previous, manual: [...previous.manual], lockedResults: [...previous.lockedResults]};
     for (const row of rows) {
       const nums = checkedNumbers([...row.numbers, row.special], row.id);
       if (row.id !== nextExpected()) { state = previous; throw new Error('期号不连续：' + row.id); }
@@ -1517,6 +1206,6 @@ window.noteSync = {
 };
 
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.13-r12"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.14-r13"></script>
 </body>
 </html>
