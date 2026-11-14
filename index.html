@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>选号工具</title>
-<meta name="app-version" content="v2026.11.14-r13">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.14-r13">
+<meta name="app-version" content="v2026.11.14-r14">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.14-r14">
 <style>
 :root{--ink:#1e293b;--muted:#64748b;--paper:#f2f7f6;--card:#fff;--line:#d8e4e2;--teal:#0d9488;--blue:#2563eb;--hot:#e54b4b;--green:#10a878;--gold:#d97706;--purple:#7c3aed;--shadow:0 6px 20px rgba(15,23,42,.05);font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif}
 *{box-sizing:border-box}
@@ -79,11 +79,16 @@ h2{font-size:16px;line-height:1.35;padding-left:9px;border-left:4px solid var(--
 .wave-legend-label{font-weight:800;color:#475569}
 .legend-dot.wave-dot{border-radius:50%;border:1px solid rgba(15,23,42,.1)}
 .recommendation-picks .ball-wrap{min-width:58px}.recommendation-picks .ball-wrap.secondary{min-width:58px}.recommendation-picks .ball-origin{max-width:100px;text-align:center;line-height:1.25;white-space:normal}
-.signal-panel.hot{border-top:3px solid #ef4444}.signal-panel.omit{border-top:3px solid #3b82f6}.signal-panel.cycle{border-top:3px solid #10a878}.signal-description{font-size:10.5px;color:#64748b;margin:-3px 0 9px;line-height:1.5}.signal-picks{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:65px}.signal-number{min-width:58px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}.signal-ball{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font:800 13px Consolas,monospace}.signal-rank{font:700 9.5px Consolas,"Microsoft YaHei",monospace;color:#64748b}.signal-resonance{font-size:9px;line-height:1.25;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:2px 4px;max-width:110px;white-space:normal}
+.signal-panel.hot{border-top:3px solid #d97706}.signal-panel.omit{border-top:3px solid #7c3aed}.signal-panel.cycle{border-top:3px solid #475569}.signal-description{font-size:10.5px;color:#64748b;margin:-3px 0 9px;line-height:1.5}.signal-picks{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;min-height:65px}.signal-number{min-width:58px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}.signal-ball{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font:800 13px Consolas,monospace}.signal-rank{font:700 9.5px Consolas,"Microsoft YaHei",monospace;color:#64748b}.signal-resonance{font-size:9px;line-height:1.25;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:2px 4px;max-width:110px;white-space:normal}
 .benchmark-note{font-size:10.5px;color:#64748b;margin:6px 0 14px;line-height:1.5}
-.hc-wave{position:absolute;top:5px;left:5px;width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
+.hc-number{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:1px 5px;border-radius:5px;color:#fff;font:800 12px Consolas,monospace;line-height:1.3}
 .detail-num,.detail-group span.detail-num{display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:3px 5px;border-radius:5px;color:#fff;font:800 11px Consolas,monospace;line-height:1.2}.detail-num.is-hit{box-shadow:0 0 0 2px #d97706}
 .lock-ball,.lock-record .numbers .lock-ball{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:2px 4px;margin:1px;border-radius:5px;color:#fff;font:800 11px Consolas,monospace}
+.head-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wave-legend-inline{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px;color:#64748b}.wave-legend-inline .legend-chip{gap:3px}
+.btn.sync{background:#ecfdf5;border-color:#99f6e4;color:#0f766e}.btn.sync:hover:not(:disabled){background:#d1fae5;border-color:#5eead4}
+@media(max-width:900px){.signal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.signal-grid>.signal-panel:last-child{grid-column:1/-1}}
+@media(max-width:520px){.signal-grid{grid-template-columns:1fr}.signal-grid>.signal-panel:last-child{grid-column:auto}}
 @media(max-width:780px){.fixed-count{white-space:normal}.wave-hint{white-space:normal}}
 
 
@@ -108,17 +113,17 @@ h2{font-size:16px;line-height:1.35;padding-left:9px;border-left:4px solid var(--
         <span class="plus" aria-hidden="true">+</span><label class="draw-slot special"><input class="draw-input" inputmode="numeric" maxlength="2" aria-label="特码" placeholder="特" autocomplete="off"><span>特码</span></label>
       </div>
       <div class="form-error" id="formError" role="alert"></div>
-      <div id="syncStatus" role="status" aria-live="polite" class="inline-note">点击一键同步，检查最新开奖。</div><div class="actions"><button class="btn" id="syncNow" type="button">一键同步最新开奖</button><button class="btn primary" id="saveDraw" type="submit" disabled>保存并更新</button><button class="btn" type="button" id="undoBtn">撤销最后一期</button><button class="btn" type="button" id="exportBtn">导出备份</button><button class="btn" type="button" id="importBtn">导入备份</button><button class="btn danger" type="button" id="clearBtn">清除手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+      <div id="syncStatus" role="status" aria-live="polite" class="inline-note">点击一键同步，检查最新开奖。</div><div class="actions"><button class="btn sync" id="syncNow" type="button">一键同步最新开奖</button><button class="btn primary" id="saveDraw" type="submit" disabled>保存并更新</button><button class="btn" type="button" id="undoBtn">撤销最后一期</button><button class="btn" type="button" id="exportBtn">导出备份</button><button class="btn" type="button" id="importBtn">导入备份</button><button class="btn danger" type="button" id="clearBtn">清除手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div>
     </form><div class="flash" id="entryFlash" role="status"></div>
   </section>
 
-  <section class="card" id="recommendation" aria-labelledby="resultTitle"><div class="card-head"><h2 id="resultTitle">2. 下期特码选号 <span class="tag" id="targetLabel">--</span></h2><span class="fixed-count">固定 12 码 · 热势 4 + 遗漏 4 + 周期 4</span><span class="wave-hint">号码按波色显示</span></div>
+  <section class="card" id="recommendation" aria-labelledby="resultTitle"><div class="card-head"><h2 id="resultTitle">2. 下期特码选号 <span class="tag" id="targetLabel">--</span></h2><div class="head-meta"><span class="fixed-count">固定 12 码 · 热势 4 + 遗漏 4 + 周期 4</span><span class="wave-legend-inline" aria-label="波色图例"><span class="legend-chip"><span class="legend-dot wave-dot" style="background:#e54b4b"></span>红波</span><span class="legend-chip"><span class="legend-dot wave-dot" style="background:#3b82f6"></span>蓝波</span><span class="legend-chip"><span class="legend-dot wave-dot" style="background:#10a878"></span>绿波</span></span><span class="wave-hint" id="allocationHint">号码按波色显示 · 分配顺序按期号轮换</span></div></div>
     <div class="opt-hero recommendation-picks"><div><div class="opt-top"><span class="opt-badge">🎯 核心 5 码 · 12 码子集</span><span class="opt-stat" id="zoneSummary">四区分布待计算</span></div><div id="mainBalls" class="balls" aria-live="polite"><span class="picks-note">正在整理号码…</span></div></div><div class="opt-actions"><button class="btn gold" type="button" id="copyAll" disabled><span id="copyAllLabel">复制完整 12 码</span></button><button class="btn" type="button" id="copyMain" disabled>复制核心 5 码</button></div></div>
     <div class="summary-box"><div><h3>补充 <b id="backupCount">7</b> 码 <span class="sub">固定总数 <b id="totalCountLabel">12</b> 码</span></h3><div id="backupBalls" class="balls backup-balls"><span class="picks-note">正在整理号码…</span></div></div><div class="lockbar"><div class="lock-text"><b id="lockTitle">未锁定</b><span id="lockDescription"></span></div><button type="button" class="btn sm" id="lockBtn" disabled>锁定本期</button></div></div>
     <div class="engine-grid signal-grid">
-      <div class="panel signal-panel hot"><div class="ep-head"><span class="ep-title">🔥 热势配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">按热势排名取 4 个独立号码</p><div id="hotNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
-      <div class="panel signal-panel omit"><div class="ep-head"><span class="ep-title">⏳ 遗漏配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">重合号标注共鸣，不重复占额；继续补选</p><div id="omitNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
-      <div class="panel signal-panel cycle"><div class="ep-head"><span class="ep-title">🔁 周期配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">重合号标注共鸣，不重复占额；继续补选</p><div id="cycleNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
+      <div class="panel signal-panel hot"><div class="ep-head"><span class="ep-title">🔥 热势配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">按本路排名取 4 个；前路已选号码跳过并继续补选</p><div id="hotNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
+      <div class="panel signal-panel omit"><div class="ep-head"><span class="ep-title">⏳ 遗漏配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">按本路排名取 4 个；前路已选号码跳过并继续补选</p><div id="omitNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
+      <div class="panel signal-panel cycle"><div class="ep-head"><span class="ep-title">🔁 周期配额</span><span class="ep-meta">4 个名额</span></div><p class="signal-description">按本路排名取 4 个；前路已选号码跳过并继续补选</p><div id="cycleNumbers" class="signal-picks"><span class="picks-note">正在计算…</span></div></div>
     </div>
   </section>
 
@@ -521,6 +526,18 @@ const SIGNAL_META = [
   { id: 'cycle', name: '周期' }
 ];
 const SIGNAL_IDS = new Set(SIGNAL_META.map(x => x.id));
+// 目标期期号 ÷ 3 的余数决定三路先后：余 1 / 2 / 0 分别对应下面三行。
+const SIGNAL_ROTATION = [
+  ['hot', 'omit', 'cycle'],
+  ['omit', 'cycle', 'hot'],
+  ['cycle', 'hot', 'omit']
+];
+function allocationOrderFor(periodNum) {
+  const n = Number(periodNum);
+  if (!Number.isInteger(n) || n < 1) return SIGNAL_ROTATION[0].slice();
+  const remainder = n % 3;
+  return SIGNAL_ROTATION[remainder === 1 ? 0 : remainder === 2 ? 1 : 2].slice();
+}
 const FIXED_SELECTION_SIZE = 12;
 const SIGNAL_QUOTA = 4;
 const ZONE_MIN_COUNT = 2;
@@ -607,28 +624,30 @@ function canAddSelection(n, zoneCounts, chosenCount) {
   return stillNeeded <= remaining;
 }
 
-// 各路各取 4 个新号码。号码若在其他路原始前 4 名，也只获得共鸣标签，不重复占额。
-function makeSelection(plan) {
+// 各路各取 4 个新号码；先后顺序按目标期期号轮换。号码若在其他路原始前 4 名，也只获得共鸣标签，不重复占额。
+function makeSelection(plan, periodNum) {
   const { rankings, rankBySignal } = rankSignals(plan);
+  const allocation = allocationOrderFor(periodNum);
   const rawTop = Object.create(null);
   for (const meta of SIGNAL_META) rawTop[meta.id] = new Set(rankings[meta.id].slice(0, SIGNAL_QUOTA).map(x => x.n));
 
   const used = new Set(), zoneCounts = [0, 0, 0, 0], groups = Object.create(null);
-  for (const meta of SIGNAL_META) {
+  for (const id of allocation) {
+    const meta = SIGNAL_META.find(x => x.id === id);
     const picks = [];
-    for (const candidate of rankings[meta.id]) {
+    for (const candidate of rankings[id]) {
       if (used.has(candidate.n) || !canAddSelection(candidate.n, zoneCounts, used.size)) continue;
-      const item = { n: candidate.n, source: meta.id, tier: candidate.rank > SIGNAL_QUOTA ? 1 : 0, rank: candidate.rank, signals: [] };
+      const item = { n: candidate.n, source: id, tier: candidate.rank > SIGNAL_QUOTA ? 1 : 0, rank: candidate.rank, signals: [] };
       picks.push(item);
       used.add(candidate.n);
       zoneCounts[selectionZoneOf(candidate.n)]++;
       if (picks.length === SIGNAL_QUOTA) break;
     }
     if (picks.length !== SIGNAL_QUOTA) throw new Error(`${meta.name} 路未能补足 4 个号码`);
-    groups[meta.id] = picks;
+    groups[id] = picks;
   }
 
-  const allocated = SIGNAL_META.flatMap(meta => groups[meta.id]);
+  const allocated = allocation.flatMap(id => groups[id]);
   if (allocated.length !== FIXED_SELECTION_SIZE || used.size !== FIXED_SELECTION_SIZE) throw new Error('选号总池未达到 12 个互不重复号码');
   for (const pick of allocated) {
     pick.signals = SIGNAL_META.filter(meta => rawTop[meta.id].has(pick.n)).map(meta => meta.id);
@@ -652,7 +671,7 @@ function makeSelection(plan) {
   const finalCore = new Set(core.map(x => x.n));
   const backup = byComposite.filter(x => !finalCore.has(x.n));
   const order = core.concat(backup);
-  return { order, core, backup, groups, zoneCounts: zoneCounts.slice(), scores: plan.scores, details: plan.details };
+  return { order, core, backup, groups, allocation, zoneCounts: zoneCounts.slice(), scores: plan.scores, details: plan.details };
 }
 
 /* 本页的整理、存储与界面。所有计算均在本地进行。 */
@@ -843,6 +862,7 @@ function recalculate() {
   $('mainBalls').innerHTML='<span class="picks-note">正在整理号码…</span>';
   $('backupBalls').innerHTML='<span class="picks-note">正在整理号码…</span>';
   $('zoneSummary').textContent='正在计算区间分布…';
+  $('allocationHint').textContent='号码按波色显示 · 正在计算分配顺序…';
   for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='<span class="picks-note">正在计算…</span>';
   $('mainRate').textContent='—';$('totalRate').textContent='—';$('mainHits').textContent='正在计算…';$('totalHits').textContent='正在计算…';
   const nCols=historyColumns().length;
@@ -860,7 +880,7 @@ function recalculate() {
         if(lastLabel && nextLabelOf(lastLabel)!==record.label) reset();
         if(segment.length>=WARMUP){
           const plan=runSignalModelAt(segment,segment.length);
-          const selected=makeSelection(plan);
+          const selected=makeSelection(plan, record.periodNum);
           const row={label:record.label,raw7:record.raw7,special:record.special,order:selected.order,
             hitCore:selected.order.slice(0,5).some(p=>p.n===record.special),hitTotal:selected.order.some(p=>p.n===record.special)};
           rows.push(row);
@@ -872,13 +892,14 @@ function recalculate() {
       const next=parseLabel(nextLabelOf(all.at(-1).label));
       if(next && segment.length>=WARMUP){
         const plan=runSignalModelAt(segment,segment.length);
-        live={...makeSelection(plan),label:next.label,basedOn:all.at(-1).label};
+        live={...makeSelection(plan, next.periodNum),label:next.label,basedOn:all.at(-1).label};
       }
       setCalculating(false);renderAll();
     }catch(err){
       console.error(err);setCalculating(false);
       $('mainBalls').innerHTML='<span class="picks-note">计算暂时失败，请检查数据或刷新页面。</span>';
       $('backupBalls').innerHTML='';$('zoneSummary').textContent='计算失败';
+      $('allocationHint').textContent='号码按波色显示 · 分配顺序未计算';
       for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='';
       $('formError').textContent='计算未完成：'+String(err.message || '请检查数据');
     }
@@ -919,6 +940,7 @@ function renderRecommendation(){
   if(!live){
     $('mainBalls').innerHTML='<span class="picks-note">连续有效记录不足 100 期，暂不生成号码。</span>';
     $('backupBalls').innerHTML='';$('zoneSummary').textContent='四区分布待计算';
+    $('allocationHint').textContent='号码按波色显示 · 分配顺序按期号轮换';
     for(const meta of SIGNAL_META) $(`${meta.id}Numbers`).innerHTML='<span class="picks-note">暂无号码</span>';
     $('lockTitle').textContent='未锁定';$('lockDescription').textContent='';
     $('copyAll').disabled=true;$('copyMain').disabled=true;$('lockBtn').disabled=true;
@@ -932,6 +954,8 @@ function renderRecommendation(){
   }
   const zones=[0,0,0,0];for(const p of picks)zones[selectionZoneOf(p.n)]++;
   $('zoneSummary').textContent=`区间 01–12 ${zones[0]} · 13–24 ${zones[1]} · 25–36 ${zones[2]} · 37–49 ${zones[3]}`;
+  const orderText=(live.allocation||[]).map(signalName).join(' → ');
+  $('allocationHint').textContent=`号码按波色显示 · ${live.label} 分配：${orderText}`;
   if(state.locked && state.locked.label===live.label){
     const changed=live.order.slice(0,count).some((p,i)=>p.n!==picks[i].n||p.source!==picks[i].source||JSON.stringify(p.signals||[])!==JSON.stringify(picks[i].signals||[]));
     $('lockTitle').textContent='本期号码已锁定';
@@ -1052,7 +1076,7 @@ function renderHeat(){
   $('heatGrid').innerHTML=numbers.map(n=>{
     const [bg,color]=colour(freq[n]),diff=freq[n]-prev[n],cls=diff>0?'is-inc':diff<0?'is-dec':'';
     const badge=diff>0?'<span class="hc-delta up">+1</span>':diff<0?'<span class="hc-delta down">-1</span>':'';
-    return `<div class="heat-cell ${cls}" data-wave="${waveKey(n)}" style="background:${bg};color:${color}" title="号码 ${pad2(n)}：${freq[n]} 次 · ${waveLabel(n)}">${badge}<span class="hc-wave" style="background:${waveColor(n)}"></span>${pad2(n)}<small>${freq[n]} 次</small></div>`;
+    return `<div class="heat-cell ${cls}" data-wave="${waveKey(n)}" style="background:${bg};color:${color}" title="号码 ${pad2(n)}：${freq[n]} 次 · ${waveLabel(n)}">${badge}<span class="hc-number" data-wave="${waveKey(n)}" style="background:${waveColor(n)}" title="${waveLabel(n)}">${pad2(n)}</span><small>${freq[n]} 次</small></div>`;
   }).join('');
   for(const b of $('heatScope').querySelectorAll('button')){const on=b.dataset.scope===heatScope;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));}
   for(const b of $('heatSort').querySelectorAll('button')){const on=b.dataset.sort===heatSort;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));}
@@ -1206,6 +1230,6 @@ window.noteSync = {
 };
 
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.14-r13"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.14-r14"></script>
 </body>
 </html>
