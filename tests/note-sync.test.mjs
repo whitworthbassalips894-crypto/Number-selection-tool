@@ -131,14 +131,26 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
       picks.forEach(checkWave);
       return list;
     };
-    sample('#optHero .ball', 1);
+    sample('#latestDrawBalls .ball', 7);
+    sample('#optHero .ball', 10);
     sample('#tool2Panels .ball', 21);
     sample('#tool2Summary .ball', 1);
-    sample('#deltaBoard .ball', 1);
+    sample('#heatHighlights .ball', 1);
     const heatNumbers = sample('#heatmap .hc-number', 49);
     assert.equal(doc.querySelectorAll('#heatmap .heat-cell').length, 49);
     for (const el of heatNumbers) assert.equal(el.parentElement.dataset.wave, el.dataset.wave);
-    sample('#historyBody .num', 3500);
+
+    // 热度网格：高频热号与 0 次冷号都有标记
+    assert.ok(doc.querySelectorAll('#heatmap .hc-flag.hot').length >= 1, '应标记高频热号');
+    assert.ok(doc.querySelectorAll('#heatmap .hc-flag.cold').length >= 1, '应标记 0 次冷号');
+    assert.ok(!doc.getElementById('heatSection').querySelector('select'), '热度卡片不再有期号导航');
+
+    // 近 10 期命中简表 & 完整历史在弹窗内
+    const recentRows = doc.querySelectorAll('#historyBody tr.main-row');
+    assert.equal(recentRows.length, 10);
+    sample('#historyBody .num', 70);
+    assert.equal(doc.getElementById('historyModal').hidden, true);
+    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 0);
 
     assert.equal(doc.querySelectorAll('.head-meta .wave-dot').length, 3);
     assert.equal(doc.querySelectorAll('#heatLegend .wave-dot').length, 3);
@@ -161,17 +173,14 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     }
 
     assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
-    assert.equal(doc.querySelectorAll('#yearlyBody tr').length, 6);
-    assert.equal(doc.querySelectorAll('#historyBody tr.main-row').length, 500);
-    for (const id of ['syncNow', 'syncStatus', 'exportBtn', 'importBtn', 'importFile', 'deltaSelect', 'deltaPrev', 'deltaNext', 'deltaLatest', 'heatmap', 'yearlyBody', 'historyBody']) {
+    for (const id of ['syncNow', 'syncStatus', 'exportBtn', 'importBtn', 'importFile', 'heatmap', 'historyBody', 'lockBtn', 'lockCurrent']) {
       assert.ok(doc.getElementById(id), `缺少 ${id}`);
     }
     assert.ok(doc.getElementById('syncNow').classList.contains('sync'));
 
     doc.getElementById('lockBtn').click();
-    assert.equal(doc.getElementById('lockTitle').textContent, '本期号码已锁定');
     const currentBalls = [...doc.querySelectorAll('#lockCurrent .lock-ball')];
-    assert.ok(currentBalls.length > 0);
+    assert.equal(currentBalls.length, 10, '默认锁定 10 码');
     currentBalls.forEach(checkWave);
     assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-320');
 
@@ -181,6 +190,97 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     assert.ok(historyBalls.length > 0);
     historyBalls.forEach(checkWave);
     assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locks.length, 1);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('5/7/10/12/18 码一键切换，复制文本为纯 ASCII 逗号格式', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const tabs = [...doc.querySelectorAll('#tierTabs .tier-btn')];
+    assert.deepEqual(tabs.map(t => t.getAttribute('data-tier')), ['5', '7', '10', '12', '18']);
+    assert.deepEqual(tabs.map(t => t.textContent.match(/^\d+码/)[0]), ['5码', '7码', '10码', '12码', '18码']);
+
+    const expect = {
+      5: '06,13,37,41,46',
+      7: '06,13,29,37,39,41,46',
+      10: '04,06,12,13,29,31,37,39,41,46',
+      12: '04,06,12,13,29,31,37,39,41,46,47,49',
+      18: '04,06,07,09,12,13,22,25,29,30,31,34,37,39,41,46,47,49'
+    };
+    for (const size of [5, 7, 10, 12, 18]) {
+      doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
+      assert.equal(doc.querySelectorAll('#optHero .pick-chip').length, size);
+      const copy = doc.getElementById('copyMainBtn');
+      const text = copy.getAttribute('data-copy');
+      assert.equal(text, expect[size], `${size} 码复制文本错误`);
+      assert.match(text, /^(?:\d{2})(?:,\d{2})*$/, '必须为两位数字 + 英文逗号');
+      assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
+    }
+
+    // 档位切换后锁定跟随当前档位
+    doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
+    doc.getElementById('lockBtn').click();
+    assert.equal(doc.querySelectorAll('#lockCurrent .lock-ball').length, 5);
+    doc.getElementById('lockBtn').click();
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('近 30 期温度计、连错期数与推导细节折叠面板', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const rows = [...doc.querySelectorAll('#thermometerList .thermo-row')];
+    assert.equal(rows.length, 3);
+    for (const row of rows) {
+      assert.ok(row.querySelector('.thermo-track .thermo-fill'), '温度计应有进度条');
+      assert.match(row.querySelector('.thermo-rate').textContent, /^\d+\.\d%$/);
+    }
+    const rates = rows.map(r => r.querySelector('.thermo-rate').textContent);
+    assert.deepEqual(rates, ['23.3%', '23.3%', '36.7%']);
+
+    assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 3 期/);
+    assert.ok(doc.getElementById('signalText').textContent.length > 6);
+
+    const fold = doc.getElementById('deriveFold');
+    assert.equal(fold.open, false, '推导细节应默认折叠');
+    fold.open = true;
+    assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('查看全部打开历史弹窗，含年度总表与全部 1779 期分页', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    doc.getElementById('openHistoryModal').click();
+    const deadline = Date.now() + 12000;
+    while (Date.now() < deadline && !doc.querySelector('#fullHistoryBody tr.main-row')) {
+      await new Promise(resolve => dom.window.setTimeout(resolve, 40));
+    }
+    assert.equal(doc.getElementById('historyModal').hidden, false);
+    assert.equal(doc.body.classList.contains('modal-open'), true);
+    assert.ok(doc.querySelectorAll('#yearlyBody tr').length >= 6);
+    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 120);
+    assert.match(doc.getElementById('modalTotalBadge').textContent, /1779/);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1779 期/);
+
+    doc.getElementById('modalLoadAll').click();
+    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 1779);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示全部 1779 期/);
+
+    doc.getElementById('closeHistoryModal').click();
+    assert.equal(doc.getElementById('historyModal').hidden, true);
+    assert.equal(doc.body.classList.contains('modal-open'), false);
   } finally {
     dom.window.close();
   }
