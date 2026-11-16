@@ -1,13 +1,13 @@
 {
-  "name": "选号工具",
-  "short_name": "选号工具",
-  "description": "固定12码选号及历史命中统计，号码按波色显示",
+  "name": "特码统计 · 工具2提纯与百期热度",
+  "short_name": "工具2提纯",
+  "description": "三组7码提纯、并集回放、历年命中率与百期热度；支持一键同步、离线缓存和本地锁定备份",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f6f8fb",
-  "theme_color": "#f6f8fb",
+  "background_color": "#f4f7fb",
+  "theme_color": "#f4f7fb",
   "lang": "zh-CN",
   "icons": [
     {
