@@ -36,27 +36,22 @@ test('sw.js 中预缓存的 SHELL_FILES 在仓库中全部真实存在', () => {
   }
 });
 
-test('页面展示固定 12 码版本、轮换分配、波色与同步入口', () => {
+test('页面采用附件工具2模型，并保留同步、PWA、锁号、备份与波色能力', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  for (const term of ['cfgStake', 'cfgOddsSpecial', '本金', '赔率', '净收益', 'ROI', '最大回撤', '双方案', '选号与补位规则', 'signal-rules', 'cdn-cgi']) {
+  for (const term of [
+    '固定 12 码', 'SIGNAL_ROTATION', 'allocationOrderFor', 'makeSelection(plan, record.periodNum)',
+    'cfgStake', 'cfgOddsSpecial', '选号与补位规则', 'signal-rules', 'cdn-cgi', '__CF'
+  ]) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);
   }
-  assert.ok(html.includes('固定 12 码'));
-  assert.ok(html.includes('id="hotNumbers"'));
-  assert.ok(html.includes('id="syncNow"'));
-  assert.ok(html.includes('id="syncStatus"'));
-  assert.ok(html.includes('id="heatScope"'));
-  assert.ok(html.includes('id="allocationHint"'));
-  assert.ok(html.includes('const SIGNAL_ROTATION'));
-  assert.ok(html.includes('function allocationOrderFor'));
-  assert.ok(html.includes('makeSelection(plan, record.periodNum)'));
-  assert.ok(html.includes('const waveColor'));
-  assert.ok(html.includes('data-wave='));
-  assert.ok(html.includes('class="btn sync"'));
-  assert.ok(html.includes('class="hc-number"'));
-  assert.ok(html.includes('head-meta'));
-  assert.ok(html.includes('.signal-grid>.signal-panel:last-child{grid-column:1/-1}'));
-  assert.ok(html.includes('.signal-grid{grid-template-columns:1fr}'));
-  assert.ok(!html.includes('.signal-panel.omit{border-top:3px solid #3b82f6}'));
-  assert.ok(!html.includes('.hc-wave{'));
+  for (const term of [
+    '特码统计 · 工具2提纯与百期热度', '工具2专属提纯', 'runTool2At', 'selectBalancedSeven',
+    'ensureReplayCache', 'renderReplaySection', 'computeHeatSnapshot', 'refreshAll',
+    'id="syncNow"', 'id="syncStatus"', 'id="lockBtn"', 'id="lockCurrent"', 'id="lockHistory"',
+    'id="exportBtn"', 'id="importBtn"', 'id="deltaSelect"', 'id="yearlyBody"', 'id="heatmap"',
+    './manifest.webmanifest?v=', './src/note-sync.js?v=', 'mark6_tool2_heat_v2', 'window.noteSync',
+    'class="btn sync"', 'wave-dot', 'class="hc-number"', 'data-wave=', 'head-meta'
+  ]) {
+    assert.ok(html.includes(term), `应保留 ${term}`);
+  }
 });
