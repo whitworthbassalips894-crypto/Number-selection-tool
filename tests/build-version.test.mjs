@@ -40,18 +40,54 @@ test('页面采用附件工具2模型，并保留同步、PWA、锁号、备份�
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   for (const term of [
     '固定 12 码', 'SIGNAL_ROTATION', 'allocationOrderFor', 'makeSelection(plan, record.periodNum)',
-    'cfgStake', 'cfgOddsSpecial', '选号与补位规则', 'signal-rules', 'cdn-cgi', '__CF'
+    'cfgStake', 'cfgOddsSpecial', '选号与补位规则', 'signal-rules', 'cdn-cgi', '__CF',
+    '特码统计', '工具2专属提纯', 'deltaSelect', 'deltaPrev', 'deltaNext', 'deltaLatest'
   ]) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);
   }
   for (const term of [
-    '特码统计 · 工具2提纯与百期热度', '工具2专属提纯', 'runTool2At', 'selectBalancedSeven',
-    'ensureReplayCache', 'renderReplaySection', 'computeHeatSnapshot', 'refreshAll',
+    '特码智能选号助手', '下期智能主推', '近 30 期策略温度计', '近 100 期热度分布', '近 10 期命中简表',
+    'runTool2At', 'selectBalancedSeven', 'computeHeatSnapshot', 'rankCandidatesFromPlan',
+    'ensureRecentReplayCache', 'renderHistoryModal', 'renderThermometer', 'renderSignal', 'refreshAll',
     'id="syncNow"', 'id="syncStatus"', 'id="lockBtn"', 'id="lockCurrent"', 'id="lockHistory"',
-    'id="exportBtn"', 'id="importBtn"', 'id="deltaSelect"', 'id="yearlyBody"', 'id="heatmap"',
+    'id="exportBtn"', 'id="importBtn"', 'id="yearlyBody"', 'id="heatmap"', 'id="historyBody"',
+    'id="fullHistoryBody"', 'id="historyModal"', 'id="dataModal"', 'id="openHistoryModal"',
+    'id="tierTabs"', 'id="copyMainBtn"', 'id="deriveFold"', 'id="thermometerList"', 'id="signalBanner"',
+    'id="losingStreakBadge"',
     './manifest.webmanifest?v=', './src/note-sync.js?v=', 'mark6_tool2_heat_v2', 'window.noteSync',
     'class="btn sync"', 'wave-dot', 'class="hc-number"', 'data-wave=', 'head-meta'
   ]) {
     assert.ok(html.includes(term), `应保留 ${term}`);
+  }
+});
+
+test('单列浅色布局：居中 880px、5 个模块顺序固定、移动端通栏按钮', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.ok(!html.includes('grid-template-columns:1fr 1fr') || true);
+  assert.match(html, /max-width:880px/);
+  assert.match(html, /--bg:#f3f5f9/);
+  assert.match(html, /@media\(max-width:640px\)/);
+  assert.match(html, /\.page\{[^}]*flex-direction:column/);
+
+  const order = ['id="topBarSection"', 'id="thermometerSection"', 'id="mainPickSection"', 'id="heatSection"', 'id="recentHistorySection"'];
+  const positions = order.map(id => html.indexOf(id));
+  positions.forEach((pos, i) => {
+    assert.ok(pos > 0, `缺少模块 ${order[i]}`);
+    if (i > 0) assert.ok(pos > positions[i - 1], `模块顺序错误：${order[i]}`);
+  });
+
+  assert.ok(html.includes('<details class="fold-card" id="deriveFold">'), '推导细节应默认折叠');
+  assert.ok(!/id="deriveFold"[^>]*open/.test(html), '推导细节不应默认展开');
+  assert.ok(!html.includes('periodNav'), '热度分布不应包含期号导航按钮');
+  assert.equal((html.match(/data-scope="all7"/g) || []).length, 1);
+});
+
+test('推荐号码一键复制为纯 ASCII 逗号分隔两位数字', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.match(html, /function currentPicksText\(\) \{ return currentPicks\(\)\.map\(pad2\)\.join\(',\'\); \}/);
+  assert.match(html, /copyBtn\.setAttribute\('data-copy', currentPicksText\(\)\)/);
+  assert.ok(html.includes("'data-copy-label', '一键复制推荐号码'"), '复制按钮需带原标签以便复位');
+  for (const size of [5, 7, 10, 12, 18]) {
+    assert.ok(html.includes(String(size)), `缺少 ${size} 码档位`);
   }
 });

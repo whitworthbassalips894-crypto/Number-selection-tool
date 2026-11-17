@@ -1,13 +1,13 @@
 {
-  "name": "特码统计 · 工具2提纯与百期热度",
-  "short_name": "工具2提纯",
-  "description": "三组7码提纯、并集回放、历年命中率与百期热度；支持一键同步、离线缓存和本地锁定备份",
+  "name": "特码智能选号助手",
+  "short_name": "特码选号助手",
+  "description": "特码智能选号助手：策略温度计、5/7/10/12/18码智能主推、百期热度网格与历史命中明细；支持一键同步、离线缓存和本地锁定备份",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f4f7fb",
-  "theme_color": "#f4f7fb",
+  "background_color": "#f3f5f9",
+  "theme_color": "#f3f5f9",
   "lang": "zh-CN",
   "icons": [
     {

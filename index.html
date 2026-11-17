@@ -3,320 +3,708 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>特码统计 · 工具2提纯与百期热度</title>
-<meta name="app-version" content="v2026.11.14-r15">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.14-r15">
+<title>特码智能选号助手</title>
+<meta name="app-version" content="v2026.11.16-r16">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.16-r16">
 <style>
 :root{
-  --ink:#1e293b;--muted:#64748b;--paper:#f4f7fb;--card:#ffffff;--line:#dce4ee;
-  --gold:#d4a72c;--hot:#e54b4b;--blue:#3b82f6;--green:#10a878;--purple:#7c3aed;
-  --shadow:0 6px 20px rgba(15,23,42,.05);
-  font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  --ink:#0f172a;
+  --ink-soft:#334155;
+  --muted:#64748b;
+  --bg:#f3f5f9;
+  --card:#ffffff;
+  --surface:#f8fafc;
+  --line:#e3e8f0;
+  --line-strong:#cbd5e1;
+  --brand:#2563eb;
+  --brand-hover:#1d4ed8;
+  --brand-soft:#eff6ff;
+  --hot:#e54b4b;
+  --blue:#3b82f6;
+  --green:#10a878;
+  --amber:#d97706;
+  --shadow:0 2px 12px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.03);
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);padding-bottom:36px}
-.page{max-width:1160px;margin:auto;padding:22px 18px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid var(--gold);padding-bottom:12px;margin-bottom:16px}
-h1{font-size:22px;margin:0}
-.header-stats{display:flex;gap:18px;align-items:center;text-align:right}
-.count{color:var(--muted);font-size:11.5px}
-.count b{display:block;color:var(--hot);font:800 21px Consolas,monospace}
-.count.next-target b{color:var(--purple)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
-.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-h2{font-size:16px;margin:0;padding-left:9px;border-left:4px solid var(--gold);display:flex;align-items:center;gap:6px}
-.tag{font:700 11px Consolas,monospace;color:#785705;background:#fff4c9;border-radius:4px;padding:2px 6px}
-.tag.live{background:#dcfce7;color:#166534}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+body.modal-open{overflow:hidden}
+.page{
+  max-width:880px;
+  margin:0 auto;
+  padding:20px 16px 44px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+}
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.card-title-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.01em;color:var(--ink)}
+h2{font-size:16px;font-weight:800;margin:0;color:var(--ink);display:flex;align-items:center;gap:8px}
+h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--brand);display:inline-block}
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11.5px;font-weight:700;
+  padding:3px 9px;border-radius:99px;
+  background:#f1f5f9;color:var(--ink-soft);
+}
+.pill.brand{background:var(--brand-soft);color:var(--brand);font-family:Consolas,"PingFang SC",monospace}
+.pill.subtle{font-weight:600;color:var(--muted);background:#f8fafc;border:1px solid var(--line)}
+.pill.ok{background:#ecfdf5;color:#047857}
+
+/* 按钮体系 */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  padding:9px 15px;
+  background:#fff;
+  color:var(--ink);
+  font-size:13.5px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .15s,border-color .15s,transform .08s,color .15s;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.btn:hover:not(:disabled){background:#f8fafc;border-color:#94a3b8}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover:not(:disabled){background:var(--brand-hover);border-color:var(--brand-hover)}
+.btn.sync{background:#0f766e;border-color:#0f766e;color:#fff}
+.btn.sync:hover:not(:disabled){background:#115e59;border-color:#115e59}
+.btn.ghost{background:#f8fafc;border-color:var(--line);color:var(--ink-soft);font-size:12.5px;padding:7px 12px}
+.btn.danger{color:#dc2626;border-color:#fecaca;background:#fff5f5}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:8px}
+.btn.copied{background:#10a878!important;border-color:#10a878!important;color:#fff!important}
+
+/* 波色球通用组件 */
+.ball{
+  display:inline-flex;width:30px;height:30px;border-radius:50%;
+  align-items:center;justify-content:center;
+  color:#fff;font:800 13px/1 Consolas,ui-monospace,monospace;
+  vertical-align:middle;flex-shrink:0;
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.14);
+}
+.ball.sm{width:24px;height:24px;font-size:11.5px}
+.ball.lg{width:38px;height:38px;font-size:15px}
+.ball.xl{width:42px;height:42px;font-size:16.5px}
+.ball.shared-ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #f59e0b}
+.ball.hit-ring{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--hot)}
+.ball.cool-dim{opacity:.45}
+
+.head-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.wave-legend-inline{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.legend-chip{display:inline-flex;align-items:center;gap:4px;font-weight:600;font-size:12px;color:var(--ink-soft)}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:3px}
+.legend-dot.wave-dot,.lg-dot.wave-dot{border-radius:50%;border:1px solid rgba(15,23,42,.1)}
+
+/* 1. 顶部栏 */
+.top-bar-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding-bottom:13px;border-bottom:1px solid var(--line);margin-bottom:14px;
+}
+.brand-group{display:flex;flex-direction:column;gap:4px}
+.brand-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.brand-mark{
+  width:28px;height:28px;border-radius:8px;
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  color:#fff;font:900 14px/1 Consolas,monospace;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.brand-sub{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#10a878;display:inline-block}
+.status-dot.warn{background:#d97706}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.latest-draw-row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+}
+.latest-meta{display:flex;flex-direction:column;gap:3px}
+.latest-period-line{font-size:13px;color:var(--muted);font-weight:600}
+.latest-period-line b{font:800 17px Consolas,monospace;color:var(--ink);margin:0 3px}
+.latest-next-hint{font-size:12px;color:var(--muted)}
+.latest-next-hint b{color:var(--brand);font-family:Consolas,monospace}
+.draw-balls-wrap{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.draw-ball-item{display:inline-flex;flex-direction:column;align-items:center;gap:3px}
+.draw-ball-item small{font-size:11px;color:var(--muted);font-weight:600;line-height:1}
+.draw-plus{font:800 16px/1 Consolas,monospace;color:#94a3b8;padding:0 2px 14px}
+.draw-ball-item.is-sp{
+  background:#fffbeb;border:1.5px solid #fcd34d;border-radius:11px;
+  padding:5px 9px 4px;margin-left:2px;
+}
+.draw-ball-item.is-sp .ball{box-shadow:0 0 0 2px #fff,0 0 0 3.5px #f59e0b}
+.draw-ball-item.is-sp small{color:#b45309;font-weight:800}
+.sync-bar-note{
+  margin-top:10px;font-size:12px;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+}
+.inner-warn{color:#b45309;font-weight:700}
+
+/* 2. 近 30 期策略温度计 */
+.thermo-list{display:flex;flex-direction:column;gap:12px}
+.thermo-row{
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:11px 14px;display:flex;flex-direction:column;gap:7px;
+}
+.thermo-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.thermo-name{font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:6px}
+.thermo-desc{font-size:12px;font-weight:500;color:var(--muted)}
+.thermo-stats{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.thermo-count{font-weight:700;color:var(--ink-soft)}
+.thermo-rate{font:800 14.5px Consolas,monospace;color:var(--ink)}
+.temp-tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+.temp-tag.warm{background:#fef2f2;color:#dc2626}
+.temp-tag.normal{background:#eff6ff;color:#2563eb}
+.temp-tag.cool{background:#f1f5f9;color:#64748b}
+.thermo-track{
+  width:100%;height:9px;border-radius:99px;background:#e2e8f0;overflow:hidden;position:relative;
+}
+.thermo-fill{height:100%;border-radius:99px;transition:width .3s ease}
+
+/* 3. 下期智能主推卡片 */
+.signal-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  border-radius:11px;padding:10px 14px;margin-bottom:14px;
+  border:1px solid var(--line);background:var(--surface);font-size:13px;
+}
+.signal-banner.green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.signal-banner.blue{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.signal-banner.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+.signal-left{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0}
+.signal-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:currentColor}
+.signal-metrics{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.metric-chip{
+  background:rgba(255,255,255,.85);border:1px solid rgba(15,23,42,.1);
+  border-radius:99px;padding:3px 10px;font-size:12px;font-weight:800;color:var(--ink);
+  font-family:Consolas,"PingFang SC",monospace;
+}
+
+.tier-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.tier-tabs{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;width:100%;
+}
+.tier-btn{
+  border:1.5px solid var(--line);border-radius:10px;background:var(--surface);
+  padding:9px 6px;font-size:13.5px;font-weight:800;color:var(--ink-soft);
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.tier-btn:hover{border-color:#94a3b8;background:#fff}
+.tier-btn.active{
+  background:var(--brand);border-color:var(--brand);color:#fff;
+  box-shadow:0 3px 10px rgba(37,99,235,.2);
+}
+.tier-btn small{display:block;font-size:10.5px;font-weight:600;opacity:.82;margin-top:2px}
+
+.opt-hero-box{
+  border:1.5px solid #bfdbfe;
+  background:linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+  border-radius:13px;padding:15px;margin-bottom:12px;
+}
+.pick-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(78px,1fr));
+  gap:9px;
+}
+.pick-chip{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  background:#fff;border:1px solid var(--line);border-radius:11px;
+  padding:9px 5px 7px;text-align:center;
+}
+.pick-chip.is-dual{border-color:#fbbf24;background:#fffdf5}
+.pick-tag{
+  font-size:11px;font-weight:700;color:var(--ink-soft);
+  background:#f1f5f9;border-radius:5px;padding:2px 6px;line-height:1.2;
+  max-width:100%;white-space:nowrap;
+}
+.pick-chip.is-dual .pick-tag{background:#fef3c7;color:#b45309}
+.pick-chip.is-hot .pick-tag{background:#fef2f2;color:#b91c1c}
+.pick-chip.is-cold .pick-tag{background:#eff6ff;color:#1d4ed8}
+
+.copy-preview{
+  margin-top:12px;padding:8px 11px;border-radius:8px;
+  background:#f8fafc;border:1px dashed var(--line-strong);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+  font-size:12px;color:var(--muted);
+}
+.copy-preview code{
+  font:700 13px/1.4 Consolas,ui-monospace,monospace;color:var(--ink);
+  word-break:break-all;
+}
+.hero-actions{
+  display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:12px;
+}
+.hero-actions .btn{min-height:44px;font-size:14px}
+
+.lock-current{
+  margin-top:11px;border:1px solid #a7f3d0;background:#ecfdf5;
+  border-radius:10px;padding:10px 12px;font-size:12px;color:#065f46;
+}
+.lock-current-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.lock-current .numbers{display:flex;flex-wrap:wrap;gap:4px}
+.lock-ball{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:25px;height:22px;padding:0 5px;border-radius:6px;
+  color:#fff;font:800 11.5px Consolas,monospace;
+}
+
+/* 折叠面板（本地锁定记录 & 查看推导细节） */
+.fold-card{border:1px solid var(--line);border-radius:11px;margin-top:10px;overflow:hidden;background:#fff}
+summary{list-style:none;cursor:pointer;user-select:none}
+summary::-webkit-details-marker{display:none}
+.wide-summary{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--surface);padding:10px 13px;font-size:13px;color:var(--ink-soft);
+}
+.wide-summary:hover{background:#f1f5f9}
+.wide-summary .left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.wide-summary b{color:var(--ink);font-weight:800}
+.wide-summary .sub-hint{font-size:11.5px;color:var(--muted)}
+.wide-summary .arrow{color:var(--muted);font-size:13px;transition:transform .2s}
+details[open]>.wide-summary .arrow{transform:rotate(180deg)}
+.fold-content{border-top:1px solid var(--line);padding:13px;font-size:12.5px;line-height:1.6}
+
+.derive-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.sub-chip{background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-size:12px;color:var(--ink-soft)}
+.sub-chip b{font-family:Consolas,monospace;color:var(--ink)}
+.sub-chip.kill{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.engine-stack{display:flex;flex-direction:column;gap:10px}
+.panel{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff}
+.ep-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.ep-title{font-weight:800;font-size:13.5px;color:var(--ink)}
+.ep-meta{font-size:11px;color:var(--muted);background:#f1f5f9;border-radius:99px;padding:2px 8px;font-weight:700}
+.ep-meta.warn{background:#fef2f2;color:#b91c1c}
+.prediction{width:100%;border-collapse:collapse;font-size:12px}
+.prediction th{color:var(--muted);font-size:11px;background:#f8fafc;font-weight:700;padding:6px 4px;text-align:center}
+.prediction td{padding:6px 4px;text-align:center;border-top:1px solid #f1f5f9}
+.prediction tbody tr.is-kept{background:#f8fbff}
+.ov-tag{
+  display:inline-block;font:700 10.5px "PingFang SC",sans-serif;
+  color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;
+  border-radius:4px;padding:0 5px;margin-left:4px;vertical-align:middle;
+}
+.ov-tag.x3{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.ov-tag.cool{background:#e2e8f0;color:#475569;border-color:#cbd5e1}
+
+.cool-pool-box{
+  margin-top:10px;border:1px solid var(--line);background:var(--surface);
+  border-radius:10px;padding:11px 13px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.cool-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cool-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cool-label{font-size:12.5px;font-weight:800;color:var(--ink-soft)}
+.sum-balls{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.lock-list{display:grid;gap:8px}
+.lock-record{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 11px;font-size:12px}
+.lock-record strong{color:#0f766e;font-family:Consolas,monospace}
+.lock-record small{color:var(--muted)}
+.lock-record .numbers{margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.empty{padding:4px 0;color:var(--muted);font-size:12px}
+.dc-note{color:var(--muted);font-size:12px;font-weight:600}
+
+/* 4. 近 100 期热度分布（7×7 简洁网格） */
+.heat-toolbar{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;
+}
+.seg-group{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);padding:2px;gap:2px}
+.seg-btn{border:none;border-radius:6px;background:transparent;padding:5px 10px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+.seg-btn.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,23,42,.08)}
+.heat-highlights{
+  display:flex;flex-direction:column;gap:6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;margin-bottom:10px;font-size:12px;
+}
+.hh-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hh-badge{font-size:11px;font-weight:800;padding:2px 7px;border-radius:5px;flex-shrink:0}
+.hh-badge.hot{background:#fee2e2;color:#b91c1c}
+.hh-badge.cold{background:#dbeafe;color:#1d4ed8}
+.heat-legend{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+  margin-bottom:10px;font-size:11.5px;color:var(--muted);
+}
+.legend-items{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.lg-chip{display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.lg-dot{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid rgba(15,23,42,.08)}
+
+.heat{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:7px;
+}
+.heat-cell{
+  position:relative;
+  border-radius:10px;
+  min-height:56px;
+  padding:8px 3px 6px;
+  text-align:center;
+  border:1.5px solid var(--line);
+  background:#f8fafc;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+}
+.heat-cell.is-hot{background:#fff1f2;border-color:#fda4af}
+.heat-cell.is-warm{background:#fffbeb;border-color:#fde68a}
+.heat-cell.is-cold{background:#eff6ff;border-color:#93c5fd}
+.hc-number{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:26px;height:24px;padding:0 5px;border-radius:99px;
+  color:#fff;font:800 12px/1 Consolas,monospace;
+}
+.heat-cell small{
+  display:block;font:700 11px/1.1 "PingFang SC",sans-serif;color:var(--ink-soft);
+}
+.heat-cell.is-hot small{color:#be123c}
+.heat-cell.is-cold small{color:#1d4ed8}
+.hc-flag{
+  position:absolute;top:-6px;right:-4px;
+  font:800 9.5px/1.2 "PingFang SC",sans-serif;
+  padding:1px 5px;border-radius:99px;
+}
+.hc-flag.hot{background:#e11d48;color:#fff}
+.hc-flag.cold{background:#2563eb;color:#fff}
+
+/* 5. 近 10 期命中简表 & 表格通用 */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:#fff}
+.history{width:100%;border-collapse:collapse;font-size:12.5px;min-width:600px}
+.history th{
+  background:#f8fafc;color:var(--ink-soft);
+  padding:9px 6px;font-size:11.5px;font-weight:800;text-align:center;
+  border-bottom:1px solid var(--line);
+}
+.history th.col-period,.history td.col-period{text-align:left;padding-left:12px}
+.history td{padding:8px 6px;text-align:center;border-bottom:1px solid #f1f5f9}
+.history tbody tr:last-child td{border-bottom:none}
+.history td.col-period{font:700 12px Consolas,monospace;color:var(--ink-soft);white-space:nowrap}
+.history tbody tr.main-row:hover{background:#f8fafc}
+.history tbody tr.row-hit{background:#fffdf5}
+.nums{display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+.num{
+  width:25px;height:25px;font:700 11px/1 Consolas,monospace;
+  border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  color:#fff;flex-shrink:0;
+}
+.num.special{
+  width:29px;height:29px;font:900 12px/1 Consolas,monospace;
+  margin-left:3px;box-shadow:0 0 0 2px #fff,0 0 0 3.5px #f59e0b;
+}
+.badge{display:inline-block;padding:2px 7px;border-radius:6px;font:800 11.5px Consolas,monospace}
+.badge.hit{background:#fee2e2;color:#b91c1c}
+.badge.opt-hit{background:#dbeafe;color:#1d4ed8}
+.badge.tier-hit{background:#2563eb;color:#fff}
+.miss-dash{color:#cbd5e1;font:700 13px Consolas,monospace}
+.exp-btn{
+  border:1px solid var(--line);background:#fff;border-radius:6px;
+  padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;font-weight:700;
+}
+.exp-btn:hover{border-color:#94a3b8;color:var(--ink)}
+.detail-row td{background:#f8fafc;text-align:left;padding:10px 14px}
+.detail-groups{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:12px}
+.dg-item{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.dg-label{font-weight:800;color:var(--ink-soft);margin-right:2px}
+
+.foot-note{
+  text-align:center;color:var(--muted);font-size:11.5px;padding:4px 8px;line-height:1.6;
+}
+
+/* 弹窗（完整 1779 期历史明细 & 数据管理） */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:100;
+  background:rgba(15,23,42,.48);backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+}
+.modal-backdrop[hidden]{display:none!important}
+.modal-dialog{
+  background:#fff;border-radius:16px;border:1px solid var(--line);
+  width:100%;max-width:860px;max-height:90vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 20px 50px rgba(15,23,42,.22);overflow:hidden;
+}
+.modal-dialog.narrow{max-width:620px}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:15px 18px;border-bottom:1px solid var(--line);background:#fff;
+}
+.modal-head h3{margin:0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.modal-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+
+.yearly-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.yearly-table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
+.yearly-table th{background:#f8fafc;color:var(--ink-soft);padding:8px 6px;font-size:11.5px;font-weight:800;text-align:center;border-bottom:1px solid var(--line)}
+.yearly-table th small{display:block;font-weight:600;color:var(--muted);font-size:10px;margin-top:1px}
+.yearly-table td{padding:8px 6px;text-align:center;border-bottom:1px solid #f1f5f9}
+.yearly-table tbody tr{cursor:pointer}
+.yearly-table tbody tr:hover{background:#f8fafc}
+.yearly-table tbody tr.yr-active{background:#eff6ff}
+.yearly-table tbody tr.yr-total{background:#f8fafc;font-weight:700;border-top:1.5px solid var(--line-strong)}
+.yearly-table tbody tr.yr-total td{border-bottom:none}
+.yr-label{font:800 12.5px Consolas,monospace;color:var(--ink)}
+.yr-cnt{font:700 12px Consolas,monospace;color:var(--muted)}
+.rate-main{font:800 13.5px Consolas,monospace;color:var(--ink)}
+.rate-main.opt-col{color:var(--brand)}
+.rate-sub{display:block;font-size:10.5px;color:var(--muted);margin-top:1px}
+
+.modal-filter-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tabs{display:flex;gap:5px;flex-wrap:wrap}
+.tab{
+  border:1px solid var(--line);background:#fff;border-radius:99px;
+  padding:4px 11px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;
+}
+.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.search-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-input{
+  border:1px solid var(--line-strong);border-radius:8px;padding:6px 10px;
+  font:600 12.5px Consolas,"PingFang SC",monospace;width:155px;color:var(--ink);
+}
+.modal-more-bar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:4px 0}
+
+/* 手动录入与备份表单（位于数据管理弹窗） */
 .form-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .form-row label{font-size:13px;font-weight:700}
-.text-input{border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace;width:118px}
-.paste-input{border:1px dashed #cbd5e1;border-radius:7px;padding:7px 11px;background:#f8fafc;color:var(--ink);font:600 13px Consolas,monospace;min-width:200px;flex:1}
-.paste-input:focus,.text-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
-.balls-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.text-input{border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace;width:120px}
+.paste-input{border:1px dashed #cbd5e1;border-radius:8px;padding:7px 11px;background:#f8fafc;color:var(--ink);font:600 13px Consolas,monospace;min-width:180px;flex:1}
+.balls-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
 .ball-slot{display:flex;flex-direction:column;align-items:center;gap:3px}
-.ball-slot small{font-size:10px;color:var(--muted);font-weight:700}
+.ball-slot small{font-size:10.5px;color:var(--muted);font-weight:700}
 .ball-slot.sp small{color:var(--hot)}
 .balls-plus{font:900 17px Consolas,monospace;color:var(--muted);padding:0 2px 14px}
-.ball-input{width:44px;height:44px;border:2px solid var(--line);border-radius:50%;text-align:center;font:800 16px Consolas,monospace;outline:none;background:#fff;color:var(--ink);transition:transform .12s,box-shadow .12s}
+.ball-input{width:42px;height:42px;border:2px solid var(--line-strong);border-radius:50%;text-align:center;font:800 15px Consolas,monospace;outline:none;background:#fff;color:var(--ink)}
 .ball-slot.sp .ball-input{border-color:#fca5a5}
-.ball-input:focus{transform:scale(1.05);box-shadow:0 0 0 3px rgba(59,130,246,.2)}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
-.btn{border:1px solid var(--line);border-radius:7px;padding:7px 12px;background:#fff;color:var(--ink);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s}
-.btn:hover{border-color:#94a3b8;background:#f8fafc}
-.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
-.btn.gold{background:#0284c7;border-color:#0284c7;color:#fff}
-.btn.gold:hover{background:#0369a1;border-color:#0369a1}
-.btn.danger{color:#c73737}
-.btn.sm{padding:5px 10px;font-size:12px}
-.btn.copied{background:#10a878!important;border-color:#10a878!important;color:#fff!important}
-.entry-flash{margin-top:10px;border-radius:8px;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;font-size:12.5px;line-height:1.6;display:none}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.entry-flash{margin-top:10px;border-radius:9px;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;font-size:12.5px;line-height:1.6;display:none}
 .entry-flash.show{display:block}
 .shake{animation:shake .3s ease;border-color:var(--hot)!important}
 @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
-/* 工具2专属主卡 */
-.opt-hero{border:1.5px solid #38bdf8;background:linear-gradient(135deg,#f0f9ff 0%,#ffffff 68%);border-radius:11px;padding:13px 15px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
-.opt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
-.opt-badge{font:800 12px "PingFang SC",sans-serif;color:#fff;background:linear-gradient(90deg,#0284c7,#2563eb);border-radius:6px;padding:3px 9px}
-.opt-stat{font:700 11.5px Consolas,monospace;color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;border-radius:99px;padding:2px 8px}
-.opt-balls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-.opt-sub{display:flex;gap:7px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
-.sub-chip{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;font-family:Consolas,"PingFang SC",monospace}
-.sub-chip b{color:var(--ink)}
-.sub-chip.kill{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
-
-/* 推荐面板 */
-.engine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.panel{border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0;background:#fff}
-.ep-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.ep-title{font-weight:800;font-size:14px}
-.ep-meta{font-size:11px;color:var(--muted);background:#f1f5f9;border-radius:99px;padding:2px 8px;font-weight:700}
-.ep-meta.warn{background:#fef2f2;color:#b91c1c}
-.prediction{width:100%;border-collapse:collapse;font-size:12px}
-.prediction th{color:var(--muted);font-size:11px;background:#f8fafc;font-weight:700}
-.prediction th,.prediction td{padding:6px 4px;text-align:center;border-bottom:1px solid #eef2f7}
-.prediction tbody tr:last-child td{border-bottom:none}
-.prediction tbody tr.is-kept{background:#f0f9ff}
-.ball{display:inline-flex;width:27px;height:27px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace;vertical-align:middle}
-.ball.sm{width:23px;height:23px;font-size:11px}
-.ball.lg{width:34px;height:34px;font-size:14px}
-.ball.shared-ring{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--gold)}
-.ball.hit-ring{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--hot)}
-.ball.cool-dim{opacity:.42}
-.ov-tag{display:inline-block;font:800 10px Consolas,monospace;color:#0369a1;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:4px;padding:0 4px;margin-left:3px;vertical-align:middle}
-.ov-tag.x3{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
-.ov-tag.cool{background:#e2e8f0;color:#475569;border-color:#cbd5e1}
-
-.summary-box{margin-top:12px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:10px;padding:11px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
-.sum-block h3{margin:0 0 5px;font-size:12px;color:var(--muted);font-weight:700}
-.sum-balls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.copy-col{display:flex;gap:6px;flex-wrap:wrap}
-
-/* 热度与增减 */
-.heat-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.seg-group{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#f8fafc}
-.seg-btn{border:none;background:transparent;padding:5px 11px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
-.seg-btn.active{background:var(--ink);color:#fff}
-.delta-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px}
-.delta-select{border:1px solid var(--line);border-radius:6px;padding:4px 7px;font:700 12px Consolas,monospace;background:#fff;color:var(--ink)}
-
-.delta-board{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
-.delta-card{border-radius:9px;padding:10px 12px;border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
-.delta-card.inc{background:#f0fdf4;border-color:#bbf7d0}
-.delta-card.dec{background:#eff6ff;border-color:#bfdbfe}
-.delta-card.neutral{grid-column:1/-1;background:#fefce8;border-color:#fde68a}
-.dc-head{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:800}
-.dc-head.inc-txt{color:#166534}
-.dc-head.dec-txt{color:#1e40af}
-.dc-source{font-size:11px;color:var(--muted);font-weight:600}
-.dc-items{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.dc-item{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:4px 9px}
-.dc-change{font:800 12px Consolas,monospace;color:var(--ink)}
-.dc-change b.up{color:#15803d}
-.dc-change b.down{color:#1d4ed8}
-.dc-note{font-size:11.5px;color:var(--muted)}
-
-.heat-legend{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--muted)}
-.legend-items{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.lg-chip{display:inline-flex;align-items:center;gap:3px;font-weight:600}
-.lg-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
-
-.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
-.heat-cell{position:relative;border-radius:8px;min-height:52px;padding:6px 4px 5px;text-align:center;font:800 13.5px Consolas,monospace;border:2px solid transparent}
-.heat-cell small{display:block;font:600 10.5px "PingFang SC",sans-serif;margin-top:2px}
-.heat-cell.is-inc{border-color:#16a34a;box-shadow:0 0 0 2.5px rgba(22,163,74,.18)}
-.heat-cell.is-dec{border-color:#2563eb;border-style:dashed;box-shadow:0 0 0 2.5px rgba(37,99,235,.14)}
-.heat-cell.is-same{border-color:#d97706;box-shadow:0 0 0 2.5px rgba(217,119,6,.16)}
-.hc-delta{position:absolute;top:-6px;right:-4px;font:900 9.5px Consolas,monospace;padding:1px 4px;border-radius:99px}
-.hc-delta.up{background:#16a34a;color:#fff}
-.hc-delta.down{background:#2563eb;color:#fff}
-.hc-delta.same{background:#d97706;color:#fff}
-
-/* 历史回放：历年命中率总表 + 四方案逐期表 */
-.yearly-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;margin-bottom:12px}
-.yearly-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:680px}
-.yearly-table th{background:#1e293b;color:#f1f5f9;padding:9px 8px;font-size:11.5px;font-weight:700;text-align:center}
-.yearly-table th small{display:block;font-weight:500;color:#94a3b8;font-size:10px;margin-top:1px}
-.yearly-table td{padding:8px 8px;text-align:center;border-bottom:1px solid #e2e8f0}
-.yearly-table tbody tr{cursor:pointer;transition:background .12s}
-.yearly-table tbody tr:hover{background:#f8fafc}
-.yearly-table tbody tr.yr-active{background:#f0f9ff}
-.yearly-table tbody tr.yr-total{background:#f8fafc;font-weight:700;border-top:2px solid #cbd5e1}
-.yearly-table tbody tr.yr-total td{border-bottom:none}
-.yr-label{font:800 13px Consolas,monospace;color:var(--ink)}
-.yr-cnt{font:700 12px Consolas,monospace;color:var(--muted)}
-.rate-main{font:800 14px Consolas,monospace;color:var(--ink)}
-.rate-main.opt-col{color:#0284c7;font-size:14.5px}
-.rate-sub{display:block;font-size:11px;color:var(--muted);margin-top:1px}
-
-.detail-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:9px}
-.detail-title{font-size:13.5px;font-weight:800;color:var(--ink)}
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:4px 11px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
-.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
-
-.scroll{max-height:540px;overflow:auto;border:1px solid var(--line);border-radius:9px}
-.history{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;min-width:780px}
-.history th{position:sticky;top:0;background:#1e293b;color:#f1f5f9;z-index:2;padding:9px 6px;font-size:11px;font-weight:700;text-align:center}
-.history th.col-period{text-align:left;padding-left:12px}
-.history th,.history td{padding:7px 5px;text-align:center;border-bottom:1px solid #e2e8f0}
-.history td.col-period{text-align:left;font:700 11.5px Consolas,monospace;padding-left:12px;color:#475569}
-.history tbody tr.main-row:hover{background:#f8fafc}
-.history tbody tr.row-hit{background:#fefce8}
-.nums{display:inline-flex;gap:4px;align-items:center}
-.num{width:27px;height:27px;font:700 11.5px Consolas,monospace;border:1px solid #e2e8f0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f8fafc;color:#334155}
-.num.special{width:31px;height:31px;font:900 12px Consolas,monospace;color:#fff;border-width:2px;margin-left:2px}
-.badge{display:inline-block;padding:2px 7px;border-radius:5px;font:800 11.5px Consolas,monospace}
-.badge.hit{background:#dc2626;color:#fff}
-.badge.opt-hit{background:#0284c7;color:#fff}
-.miss-dash{color:#cbd5e1;font:700 13px Consolas,monospace}
-.exp-btn{border:1px solid var(--line);background:#fff;border-radius:5px;padding:2px 7px;font-size:11px;color:var(--muted);cursor:pointer;font-weight:700}
-.exp-btn:hover{border-color:#94a3b8;color:var(--ink)}
-.detail-row td{background:#f8fafc;text-align:left;padding:9px 14px}
-.detail-groups{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:12px}
-.dg-item{display:inline-flex;align-items:center;gap:5px}
-.dg-label{font-weight:800;color:#475569}
-.foot-note{text-align:center;color:var(--muted);font-size:11.5px;margin-top:14px}
-
-@media(max-width:1080px){
-  .summary-box,.opt-hero{grid-template-columns:1fr}
+/* 手机端响应式适配：通栏按钮、球体与 7×7 网格零溢出 */
+@media(max-width:640px){
+  .page{padding:12px 10px 32px;gap:12px}
+  .card{padding:14px 13px;border-radius:14px}
+  h1{font-size:18px}
+  h2{font-size:15px}
+  .top-actions{width:100%;display:grid;grid-template-columns:1fr auto;gap:8px}
+  .top-actions #syncNow{width:100%;min-height:44px}
+  .top-actions #openDataModal{min-height:44px}
+  .latest-draw-row{flex-direction:column;align-items:flex-start;gap:10px;padding:11px 12px}
+  .draw-balls-wrap{width:100%;gap:4px;justify-content:space-between}
+  .draw-ball-item{gap:2px}
+  .draw-ball-item .ball.lg{width:31px;height:31px;font-size:12.5px}
+  .draw-ball-item small{font-size:9.5px}
+  .draw-plus{padding:0 0 14px;font-size:13px}
+  .draw-ball-item.is-sp{padding:4px 5px 3px}
+  .draw-ball-item.is-sp .ball.xl{width:33px;height:33px;font-size:13.5px}
+  .tier-tabs{gap:5px}
+  .tier-btn{padding:8px 2px;font-size:12.5px}
+  .tier-btn small{font-size:9px}
+  .pick-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .pick-chip{padding:7px 2px 6px}
+  .pick-chip .ball.lg{width:33px;height:33px;font-size:13.5px}
+  .pick-tag{font-size:10px;padding:1px 4px}
+  .hero-actions{grid-template-columns:1fr;gap:8px}
+  .hero-actions .btn{width:100%;min-height:46px}
+  .heat{gap:4px}
+  .heat-cell{min-height:48px;padding:6px 2px 4px;border-radius:8px}
+  .hc-number{min-width:22px;height:20px;font-size:11px;padding:0 3px}
+  .heat-cell small{font-size:10px}
+  .hc-flag{font-size:8.5px;padding:1px 3.5px;top:-5px;right:-2px}
+  .recent-head-btn{width:100%;min-height:42px}
+  .history{min-width:452px;font-size:11.5px}
+  .history th,.history td{padding:7px 3px}
+  .history td.col-period{padding-left:7px;font-size:10.5px}
+  .history .num{width:20px;height:20px;font-size:9px}
+  .history .num.special{width:22px;height:22px;font-size:9.5px;margin-left:2px}
+  .history .nums{gap:1.5px}
+  .badge{padding:2px 4px;font-size:10px}
+  .exp-btn{padding:3px 5px;font-size:10px}
+  .modal-backdrop{padding:8px}
+  .modal-head,.modal-body{padding:13px 12px}
 }
-@media(max-width:780px){
-  .page{padding:14px 10px}
-  .engine-grid,.delta-board{grid-template-columns:1fr}
-  .card{padding:14px 12px}
-}
-
-/* 线上版保留能力：数据状态、一键同步、锁定、统一波色 */
-.notice{border:1px solid #fde68a;background:#fffbeb;border-radius:9px;color:#854d0e;padding:10px 13px;margin-bottom:14px;font-size:12px;line-height:1.65}.notice-text{flex:1;min-width:0}.notice strong{color:#92400e}.inner-note{display:block;color:#92400e;font-size:11px;margin-top:2px}
-.storage-line{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:-8px 1px 12px;color:#64748b;font-size:11px}.status-dot{width:7px;height:7px;border-radius:50%;background:#10a878}.status-dot.warn{background:#d97706}
-.inline-note{font-size:11.5px;color:#64748b;margin:9px 0;line-height:1.65}
-.btn.sync{background:#ecfdf5;border-color:#99f6e4;color:#0f766e}.btn.sync:hover:not(:disabled){background:#d1fae5;border-color:#5eead4}
-.lockbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:9px;background:#f8fafc}.lock-text b{display:block;font-size:12px;color:#334155}.lock-text span{display:block;font-size:11px;color:#64748b;margin-top:2px}.lockbar .btn{white-space:nowrap}
-.fold-card{border:1px solid #dce4ee;border-radius:8px;margin-top:9px;overflow:hidden}summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:none}.wide-summary{display:flex;align-items:center;justify-content:space-between;background:#f8fafc;padding:9px 11px;font-size:12.5px}.wide-summary .left{min-width:0}.wide-summary b{color:#334155}.wide-summary .arrow{color:#64748b;transition:transform .2s}details[open]>.wide-summary .arrow{transform:rotate(180deg)}.fold-content{border-top:1px solid #e2e8f0;padding:11px 12px;font-size:12px;line-height:1.7}
-.lock-list{display:grid;gap:8px}.lock-record{border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:9px 11px}.lock-record strong{color:#0f766e}.lock-record small{color:#64748b}.lock-record .numbers{margin-top:4px;overflow-wrap:anywhere}.empty{padding:6px 0;color:#64748b}
-.wave-legend-items{margin-top:6px}.wave-legend-label{font-weight:800;color:#475569}.lg-dot.wave-dot{border-radius:50%;border:1px solid rgba(15,23,42,.1)}
-.hc-number{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:1px 5px;border-radius:5px;color:#fff;font:800 12px Consolas,monospace;line-height:1.3}
-@media(max-width:780px){.lockbar{align-items:flex-start;flex-direction:column}.notice{font-size:11.5px}}
-
-.head-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#64748b;font-size:11.5px}.tool-meta{font-weight:700}.wave-legend-inline{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}.legend-chip{display:inline-flex;align-items:center;gap:4px;font-weight:700}.legend-dot{display:inline-block;width:11px;height:11px;border-radius:3px}.legend-dot.wave-dot,.lg-dot.wave-dot{border-radius:50%;border:1px solid rgba(15,23,42,.1)}
-.lock-current{margin-top:9px;border:1px dashed #99f6e4;background:#f0fdfa;border-radius:8px;padding:9px 11px;font-size:11.5px;color:#334155}.lock-current b{display:block;margin:3px 0 4px}.lock-current .numbers{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}.lock-current .numbers:last-child{margin-bottom:0}
-.lock-ball{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:2px 4px;margin:1px;border-radius:5px;color:#fff;font:800 11px Consolas,monospace}
 </style>
 </head>
 <body>
 <div class="page">
-  <header>
-    <h1>特码统计 · 工具2提纯与百期热度</h1>
-    <div class="header-stats">
-      <div class="count"><b id="totalCount">--</b>有效期数</div>
-      <div class="count next-target"><b id="nextTargetHead">--</b>下期目标</div>
-    </div>
-  </header>
-  <div class="storage-line" id="storageLine" hidden><span id="storageDot" class="status-dot"></span><span id="storageLabel">检查本地保存…</span></div>
-  <div class="notice" role="status"><div class="notice-text"><strong>数据截至 <b id="noticeLatest">—</b> · <span id="dataSourceLabel">内置仓库底库</span></strong><span id="storageNotice" class="inner-note" hidden></span></div></div>
 
-  <section class="card">
-    <div class="card-head">
-      <h2>1. 录入开奖</h2>
+  <!-- 模块 1：顶部栏 -->
+  <section class="card" id="topBarSection" data-module="topbar" aria-labelledby="appTitle">
+    <div class="top-bar-head">
+      <div class="brand-group">
+        <div class="brand-row">
+          <span class="brand-mark">特</span>
+          <h1 id="appTitle">特码智能选号助手</h1>
+        </div>
+        <div class="brand-sub">
+          <span id="storageLine"><span id="storageDot" class="status-dot"></span> <span id="storageLabel">底库就绪</span></span>
+          <span>·</span>
+          <span>数据截至 <b id="noticeLatest">—</b>（<span id="dataSourceLabel">内置底库</span>，有效 <b id="totalCount">--</b> 期）</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn sync" id="syncNow" type="button">一键同步</button>
+        <button class="btn ghost" id="openDataModal" type="button">数据管理</button>
+      </div>
     </div>
-    <div class="form-row">
-      <label for="periodLabel">期号</label>
-      <input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-308">
-      <input id="quickPaste" class="paste-input" placeholder="粘贴7个号码自动填入（例：48 38 49 09 13 03 42）">
+
+    <div class="latest-draw-row">
+      <div class="latest-meta">
+        <div class="latest-period-line">上期开奖 · 第 <b id="latestPeriodHead">--</b> 期 <span id="latestDateHead"></span></div>
+        <div class="latest-next-hint">下期预测目标：第 <b id="nextTargetHead">--</b> 期</div>
+      </div>
+      <div class="draw-balls-wrap" id="latestDrawBalls" aria-label="上期开奖号码"></div>
     </div>
-    <div class="balls-wrap" id="ballInputs"></div>
-    <div id="syncStatus" role="status" aria-live="polite" class="inline-note">点击一键同步，检查最新开奖。</div>
-    <div class="actions">
-      <button class="btn sync" id="syncNow" type="button">一键同步最新开奖</button>
-      <button class="btn primary" id="submitDraw">保存</button>
-      <button class="btn" id="undoDraw">撤销</button>
-      <button class="btn" id="exportBtn">导出</button>
-      <button class="btn" id="importBtn">导入</button>
-      <button class="btn danger" id="clearData">清空手动</button>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
+
+    <div class="sync-bar-note">
+      <span id="syncStatus" role="status" aria-live="polite">点击「一键同步」获取最新开奖结果。</span>
+      <span id="storageNotice" class="inner-warn" hidden></span>
     </div>
-    <div id="entryFlash" class="entry-flash"></div>
   </section>
 
-  <section class="card">
+  <!-- 模块 2：近 30 期策略温度计 -->
+  <section class="card" id="thermometerSection" data-module="thermometer">
     <div class="card-head">
-      <h2>2. 下期推荐 <span class="tag" id="recPeriodTag">--</span></h2>
-      <div class="head-meta" aria-label="工具2模型与波色图例"><span class="tool-meta">三组各 7 码 · 提纯主推 · 并集复盘</span><span class="wave-legend-inline" aria-label="波色图例"><span class="legend-chip"><span class="legend-dot wave-dot" data-wave="red" style="background:#e54b4b"></span>红波</span><span class="legend-chip"><span class="legend-dot wave-dot" data-wave="blue" style="background:#3b82f6"></span>蓝波</span><span class="legend-chip"><span class="legend-dot wave-dot" data-wave="green" style="background:#10a878"></span>绿波</span></span></div>
+      <div class="card-title-wrap">
+        <h2>近 30 期策略温度计</h2>
+        <span class="pill subtle" id="thermoRangeTag">最近 30 期看板 · 不影响算法</span>
+      </div>
     </div>
-    <div class="opt-hero" id="optHero"></div>
-    <div class="engine-grid" id="tool2Panels"></div>
-    <div class="summary-box" id="tool2Summary"></div>
-    <div class="lockbar"><div class="lock-text"><b id="lockTitle">未锁定</b><span id="lockDescription">可锁定本期提纯、三组与并集快照。</span></div><button type="button" class="btn sm" id="lockBtn">锁定本期</button></div>
+    <div class="thermo-list" id="thermometerList"></div>
+  </section>
+
+  <!-- 模块 3：下期智能主推卡片 -->
+  <section class="card" id="mainPickSection" data-module="main-pick">
+    <div class="card-head">
+      <div class="card-title-wrap">
+        <h2>下期智能主推</h2>
+        <span class="pill brand" id="recPeriodTag">--</span>
+      </div>
+      <div class="head-meta" aria-label="波色图例">
+        <span class="wave-legend-inline">
+          <span class="legend-chip"><span class="legend-dot wave-dot" data-wave="red" style="background:#e54b4b"></span>红波</span>
+          <span class="legend-chip"><span class="legend-dot wave-dot" data-wave="blue" style="background:#3b82f6"></span>蓝波</span>
+          <span class="legend-chip"><span class="legend-dot wave-dot" data-wave="green" style="background:#10a878"></span>绿波</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="signal-banner blue" id="signalBanner" role="status">
+      <div class="signal-left">
+        <span class="signal-dot" aria-hidden="true"></span>
+        <span id="signalText">正在读取近期走势参考信号…</span>
+      </div>
+      <div class="signal-metrics">
+        <span class="metric-chip" id="losingStreakBadge">当前连错 -- 期</span>
+        <span class="metric-chip" id="recentHitBadge">近20期中 --</span>
+      </div>
+    </div>
+
+    <div class="tier-bar">
+      <div class="tier-tabs" id="tierTabs" role="tablist" aria-label="推荐码数切换"></div>
+    </div>
+
+    <div class="opt-hero-box" id="optHero"></div>
+
+    <div class="hero-actions">
+      <button type="button" class="btn primary" id="copyMainBtn" data-copy="">一键复制推荐号码</button>
+      <button type="button" class="btn" id="lockBtn">锁定本期</button>
+    </div>
+
     <div class="lock-current" id="lockCurrent" hidden></div>
-    <details class="fold-card"><summary class="wide-summary"><span class="left"><b>本地锁定记录 <span id="lockHistoryCount">0 条</span></b></span><span class="arrow">⌄</span></summary><div class="fold-content"><div id="lockHistory" class="lock-list"><div class="empty">暂无记录</div></div></div></details>
+
+    <details class="fold-card" id="lockFold">
+      <summary class="wide-summary">
+        <span class="left">
+          <b>本地锁定记录</b>
+          <span class="pill" id="lockHistoryCount">0 条</span>
+          <span class="sub-hint" id="lockDescription">锁定后开奖同步会自动核对是否命中</span>
+        </span>
+        <span class="arrow">⌄</span>
+      </summary>
+      <div class="fold-content">
+        <div style="display:none" id="lockTitle">未锁定</div>
+        <div id="lockHistory" class="lock-list"><div class="empty">暂无记录</div></div>
+      </div>
+    </details>
+
+    <details class="fold-card" id="deriveFold">
+      <summary class="wide-summary">
+        <span class="left">
+          <b>查看推导细节</b>
+          <span class="sub-hint">展开查看 #1 热态 / #2 遗漏 / #3 周期 / 冷却池 原表</span>
+        </span>
+        <span class="arrow">⌄</span>
+      </summary>
+      <div class="fold-content">
+        <div class="derive-chips" id="deriveChips"></div>
+        <div class="engine-stack" id="tool2Panels"></div>
+        <div class="cool-pool-box" id="tool2Summary"></div>
+      </div>
+    </details>
   </section>
 
-  <section class="card">
+  <!-- 模块 4：近 100 期热度分布 -->
+  <section class="card" id="heatSection" data-module="heatmap">
     <div class="card-head">
-      <h2>3. 近100期热度 <span class="tag live" id="heatLiveBadge">--</span></h2>
-      <div class="delta-nav">
-        <button class="btn sm" id="deltaPrev">◀</button>
-        <select id="deltaSelect" class="delta-select"></select>
-        <button class="btn sm" id="deltaNext">▶</button>
-        <button class="btn sm" id="deltaLatest">最新</button>
+      <div class="card-title-wrap">
+        <h2>近 100 期热度分布</h2>
+        <span class="pill ok" id="heatLiveBadge">--</span>
+      </div>
+      <div class="heat-toolbar" style="margin-bottom:0">
+        <div class="seg-group" id="heatScopeGroup">
+          <button type="button" class="seg-btn active" data-scope="special">特码</button>
+          <button type="button" class="seg-btn" data-scope="all7">全奖7球</button>
+        </div>
+        <div class="seg-group" id="heatSortGroup">
+          <button type="button" class="seg-btn active" data-sort="num">按号码</button>
+          <button type="button" class="seg-btn" data-sort="freq">按次数</button>
+        </div>
       </div>
     </div>
 
-    <div class="heat-toolbar">
-      <div class="seg-group" id="heatScopeGroup">
-        <button class="seg-btn active" data-scope="special">特码</button>
-        <button class="seg-btn" data-scope="all7">全奖7球</button>
-      </div>
-      <div class="seg-group" id="heatSortGroup">
-        <button class="seg-btn active" data-sort="num">按球号</button>
-        <button class="seg-btn" data-sort="freq">按次数</button>
-      </div>
-    </div>
-
-    <div id="deltaBoard" class="delta-board"></div>
+    <div id="heatHighlights" class="heat-highlights"></div>
     <div id="heatLegend" class="heat-legend"></div>
     <div id="heatmap" class="heat"></div>
   </section>
 
-  <section class="card">
+  <!-- 模块 5：近 10 期命中简表 -->
+  <section class="card" id="recentHistorySection" data-module="recent-history">
     <div class="card-head">
-      <h2>4. 历史回放 · 历年命中率</h2>
-    </div>
-    <div class="yearly-wrap">
-      <table class="yearly-table">
-        <thead>
-          <tr>
-            <th>年份</th>
-            <th>期数</th>
-            <th>🎯 提纯主推<small>热∪冷−#3−近5期</small></th>
-            <th>🔥 #1 热态<small>7码</small></th>
-            <th>🎯 #2 遗漏<small>7码</small></th>
-            <th>🛡️ #3 周期<small>7码</small></th>
-            <th>∪ 三组并集<small>去重</small></th>
-          </tr>
-        </thead>
-        <tbody id="yearlyBody"></tbody>
-      </table>
+      <div class="card-title-wrap">
+        <h2>近 10 期命中简表</h2>
+        <span class="pill subtle" id="recent10Summary">最近 10 期</span>
+      </div>
+      <button type="button" class="btn ghost recent-head-btn" id="openHistoryModal">查看全部</button>
     </div>
 
-    <div class="detail-bar">
-      <span class="detail-title">逐期命中明细</span>
-      <div id="yearTabs" class="tabs"></div>
-    </div>
-
-    <div class="scroll">
+    <div class="table-wrap">
       <table class="history">
         <thead>
           <tr>
             <th class="col-period">期号</th>
-            <th>开奖号码</th>
-            <th>🎯 提纯主推</th>
+            <th>开奖号码（末位特码）</th>
+            <th id="recentTierColHead">当前10码</th>
+            <th>提纯主推</th>
             <th>#1 热态</th>
             <th>#2 遗漏</th>
             <th>#3 周期</th>
-            <th>∪ 并集</th>
-            <th>荐号</th>
+            <th>明细</th>
           </tr>
         </thead>
         <tbody id="historyBody"></tbody>
@@ -324,7 +712,95 @@ h2{font-size:16px;margin:0;padding-left:9px;border-left:4px solid var(--gold);di
     </div>
   </section>
 
-  <div class="foot-note">仅供历史统计参考，六合彩每期独立随机，理性娱乐。 · 构建 v2026.11.14-r15 · 支持离线缓存与一键同步</div>
+  <div class="foot-note">仅供历史数据统计参考，每期开奖独立随机，请理性娱乐。 · 特码智能选号助手 构建 v2026.11.16-r16</div>
+</div>
+
+<!-- 弹窗 1：完整历史明细（全部 1779+ 期） -->
+<div class="modal-backdrop" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle" hidden>
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <h3 id="historyModalTitle">完整历史命中明细 <span class="pill brand" id="modalTotalBadge">-- 期</span></h3>
+      <button type="button" class="btn sm" id="closeHistoryModal">关闭 ✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="yearly-wrap">
+        <table class="yearly-table">
+          <thead>
+            <tr>
+              <th>年份</th>
+              <th>期数</th>
+              <th id="modalYearlyTierHead">当前10码<small>按分截取</small></th>
+              <th>提纯主推<small>原版提纯</small></th>
+              <th>#1 热态<small>7码</small></th>
+              <th>#2 遗漏<small>7码</small></th>
+              <th>#3 周期<small>7码</small></th>
+              <th>三组并集<small>去重</small></th>
+            </tr>
+          </thead>
+          <tbody id="yearlyBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-filter-bar">
+        <div id="yearTabs" class="tabs"></div>
+        <div class="search-row">
+          <input type="search" id="historySearch" class="search-input" placeholder="搜期号 如 2026-300">
+          <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="historyOnlyHit"> 仅看主推命中
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="history">
+          <thead>
+            <tr>
+              <th class="col-period">期号</th>
+              <th>开奖号码（末位特码）</th>
+              <th id="modalTableTierHead">当前10码</th>
+              <th>提纯主推</th>
+              <th>#1 热态</th>
+              <th>#2 遗漏</th>
+              <th>#3 周期</th>
+              <th>明细</th>
+            </tr>
+          </thead>
+          <tbody id="fullHistoryBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-more-bar" id="modalMoreBar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 弹窗 2：数据管理（手动补录开奖 / 导入导出备份 / 撤销） -->
+<div class="modal-backdrop" id="dataModal" role="dialog" aria-modal="true" aria-labelledby="dataModalTitle" hidden>
+  <div class="modal-dialog narrow">
+    <div class="modal-head">
+      <h3 id="dataModalTitle">数据管理 · 手动补录与本地备份</h3>
+      <button type="button" class="btn sm" id="closeDataModal">关闭 ✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="form-row">
+          <label for="periodLabel">下期期号</label>
+          <input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-320">
+          <input id="quickPaste" class="paste-input" placeholder="粘贴7个开奖号码自动填入">
+        </div>
+        <div class="balls-wrap" id="ballInputs"></div>
+        <div class="actions">
+          <button class="btn primary" id="submitDraw" type="button">保存本期开奖</button>
+          <button class="btn" id="undoDraw" type="button">撤销上条手动</button>
+          <button class="btn" id="exportBtn" type="button">导出备份</button>
+          <button class="btn" id="importBtn" type="button">导入备份</button>
+          <button class="btn danger" id="clearData" type="button">清空本机新增</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+        <div id="entryFlash" class="entry-flash"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -632,9 +1108,10 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.14-r15';
+const APP_BUILD = '2026.11.16-r16';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
+const TIER_SIZES = [5, 7, 10, 12, 18];
 
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
@@ -661,9 +1138,9 @@ const LUNAR_NEW_YEAR_DATES = {
 };
 
 const DAILY_THREE_CATALOG = [
-  { id: 'hot', code: '#1', name: '热态顺势', icon: '🔥', color: '#e54b4b', role: '7码' },
-  { id: 'cold', code: '#2', name: '遗漏回补', icon: '🎯', color: '#3b82f6', role: '7码' },
-  { id: 'cycle', code: '#3', name: '周期均衡', icon: '🛡️', color: '#10a878', role: '反向杀号池' }
+  { id: 'hot', code: '#1', name: '热态', fullTitle: '#1 热态（近期活跃）', icon: '🔥', color: '#e54b4b', role: '7码候选' },
+  { id: 'cold', code: '#2', name: '遗漏', fullTitle: '#2 遗漏（冷号回补）', icon: '🎯', color: '#3b82f6', role: '7码候选' },
+  { id: 'cycle', code: '#3', name: '周期', fullTitle: '#3 周期（反向杀号池）', icon: '🛡️', color: '#10a878', role: '排除重叠' }
 ];
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -726,23 +1203,31 @@ function sanitizeLockSnapshot(raw) {
   if (!parsed) return null;
   const opt = cleanNumberList(raw.opt);
   if (!opt.length) return null;
+  const picks = cleanNumberList(raw.picks);
+  const effectivePicks = picks.length ? picks : opt;
+  const tierVal = Number(raw.tier);
+  const tier = TIER_SIZES.includes(tierVal) ? tierVal : effectivePicks.length;
   const stamp = Date.parse(String(raw.createdAt || ''));
   const createdAt = Number.isFinite(stamp) ? new Date(stamp).toISOString() : new Date().toISOString();
   const special = Number(raw.special);
   const sp = Number.isInteger(special) && special >= 1 && special <= 49 ? special : null;
   const hot = cleanNumberList(raw.hot), cold = cleanNumberList(raw.cold);
   const cycle = cleanNumberList(raw.cycle), union = cleanNumberList(raw.union);
+  const unionClean = union.length ? union : [...new Set([...hot, ...cold, ...cycle])].sort((a, b) => a - b);
   return {
     label: parsed.label,
     createdAt,
+    tier,
+    picks: effectivePicks,
     opt,
     hot,
     cold,
     cycle,
-    union: union.length ? union : [...new Set([...hot, ...cold, ...cycle])].sort((a, b) => a - b),
+    union: unionClean,
     special: sp,
+    hitPicks: sp != null ? effectivePicks.includes(sp) : !!(raw.hitPicks ?? raw.hitOpt),
     hitOpt: sp != null ? opt.includes(sp) : !!raw.hitOpt,
-    hitUnion: sp != null ? (union.length ? union : [...new Set([...hot, ...cold, ...cycle])]).includes(sp) : !!raw.hitUnion,
+    hitUnion: sp != null ? unionClean.includes(sp) : !!raw.hitUnion,
     stale: !!raw.stale
   };
 }
@@ -779,11 +1264,15 @@ let manualRecords = [];
 let lockHistory = [];
 let lockedPlan = null;
 let storageProblem = '';
+let activeTier = 10;
 let selectedYear = 'ALL';
+let historySearchQuery = '';
+let historyOnlyHit = false;
+let modalHistoryLimit = 120;
 let heatScope = 'special';
 let heatSort = 'num';
-let deltaTargetLabel = '';
 let justEnteredLabel = '';
+let backfillTimer = null;
 
 const planCache = new Map();
 
@@ -831,7 +1320,7 @@ function saveManual() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       version: 3,
-      app: '特码统计·工具2',
+      app: '特码智能选号助手',
       savedAt: new Date().toISOString(),
       draws: manualRecords.map(r => r.raw7),
       labels: manualRecords.map(r => r.label),
@@ -868,16 +1357,20 @@ function loadManual() {
   return { records: [], locked: null, locks: [] };
 }
 
-function lockPlanFromModel(plan, label) {
+function lockPlanFromModel(plan, label, tier = activeTier) {
+  const picks = plan.ranked.slice(0, tier).slice().sort((a, b) => a - b);
   return {
     label,
     createdAt: new Date().toISOString(),
+    tier,
+    picks,
     opt: [...plan.optPicks],
     hot: [...plan.groups.hot],
     cold: [...plan.groups.cold],
     cycle: [...plan.groups.cycle],
     union: [...plan.union],
     special: null,
+    hitPicks: false,
     hitOpt: false,
     hitUnion: false,
     stale: false
@@ -895,9 +1388,12 @@ function archiveStaleLock(targetLabel) {
 function archiveLockedResult(record) {
   if (!lockedPlan || lockedPlan.label !== record.label) return;
   const sp = record.special;
+  const picks = Array.isArray(lockedPlan.picks) && lockedPlan.picks.length ? lockedPlan.picks : lockedPlan.opt;
   const log = {
     ...lockedPlan,
+    picks,
     special: sp,
+    hitPicks: picks.includes(sp),
     hitOpt: lockedPlan.opt.includes(sp),
     hitUnion: lockedPlan.union.includes(sp),
     archivedAt: new Date().toISOString(),
@@ -1267,128 +1763,40 @@ function lockBallHtml(n) {
   return `<span class="lock-ball" data-wave="${wave}" style="background:${WAVE_COLOR[wave]}">${pad2(n)}</span>`;
 }
 
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.append(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
+async function handleCopyButton(btn) {
+  const text = btn.getAttribute('data-copy') || '';
+  if (!text) return;
+  await copyToClipboard(text);
+  const label = btn.getAttribute('data-copy-label') || btn.textContent;
+  btn.classList.add('copied');
+  btn.textContent = '已复制 ✓';
+  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = label; }, 1200);
+}
+
 function bindCopyButtons(root) {
   root.querySelectorAll('button[data-copy]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const text = btn.getAttribute('data-copy');
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.append(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-      }
-      const old = btn.textContent;
-      btn.classList.add('copied');
-      btn.textContent = '已复制';
-      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = old; }, 1200);
-    });
+    if (btn.dataset.copyBound) return;
+    btn.dataset.copyBound = '1';
+    btn.addEventListener('click', () => handleCopyButton(btn));
   });
 }
 
-function renderRecommendations(usableAsc, targetLabelStr) {
-  const p = parseLabel(targetLabelStr);
-  const plan = runTool2At(usableAsc, usableAsc.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-  const hcSharedSet = new Set(plan.hotColdShared);
-  const optSet = new Set(plan.optPicks);
-  const hcUnionSet = new Set([...plan.groups.hot, ...plan.groups.cold]);
-
-  document.getElementById('nextTargetHead').textContent = p.label;
-  document.getElementById('recPeriodTag').textContent = p.label;
-
-  const optBallsHtml = plan.optPicks.length
-    ? plan.optPicks.map(n => {
-        const isDual = hcSharedSet.has(n);
-        return `<span style="display:inline-flex;align-items:center">${ballHtml(n, 'lg' + (isDual ? ' shared-ring' : ''))}${isDual ? '<span class="ov-tag">热冷同中</span>' : ''}</span>`;
-      }).join('')
-    : '<span class="dc-note">本期空仓（0码）</span>';
-
-  const optTxt = plan.optPicks.map(pad2).join(' ');
-  const heroEl = document.getElementById('optHero');
-  heroEl.innerHTML = `
-    <div>
-      <div class="opt-top">
-        <span class="opt-badge">🎯 工具2专属提纯（#1∪#2 · 杀#3周期 · 滤近5期）</span>
-        <span class="opt-stat">${plan.optPicks.length} 码</span>
-      </div>
-      <div class="opt-balls">${optBallsHtml}</div>
-      <div class="opt-sub">
-        <span class="sub-chip">#1净留: <b>${plan.hotKept.map(pad2).join(' ') || '无'}</b></span>
-        <span class="sub-chip">#2净留: <b>${plan.coldKept.map(pad2).join(' ') || '无'}</b></span>
-        ${plan.killedByCyc.length ? `<span class="sub-chip kill">杀#3重叠: <b>${plan.killedByCyc.map(pad2).join(' ')}</b></span>` : ''}
-        ${plan.killedByCool.length ? `<span class="sub-chip kill">滤近5期: <b>${plan.killedByCool.map(pad2).join(' ')}</b></span>` : ''}
-      </div>
-    </div>
-    <div>
-      <button class="btn gold" data-copy="${escapeHtml(`[${p.label} 工具2提纯] ${optTxt}`)}">复制主推</button>
-    </div>`;
-  bindCopyButtons(heroEl);
-
-  document.getElementById('tool2Panels').innerHTML = DAILY_THREE_CATALOG.map(cat => {
-    const nums = plan.groups[cat.id];
-    const scMap = plan.scores[cat.id];
-    const isCycPanel = cat.id === 'cycle';
-    const rowsHtml = nums.map(n => {
-      const m = plan.spMeta[n];
-      const isKept = !isCycPanel && optSet.has(n);
-      const inCyc = !isCycPanel && plan.cycSet.has(n);
-      const inCool = plan.coolSet.has(n);
-      let tags = '';
-      if (isCycPanel) {
-        if (hcUnionSet.has(n)) tags += '<span class="ov-tag x3">已杀</span>';
-      } else {
-        if (isKept) tags += '<span class="ov-tag">★主推</span>';
-        if (inCyc) tags += '<span class="ov-tag x3">杀#3</span>';
-        if (inCool) tags += '<span class="ov-tag cool">冷5</span>';
-      }
-      const dim = isCycPanel ? (hcUnionSet.has(n) ? 'cool-dim' : '') : (!isKept ? 'cool-dim' : '');
-      return `<tr class="${isKept ? 'is-kept' : ''}">
-        <td style="text-align:left;padding-left:10px">${ballHtml(n, dim)}${tags}</td>
-        <td>${m.zodiac}</td>
-        <td>${(n & 1) ? '单' : '双'}·${n >= 25 ? '大' : '小'}</td>
-        <td>${m.omission}期</td>
-        <td><b>${scMap[n].toFixed(1)}</b></td>
-      </tr>`;
-    }).join('');
-
-    return `<div class="panel" style="border-top:3px solid ${cat.color}">
-      <div class="ep-head">
-        <span class="ep-title">${cat.icon} ${cat.code} ${cat.name}</span>
-        <span class="ep-meta${isCycPanel ? ' warn' : ''}">${cat.role}</span>
-      </div>
-      <table class="prediction">
-        <thead><tr><th style="text-align:left;padding-left:10px">号码</th><th>肖</th><th>形态</th><th>遗漏</th><th>分</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    </div>`;
-  }).join('');
-
-  const sharedHtml = plan.hotColdShared.length
-    ? plan.hotColdShared.map(n => ballHtml(n, 'lg shared-ring')).join('')
-    : '<span class="dc-note">本期无</span>';
-
-  const txtAll = DAILY_THREE_CATALOG.map(c => `${c.code}${c.name}: ${plan.groups[c.id].map(pad2).join(' ')}`).join(' | ');
-  const summaryEl = document.getElementById('tool2Summary');
-  summaryEl.innerHTML = `
-    <div class="sum-block">
-      <h3>★ #1∩#2 热冷同中（${plan.hotColdShared.length}码）</h3>
-      <div class="sum-balls">${sharedHtml}</div>
-    </div>
-    <div class="sum-block">
-      <h3>🧊 近5期已开冷却池（自动回避）</h3>
-      <div class="sum-balls">${plan.recentCool.map(n => ballHtml(n, 'cool-dim')).join('')}</div>
-    </div>
-    <div class="copy-col">
-      <button class="btn sm" data-copy="${escapeHtml(`[${p.label}] ${txtAll}`)}">复制三组原码</button>
-    </div>`;
-  bindCopyButtons(summaryEl);
-  return plan;
-}
-
-/* ==================== 近100期热度 & 增减追踪 ==================== */
+/* ==================== 近100期热度统计 ==================== */
 function computeHeatSnapshot(usableAsc, targetIdx, scope) {
   const W = 100;
   const startCurr = Math.max(0, targetIdx - W + 1);
@@ -1431,262 +1839,696 @@ function computeHeatSnapshot(usableAsc, targetIdx, scope) {
 
 function heatCellStyle(freq, scope) {
   if (scope === 'special') {
-    if (freq >= 7) return { bg: '#9333ea', color: '#fff' };
-    if (freq >= 5) return { bg: '#dc2626', color: '#fff' };
-    if (freq >= 3) return { bg: '#f97316', color: '#fff' };
-    if (freq >= 1) return { bg: '#fef3c7', color: '#92400e' };
-    return { bg: '#e0f2fe', color: '#0369a1' };
+    if (freq >= 5) return { cls: 'is-hot', color: '#be123c' };
+    if (freq >= 3) return { cls: 'is-warm', color: '#b45309' };
+    if (freq === 0) return { cls: 'is-cold', color: '#1d4ed8' };
+    return { cls: '', color: 'var(--ink-soft)' };
   }
-  if (freq >= 22) return { bg: '#9333ea', color: '#fff' };
-  if (freq >= 18) return { bg: '#dc2626', color: '#fff' };
-  if (freq >= 14) return { bg: '#f97316', color: '#fff' };
-  if (freq >= 10) return { bg: '#fef3c7', color: '#92400e' };
-  return { bg: '#e0f2fe', color: '#0369a1' };
+  if (freq >= 18) return { cls: 'is-hot', color: '#be123c' };
+  if (freq >= 14) return { cls: 'is-warm', color: '#b45309' };
+  if (freq === 0) return { cls: 'is-cold', color: '#1d4ed8' };
+  return { cls: '', color: 'var(--ink-soft)' };
 }
 
-function renderHeatSection(usableAsc) {
-  if (!usableAsc.length) return;
-  const sel = document.getElementById('deltaSelect');
-  if (!deltaTargetLabel || !usableAsc.some(d => d.label === deltaTargetLabel)) {
-    deltaTargetLabel = usableAsc.at(-1).label;
-  }
+function heatHotThreshold(scope) { return scope === 'special' ? 5 : 18; }
 
-  sel.innerHTML = usableAsc.slice(-120).reverse().map((d, idx) =>
-    `<option value="${d.label}" ${d.label === deltaTargetLabel ? 'selected' : ''}>${d.label}${idx === 0 ? ' (最新)' : ''}</option>`
-  ).join('');
-
-  const targetIdx = usableAsc.findIndex(d => d.label === deltaTargetLabel);
-  document.getElementById('deltaPrev').disabled = targetIdx <= 0;
-  document.getElementById('deltaNext').disabled = targetIdx >= usableAsc.length - 1;
-
-  const snap = computeHeatSnapshot(usableAsc, targetIdx, heatScope);
-  const baseZ = yearZodiacBaseIdx(snap.enteredDraw.date);
-  document.getElementById('heatLiveBadge').textContent = snap.enteredDraw.label === justEnteredLabel
-    ? `✨ 新录入 ${snap.enteredDraw.label}`
-    : snap.enteredDraw.label;
-
-  const itemRender = (it, dir) => {
-    const z = zodiacByBase(it.n, baseZ);
-    const arrow = dir === 'up'
-      ? `<b class="up">+1</b> (${it.prev}→${it.curr}次)`
-      : `<b class="down">-1</b> (${it.prev}→${it.curr}次)`;
-    const flag = heatScope === 'special' && dir === 'up' && it.curr >= 7
-      ? '<span class="ov-tag x3">≥7高热</span>'
-      : heatScope === 'special' && dir === 'down' && it.curr === 0
-        ? '<span class="ov-tag">归0</span>'
-        : '';
-    return `<div class="dc-item">${ballHtml(it.n, 'lg')}<span class="dc-change">${z} ${arrow}${flag}</span></div>`;
+/* ==================== 主推候选排序（沿用原版三组分数，仅按固定层级截取） ==================== */
+function rankCandidatesFromPlan(plan) {
+  const rankPct = (map) => {
+    const entries = [];
+    for (let n = 1; n <= 49; n++) entries.push([n, map[n]]);
+    entries.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    const out = new Float64Array(50);
+    for (let idx = 0; idx < entries.length; idx++) out[entries[idx][0]] = (49 - idx) / 49;
+    return out;
   };
 
-  const incHtml = snap.increased.length ? snap.increased.map(it => itemRender(it, 'up')).join('') : '<span class="dc-note">无（进出同号抵消）</span>';
-  const decHtml = snap.decreased.length ? snap.decreased.map(it => itemRender(it, 'down')).join('') : '<span class="dc-note">无（进出同号抵消）</span>';
-  const cancelHtml = snap.cancelled.length
-    ? `<div class="delta-card neutral">
-        <div class="dc-head" style="color:#92400e"><span>⚖️ 进出抵消 ±0</span><span class="dc-source">${snap.enteredDraw.label} 滑入 = ${snap.exitedDraw.label} 滑出</span></div>
-        <div class="dc-items">${snap.cancelled.map(it => `<div class="dc-item">${ballHtml(it.n)}<span class="dc-change">保持 ${it.curr}次</span></div>`).join('')}</div>
-      </div>`
-    : '';
+  const rh = rankPct(plan.scores.hot);
+  const rc = rankPct(plan.scores.cold);
+  const rcy = rankPct(plan.scores.cycle);
+  const optSet = new Set(plan.optPicks);
+  const sharedSet = new Set(plan.hotColdShared);
+  const hotSet = new Set(plan.groups.hot);
+  const coldSet2 = new Set(plan.groups.cold);
 
-  document.getElementById('deltaBoard').innerHTML = `
-    <div class="delta-card inc">
-      <div class="dc-head inc-txt"><span>🔺 增加 +1</span><span class="dc-source">${snap.enteredDraw.label} 滑入</span></div>
-      <div class="dc-items">${incHtml}</div>
-    </div>
-    <div class="delta-card dec">
-      <div class="dc-head dec-txt"><span>🔻 减少 -1</span><span class="dc-source">${snap.exitedDraw ? `${snap.exitedDraw.label} 滑出` : '未满百期'}</span></div>
-      <div class="dc-items">${decHtml}</div>
-    </div>
-    ${cancelHtml}`;
+  const rows = [];
+  for (let n = 1; n <= 49; n++) {
+    let tier, score;
+    if (optSet.has(n) && sharedSet.has(n)) {
+      tier = 4;
+      score = (rh[n] + rc[n]) / 2;
+    } else if (optSet.has(n)) {
+      tier = 3;
+      score = hotSet.has(n) ? rh[n] + 0.15 * rc[n] : rc[n] + 0.15 * rh[n];
+    } else if (!plan.cycSet.has(n) && !plan.coolSet.has(n)) {
+      tier = 2;
+      score = Math.max(rh[n], rc[n]) + 0.25 * Math.min(rh[n], rc[n]) - 0.20 * rcy[n];
+    } else if (!plan.coolSet.has(n)) {
+      tier = 1;
+      score = Math.max(rh[n], rc[n]) + 0.10 * Math.min(rh[n], rc[n]) - 0.25 * rcy[n];
+    } else {
+      tier = 0;
+      score = Math.max(rh[n], rc[n]) / 2 - 0.20 * rcy[n] - (hotSet.has(n) ? 0.05 : 0) - (coldSet2.has(n) ? 0.05 : 0);
+    }
+    rows.push({ n, tier, score });
+  }
+  rows.sort((a, b) => b.tier - a.tier || b.score - a.score || a.n - b.n);
+  return rows.map(r => r.n);
+}
 
-  let zeroCnt = 0;
-  for (let n = 1; n <= 49; n++) if (snap.currFreq[n] === 0) zeroCnt++;
+function pickTagOf(plan, n) {
+  if (plan.hotColdShared.includes(n)) return { text: '热冷双中', cls: 'is-dual' };
+  if (plan.groups.hot.includes(n)) return { text: '热态', cls: 'is-hot' };
+  if (plan.groups.cold.includes(n)) return { text: '遗漏', cls: 'is-cold' };
+  if (plan.cycSet.has(n)) return { text: '周期', cls: '' };
+  if (plan.coolSet.has(n)) return { text: '冷码', cls: '' };
+  return { text: '综合', cls: '' };
+}
+
+/* ==================== 各模块渲染 ==================== */
+const THERMO_DEFS = [
+  { key: 'hitHot', code: '#1', name: '热态', color: '#e54b4b', desc: '近期活跃号码' },
+  { key: 'hitCold', code: '#2', name: '遗漏', color: '#3b82f6', desc: '久未开出号码' },
+  { key: 'hitCycle', code: '#3', name: '周期', color: '#10a878', desc: '周期均衡池' }
+];
+const RECENT_REPLAY_WINDOW = 48;
+
+let activeUsable = [];
+let currentPlanData = null;
+let replayTimer = null;
+let replayBusy = false;
+
+function currentPicks() {
+  if (!currentPlanData) return [];
+  return currentPlanData.ranked.slice(0, activeTier).slice().sort((a, b) => a - b);
+}
+
+function currentPicksText() { return currentPicks().map(pad2).join(','); }
+
+function renderTopBar() {
+  const records = allRecords();
+  const latest = records.at(-1);
+  const usable = activeUsable;
+  document.getElementById('totalCount').textContent = String(usable.length);
+  document.getElementById('noticeLatest').textContent = latest ? latest.label : '—';
+  if (latest) {
+    document.getElementById('latestPeriodHead').textContent = latest.label;
+    document.getElementById('latestDateHead').textContent = latest.date ? `（${latest.date}）` : '';
+    document.getElementById('latestDrawBalls').innerHTML = latest.raw7.map((n, i) => {
+      const isSp = i === 6;
+      return `${isSp ? '<span class="draw-plus">+</span>' : ''}
+        <span class="draw-ball-item${isSp ? ' is-sp' : ''}">
+          <span class="ball ${isSp ? 'xl' : 'lg'}" data-wave="${WAVE_MAP[n] || 'green'}" style="background:${WAVE_COLOR[WAVE_MAP[n] || 'green']}">${pad2(n)}</span>
+          <small>${isSp ? '特码' : `正${i + 1}`}</small>
+        </span>`;
+    }).join('');
+  } else {
+    document.getElementById('latestPeriodHead').textContent = '—';
+    document.getElementById('latestDateHead').textContent = '';
+    document.getElementById('latestDrawBalls').innerHTML = '';
+  }
+}
+
+function renderTierTabs() {
+  const wrap = document.getElementById('tierTabs');
+  wrap.innerHTML = TIER_SIZES.map(size =>
+    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>高分前${size}</small></button>`
+  ).join('');
+  wrap.querySelectorAll('button[data-tier]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const size = Number(btn.getAttribute('data-tier'));
+      if (!TIER_SIZES.includes(size) || size === activeTier) return;
+      activeTier = size;
+      renderTierTabs();
+      renderPicks();
+      renderLockArea(expectedNextLabel());
+      renderHistoryHead();
+      renderRecentHistory();
+      if (!document.getElementById('historyModal').hidden) renderHistoryModal();
+    });
+  });
+}
+
+function renderPicks() {
+  const host = document.getElementById('optHero');
+  const copyBtn = document.getElementById('copyMainBtn');
+  if (!currentPlanData) {
+    host.innerHTML = '<div class="empty">暂无可用数据</div>';
+    copyBtn.setAttribute('data-copy', '');
+    copyBtn.disabled = true;
+    return;
+  }
+  const plan = currentPlanData.plan;
+  const picks = currentPicks();
+  const chips = picks.map(n => {
+    const tag = pickTagOf(plan, n);
+    return `<div class="pick-chip ${tag.cls}">${ballHtml(n, 'lg')}<span class="pick-tag">${tag.text}</span></div>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="pick-grid">${chips}</div>
+    <div class="copy-preview">
+      <span>复制格式（英文逗号分隔）</span>
+      <code>${currentPicksText()}</code>
+    </div>`;
+  copyBtn.setAttribute('data-copy', currentPicksText());
+  copyBtn.setAttribute('data-copy-label', '一键复制推荐号码');
+  copyBtn.disabled = picks.length === 0;
+}
+
+function renderDerive(plan) {
+  document.getElementById('deriveChips').innerHTML = [
+    `<span class="sub-chip">#1 热态净留：<b>${plan.hotKept.map(pad2).join(' ') || '无'}</b></span>`,
+    `<span class="sub-chip">#2 遗漏净留：<b>${plan.coldKept.map(pad2).join(' ') || '无'}</b></span>`,
+    plan.killedByCyc.length ? `<span class="sub-chip kill">被 #3 周期排除：<b>${plan.killedByCyc.map(pad2).join(' ')}</b></span>` : '',
+    plan.killedByCool.length ? `<span class="sub-chip kill">近5期已开剔除：<b>${plan.killedByCool.map(pad2).join(' ')}</b></span>` : ''
+  ].join('');
+
+  const hcUnionSet = new Set([...plan.groups.hot, ...plan.groups.cold]);
+  const optSet = new Set(plan.optPicks);
+
+  document.getElementById('tool2Panels').innerHTML = DAILY_THREE_CATALOG.map(cat => {
+    const nums = plan.groups[cat.id];
+    const scMap = plan.scores[cat.id];
+    const isCycPanel = cat.id === 'cycle';
+    const rowsHtml = nums.map(n => {
+      const m = plan.spMeta[n];
+      const isKept = !isCycPanel && optSet.has(n);
+      const inCyc = !isCycPanel && plan.cycSet.has(n);
+      const inCool = plan.coolSet.has(n);
+      let tags = '';
+      if (isCycPanel) {
+        if (hcUnionSet.has(n)) tags += '<span class="ov-tag x3">已排除</span>';
+      } else {
+        if (isKept) tags += '<span class="ov-tag">★主推</span>';
+        if (inCyc) tags += '<span class="ov-tag x3">周期排除</span>';
+        if (inCool) tags += '<span class="ov-tag cool">近5期开过</span>';
+      }
+      const dim = isCycPanel ? (hcUnionSet.has(n) ? 'cool-dim' : '') : (!isKept ? 'cool-dim' : '');
+      return `<tr class="${isKept ? 'is-kept' : ''}">
+        <td style="text-align:left;padding-left:10px">${ballHtml(n, dim)}${tags}</td>
+        <td>${m.zodiac}</td>
+        <td>${(n & 1) ? '单' : '双'}·${n >= 25 ? '大' : '小'}</td>
+        <td>${m.omission}期</td>
+        <td><b>${scMap[n].toFixed(1)}</b></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="panel" style="border-top:3px solid ${cat.color}">
+      <div class="ep-head">
+        <span class="ep-title">${cat.icon} ${cat.fullTitle}</span>
+        <span class="ep-meta${isCycPanel ? ' warn' : ''}">${cat.role}</span>
+      </div>
+      <table class="prediction">
+        <thead><tr><th style="text-align:left;padding-left:10px">号码</th><th>生肖</th><th>形态</th><th>遗漏</th><th>得分</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  const sharedHtml = plan.hotColdShared.length
+    ? plan.hotColdShared.map(n => ballHtml(n, 'sm shared-ring')).join('')
+    : '<span class="dc-note">本期无</span>';
+
+  document.getElementById('tool2Summary').innerHTML = `
+    <div class="cool-row">
+      <div class="cool-group"><span class="cool-label">★ 热态 ∩ 遗漏（${plan.hotColdShared.length}码）</span><span class="sum-balls">${sharedHtml}</span></div>
+    </div>
+    <div class="cool-row">
+      <div class="cool-group"><span class="cool-label">🧊 近5期已开（自动回避）</span><span class="sum-balls">${plan.recentCool.map(n => ballHtml(n, 'sm cool-dim')).join('') || '<span class="dc-note">无</span>'}</span></div>
+    </div>
+    <div class="cool-row">
+      <div class="cool-group"><span class="cool-label">原版提纯主推（${plan.optPicks.length}码）</span><span class="sum-balls">${plan.optPicks.map(n => ballHtml(n, 'sm')).join('') || '<span class="dc-note">本期空仓</span>'}</span></div>
+      <button type="button" class="btn sm" data-copy="${escapeHtml(plan.optPicks.map(pad2).join(','))}" data-copy-label="复制提纯">复制提纯</button>
+    </div>`;
+
+  bindCopyButtons(document.getElementById('tool2Summary'));
+}
+
+function recentPlanRows(count) {
+  const out = [];
+  const start = Math.max(0, activeUsable.length - count);
+  for (let i = start; i < activeUsable.length; i++) {
+    const r = planCache.get(activeUsable[i].label);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
+function losingStreak() {
+  let streak = 0;
+  for (let i = activeUsable.length - 1; i >= 0; i--) {
+    const r = planCache.get(activeUsable[i].label);
+    if (!r) break;
+    if (r.hitOpt) break;
+    streak++;
+  }
+  return streak;
+}
+
+function renderThermometer() {
+  const rows = recentPlanRows(30);
+  const host = document.getElementById('thermometerList');
+  if (!rows.length) {
+    host.innerHTML = '<div class="empty">数据不足，暂无温度计</div>';
+    return;
+  }
+  document.getElementById('thermoRangeTag').textContent =
+    `最近 ${rows.length} 期（${rows[0].label} ~ ${rows.at(-1).label}）· 不影响算法`;
+
+  host.innerHTML = THERMO_DEFS.map(def => {
+    const hits = rows.filter(r => r[def.key]).length;
+    const rate = rows.length ? hits / rows.length : 0;
+    const pct = (rate * 100).toFixed(1);
+    const level = rate >= 0.30 ? { cls: 'warm', text: '偏热' }
+      : rate >= 0.20 ? { cls: 'normal', text: '正常' }
+        : { cls: 'cool', text: '偏冷' };
+    return `<div class="thermo-row">
+      <div class="thermo-top">
+        <span class="thermo-name"><span style="color:${def.color}">●</span>${def.code} ${def.name}<span class="thermo-desc">· ${def.desc}</span></span>
+        <span class="thermo-stats">
+          <span class="thermo-count">${hits}/${rows.length} 期</span>
+          <span class="thermo-rate">${pct}%</span>
+          <span class="temp-tag ${level.cls}">${level.text}</span>
+        </span>
+      </div>
+      <div class="thermo-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(rate * 100)}">
+        <div class="thermo-fill" style="width:${Math.max(2, rate * 100).toFixed(1)}%;background:${def.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSignal() {
+  const rows = recentPlanRows(30);
+  const streak = losingStreak();
+  const last20 = recentPlanRows(20);
+  const hit20 = last20.filter(r => r.hitOpt).length;
+
+  document.getElementById('losingStreakBadge').textContent = `当前连错 ${streak} 期`;
+  document.getElementById('recentHitBadge').textContent = `近20期主推中 ${hit20} 期`;
+
+  const banner = document.getElementById('signalBanner');
+  const textEl = document.getElementById('signalText');
+  banner.classList.remove('green', 'blue', 'orange');
+
+  if (!rows.length) {
+    banner.classList.add('blue');
+    textEl.textContent = '系统参考信号：数据不足，暂不输出信号。';
+    return;
+  }
+
+  const rankedDefs = THERMO_DEFS.map(def => ({
+    ...def,
+    hits: rows.filter(r => r[def.key]).length
+  })).sort((a, b) => b.hits - a.hits);
+  const best = rankedDefs[0];
+  const rate = (best.hits / rows.length * 100).toFixed(0);
+
+  if (streak >= 5) {
+    banner.classList.add('orange');
+    textEl.textContent = `系统参考信号：主推已连续 ${streak} 期未中，建议谨慎参考；近30期「${best.code} ${best.name}」相对占优（${best.hits}/${rows.length}，${rate}%）。`;
+  } else if (best.hits / rows.length >= 0.30) {
+    banner.classList.add('green');
+    textEl.textContent = `系统参考信号：近30期「${best.code} ${best.name}」表现较好（${best.hits}/${rows.length}，命中率 ${rate}%），可优先参考。`;
+  } else {
+    banner.classList.add('blue');
+    textEl.textContent = `系统参考信号：近期整体偏冷，建议小额参考；近30期「${best.code} ${best.name}」相对最好（${best.hits}/${rows.length}，${rate}%）。`;
+  }
+}
+
+function renderMainPick() {
+  const nextLbl = expectedNextLabel();
+  document.getElementById('nextTargetHead').textContent = nextLbl;
+  document.getElementById('recPeriodTag').textContent = nextLbl;
+  const p = parseLabel(nextLbl);
+  if (!p || !activeUsable.length) {
+    currentPlanData = null;
+    renderPicks();
+    return;
+  }
+  const plan = runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
+  currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan) };
+  renderTierTabs();
+  renderPicks();
+  renderDerive(plan);
+}
+
+function renderLockArea(targetLabel) {
+  if (archiveStaleLock(targetLabel)) saveManual();
+  const btn = document.getElementById('lockBtn');
+  const current = document.getElementById('lockCurrent');
+  const title = document.getElementById('lockTitle');
+  const desc = document.getElementById('lockDescription');
+  const countEl = document.getElementById('lockHistoryCount');
+
+  if (lockedPlan && lockedPlan.label === targetLabel) {
+    const when = new Date(lockedPlan.createdAt).toLocaleString('zh-CN');
+    const picks = (lockedPlan.picks && lockedPlan.picks.length) ? lockedPlan.picks : lockedPlan.opt;
+    title.textContent = '本期号码已锁定';
+    desc.textContent = `锁定于 ${when} · 开奖同步后自动核对`;
+    btn.textContent = '解除锁定';
+    btn.disabled = false;
+    current.hidden = false;
+    current.innerHTML = `<div class="lock-current-head"><b>已锁定 ${lockedPlan.tier || picks.length} 码</b><span>${escapeHtml(when)}</span></div>
+      <div class="numbers">${picks.map(lockBallHtml).join('')}</div>`;
+  } else {
+    title.textContent = '未锁定';
+    desc.textContent = '锁定后开奖同步会自动核对是否命中';
+    btn.textContent = '锁定本期';
+    btn.disabled = !currentPlanData;
+    current.hidden = true;
+    current.innerHTML = '';
+  }
+
+  countEl.textContent = `${lockHistory.length} 条`;
+  const logs = lockHistory.slice().reverse().slice(0, 100);
+  document.getElementById('lockHistory').innerHTML = logs.length ? logs.map(log => {
+    const when = new Date(log.archivedAt || log.createdAt).toLocaleString('zh-CN');
+    const picks = (log.picks && log.picks.length) ? log.picks : log.opt;
+    const result = log.special
+      ? `特码 ${lockBallHtml(log.special)} · ${log.tier || picks.length}码${log.hitPicks ?? log.hitOpt ? '命中' : '未中'} · 原版提纯${log.hitOpt ? '命中' : '未中'}`
+      : log.stale ? '未开奖前已过期 · 快照已存档' : '锁定快照';
+    return `<div class="lock-record"><strong>${escapeHtml(log.label)}</strong> &nbsp; ${result}<br><small>锁定于 ${escapeHtml(when)}（本机时间）</small><div class="numbers">${picks.map(lockBallHtml).join('')}</div></div>`;
+  }).join('') : '<div class="empty">暂无锁定记录</div>';
+}
+
+function renderHeatSection(usable) {
+  if (!usable.length) return;
+  const targetIdx = usable.length - 1;
+  const snap = computeHeatSnapshot(usable, targetIdx, heatScope);
+  document.getElementById('heatLiveBadge').textContent = snap.enteredDraw.label === justEnteredLabel
+    ? `✨ 新录入 ${snap.enteredDraw.label}`
+    : `截至 ${snap.enteredDraw.label}`;
+
+  const hotThreshold = heatHotThreshold(heatScope);
+  const hotList = [], coldList = [];
+  for (let n = 1; n <= 49; n++) {
+    const f = snap.currFreq[n];
+    if (f >= hotThreshold) hotList.push({ n, f });
+    if (f === 0) coldList.push(n);
+  }
+  hotList.sort((a, b) => b.f - a.f || a.n - b.n);
+
+  document.getElementById('heatHighlights').innerHTML = `
+    <div class="hh-line">
+      <span class="hh-badge hot">🔥 高频热号（≥${hotThreshold}次）</span>
+      ${hotList.length ? hotList.map(x => `${ballHtml(x.n, 'sm')}<b>${x.f}次</b>`).join(' ') : '<span class="dc-note">本期无高频号</span>'}
+    </div>
+    <div class="hh-line">
+      <span class="hh-badge cold">❄️ 冷号（0次）</span>
+      ${coldList.length ? coldList.map(n => ballHtml(n, 'sm cool-dim')).join(' ') : '<span class="dc-note">无 0 次号码</span>'}
+    </div>`;
+
   const chips = heatScope === 'special'
-    ? [['#9333ea','≥7次'],['#dc2626','5-6次'],['#f97316','3-4次'],['#fef3c7','1-2次'],['#e0f2fe','0次']]
-    : [['#9333ea','≥22次'],['#dc2626','18-21次'],['#f97316','14-17次'],['#fef3c7','10-13次'],['#e0f2fe','≤9次']];
-
+    ? [['#fecdd3', '≥5次 热'], ['#fef3c7', '3-4次'], ['#f8fafc', '1-2次'], ['#dbeafe', '0次 冷']]
+    : [['#fecdd3', '≥18次 热'], ['#fef3c7', '14-17次'], ['#f8fafc', '其他'], ['#dbeafe', '0次 冷']];
   document.getElementById('heatLegend').innerHTML = `
     <div class="legend-items">${chips.map(([c, t]) => `<span class="lg-chip"><span class="lg-dot" style="background:${c}"></span>${t}</span>`).join('')}</div>
-    ${waveLegendHtml()}
-    <div>${heatScope === 'special' ? `0次未开：${zeroCnt}码` : ''}</div>`;
+    ${waveLegendHtml()}`;
 
   const order = Array.from({ length: 49 }, (_, i) => i + 1);
   if (heatSort === 'freq') {
-    order.sort((a, b) => snap.currFreq[b] - snap.currFreq[a] || Math.abs(snap.deltaByNum[b]) - Math.abs(snap.deltaByNum[a]) || a - b);
+    order.sort((a, b) => snap.currFreq[b] - snap.currFreq[a] || a - b);
   }
-  const cancelSet = new Set(snap.cancelled.map(x => x.n));
 
   document.getElementById('heatmap').innerHTML = order.map(n => {
-    const f = snap.currFreq[n], pf = snap.prevFreq[n], d = snap.deltaByNum[n];
+    const f = snap.currFreq[n];
     const st = heatCellStyle(f, heatScope);
-    const isSame = cancelSet.has(n);
-    const cls = d > 0 ? 'is-inc' : d < 0 ? 'is-dec' : isSame ? 'is-same' : '';
-    const badge = d > 0 ? '<span class="hc-delta up">+1</span>' : d < 0 ? '<span class="hc-delta down">-1</span>' : isSame ? '<span class="hc-delta same">±0</span>' : '';
-    const sub = d !== 0 ? `${f}次 (${pf}→${f})` : `${f}次`;
     const wave = WAVE_MAP[n] || 'green';
-    return `<div class="heat-cell ${cls}" data-wave="${wave}" style="background:${st.bg};color:${st.color}">${badge}<span class="hc-number" data-wave="${wave}" style="background:${WAVE_COLOR[wave]}">${pad2(n)}</span><small>${sub}</small></div>`;
+    const isHot = f >= hotThreshold;
+    const isCold = f === 0;
+    const flag = isHot ? '<span class="hc-flag hot">热</span>' : isCold ? '<span class="hc-flag cold">0次</span>' : '';
+    return `<div class="heat-cell ${st.cls}" data-wave="${wave}" data-num="${n}">
+      ${flag}
+      <span class="hc-number" data-wave="${wave}" style="background:${WAVE_COLOR[wave]}">${pad2(n)}</span>
+      <small style="color:${st.color}">${f}次</small>
+    </div>`;
   }).join('');
 }
 
-/* ==================== 历史回放（历年命中率总表 + 逐期各方案有无命中） ==================== */
-function ensureReplayCache(usableAsc) {
-  for (let i = 0; i < usableAsc.length; i++) {
-    const d = usableAsc[i];
-    if (planCache.has(d.label)) continue;
-    const plan = runTool2At(usableAsc, i, d.year, d.periodNum, d.date);
-    const sp = d.special;
-    planCache.set(d.label, {
-      label: d.label,
-      year: String(d.year),
-      raw7: d.raw7,
-      special: sp,
-      opt: plan.optPicks,
-      hot: plan.groups.hot,
-      cold: plan.groups.cold,
-      cycle: plan.groups.cycle,
-      hitOpt: plan.optPicks.includes(sp),
-      hitHot: plan.groups.hot.includes(sp),
-      hitCold: plan.groups.cold.includes(sp),
-      hitCycle: plan.groups.cycle.includes(sp),
-      hitUnion: plan.union.includes(sp)
-    });
+function renderHistoryHead() {
+  const suffix = `${activeTier}`;
+  const a = document.getElementById('recentTierColHead');
+  const b = document.getElementById('modalTableTierHead');
+  const c = document.getElementById('modalYearlyTierHead');
+  if (a) a.textContent = `当前${suffix}码`;
+  if (b) b.textContent = `当前${suffix}码`;
+  if (c) c.innerHTML = `当前${suffix}码<small>按分截取</small>`;
+}
+
+function drawBallsHtml(raw7) {
+  return `<div class="nums">${raw7.map((n, i) => {
+    const isSp = i === 6, wave = WAVE_MAP[n] || 'green', c = WAVE_COLOR[wave];
+    return `<span class="num ${isSp ? 'special' : ''}" data-wave="${wave}" style="background:${c};border-color:${c};color:#fff">${pad2(n)}</span>`;
+  }).join('')}</div>`;
+}
+
+function tierHitOf(row, tier) {
+  return row.ranked.slice(0, tier).includes(row.special);
+}
+
+function historyRowHtml(r, tier) {
+  const cell = (hit, cls = 'hit') => hit
+    ? `<span class="badge ${cls}">${pad2(r.special)}</span>`
+    : '<span class="miss-dash">-</span>';
+  const anyHit = tierHitOf(r, tier) || r.hitOpt || r.hitHot || r.hitCold || r.hitCycle;
+  return `<tr class="main-row${anyHit ? ' row-hit' : ''}" data-lbl="${escapeHtml(r.label)}">
+    <td class="col-period">${escapeHtml(r.label)}</td>
+    <td>${drawBallsHtml(r.raw7)}</td>
+    <td>${cell(tierHitOf(r, tier), 'tier-hit')}</td>
+    <td>${cell(r.hitOpt, 'opt-hit')}</td>
+    <td>${cell(r.hitHot)}</td>
+    <td>${cell(r.hitCold)}</td>
+    <td>${cell(r.hitCycle)}</td>
+    <td><button type="button" class="exp-btn" data-exp="${escapeHtml(r.label)}">展开 ▾</button></td>
+  </tr>`;
+}
+
+function renderRecentHistory() {
+  const rows = recentPlanRows(10).slice().reverse();
+  document.getElementById('historyBody').innerHTML = rows.length
+    ? rows.map(r => historyRowHtml(r, activeTier)).join('')
+    : '<tr><td colspan="8" class="empty">暂无数据</td></tr>';
+  const hit = rows.filter(r => r.hitOpt).length;
+  document.getElementById('recent10Summary').textContent =
+    rows.length ? `最近 ${rows.length} 期 · 提纯主推中 ${hit} 期` : '暂无数据';
+}
+
+/* ==================== 历史回放（完整 1779 期明细与年度命中率） ==================== */
+function cacheReplayRow(usable, i) {
+  const d = usable[i];
+  if (planCache.has(d.label)) return;
+  const plan = runTool2At(usable, i, d.year, d.periodNum, d.date);
+  const sp = d.special;
+  planCache.set(d.label, {
+    label: d.label,
+    year: String(d.year),
+    date: d.date,
+    raw7: d.raw7,
+    special: sp,
+    ranked: rankCandidatesFromPlan(plan),
+    opt: plan.optPicks,
+    hot: plan.groups.hot,
+    cold: plan.groups.cold,
+    cycle: plan.groups.cycle,
+    hitOpt: plan.optPicks.includes(sp),
+    hitHot: plan.groups.hot.includes(sp),
+    hitCold: plan.groups.cold.includes(sp),
+    hitCycle: plan.groups.cycle.includes(sp),
+    hitUnion: plan.union.includes(sp)
+  });
+}
+
+function ensureRecentReplayCache(usable) {
+  let start = Math.max(0, usable.length - RECENT_REPLAY_WINDOW);
+  for (let i = start; i < usable.length; i++) cacheReplayRow(usable, i);
+  // 若最近窗口内全部未中，继续向前补齐，保证「当前连错期数」准确
+  while (start > 0 && usable.length - start < 240) {
+    let allMiss = true;
+    for (let i = start; i < usable.length; i++) {
+      if (planCache.get(usable[i].label)?.hitOpt) { allMiss = false; break; }
+    }
+    if (!allMiss) break;
+    const newStart = Math.max(0, start - 40);
+    for (let i = newStart; i < start; i++) cacheReplayRow(usable, i);
+    start = newStart;
   }
 }
 
-function formatPeriodRateCell(rows, hitKey, isOpt = false) {
-  const n = rows.length;
-  let hits = 0;
-  for (const r of rows) if (r[hitKey]) hits++;
-  const pct = n > 0 ? (hits / n * 100).toFixed(1) + '%' : '0.0%';
-  const avg = hits > 0 ? `均${(n / hits).toFixed(1)}期` : '—';
-  return `<td><span class="rate-main${isOpt ? ' opt-col' : ''}">${pct}</span><span class="rate-sub">${hits}中 · ${avg}</span></td>`;
+function cachedRowCount(usable) {
+  let count = 0;
+  for (const d of usable) if (planCache.has(d.label)) count++;
+  return count;
 }
 
-function renderReplaySection(usableAsc) {
-  const allRows = usableAsc.map(d => planCache.get(d.label)).filter(Boolean);
+function runFullReplay(onProgress, onDone) {
+  if (replayBusy) return;
+  const usable = activeUsable;
+  if (!usable.length) { if (onDone) onDone(); return; }
+  replayBusy = true;
+  let i = 0;
+  const CHUNK = 120;
+  const idle = typeof requestIdleCallback === 'function'
+    ? (cb) => requestIdleCallback(cb, { timeout: 300 })
+    : (cb) => setTimeout(cb, 16);
+  const step = () => {
+    const end = Math.min(usable.length, i + CHUNK);
+    for (; i < end; i++) cacheReplayRow(usable, i);
+    if (onProgress) onProgress(i, usable.length);
+    if (i < usable.length) {
+      replayTimer = idle(step);
+    } else {
+      replayTimer = null;
+      replayBusy = false;
+      if (onDone) onDone();
+    }
+  };
+  step();
+}
+
+function replayRateCell(rows, counter) {
+  const total = rows.length;
+  const hits = rows.reduce((acc, r) => acc + (counter(r) ? 1 : 0), 0);
+  const pct = total ? (hits / total * 100).toFixed(1) + '%' : '0.0%';
+  const avg = hits ? `均${(total / hits).toFixed(1)}期` : '—';
+  return `<td><span class="rate-main">${pct}</span><span class="rate-sub">${hits}中 · ${avg}</span></td>`;
+}
+
+function renderYearlyTable(allRows) {
   const yearsDesc = [...new Set(allRows.map(r => r.year))].sort().reverse();
   if (selectedYear !== 'ALL' && !yearsDesc.includes(selectedYear)) selectedYear = 'ALL';
-
-  // 1) 历年命中率对比总表（最新年份在上 + 总计行）
-  const yearlyBody = document.getElementById('yearlyBody');
-  const buildYrRow = (yrKey, labelText, subRows, isTotal) => {
-    const activeCls = (!isTotal && selectedYear === yrKey) || (isTotal && selectedYear === 'ALL') ? ' yr-active' : '';
-    const totCls = isTotal ? 'yr-total' : '';
-    return `<tr class="${totCls}${activeCls}" data-yr="${yrKey}">
+  const body = document.getElementById('yearlyBody');
+  const buildRow = (key, labelText, rows, isTotal) => {
+    const active = (!isTotal && selectedYear === key) || (isTotal && selectedYear === 'ALL');
+    return `<tr class="${isTotal ? 'yr-total' : ''}${active ? ' yr-active' : ''}" data-yr="${key}">
       <td class="yr-label">${labelText}</td>
-      <td class="yr-cnt">${subRows.length}</td>
-      ${formatPeriodRateCell(subRows, 'hitOpt', true)}
-      ${formatPeriodRateCell(subRows, 'hitHot')}
-      ${formatPeriodRateCell(subRows, 'hitCold')}
-      ${formatPeriodRateCell(subRows, 'hitCycle')}
-      ${formatPeriodRateCell(subRows, 'hitUnion')}
+      <td class="yr-cnt">${rows.length}</td>
+      ${replayRateCell(rows, r => tierHitOf(r, activeTier))}
+      ${replayRateCell(rows, r => r.hitOpt)}
+      ${replayRateCell(rows, r => r.hitHot)}
+      ${replayRateCell(rows, r => r.hitCold)}
+      ${replayRateCell(rows, r => r.hitCycle)}
+      ${replayRateCell(rows, r => r.hitUnion)}
     </tr>`;
   };
-
-  yearlyBody.innerHTML = yearsDesc.map(y =>
-    buildYrRow(y, `${y}年`, allRows.filter(r => r.year === y), false)
-  ).join('') + buildYrRow('ALL', '总计', allRows, true);
-
-  yearlyBody.querySelectorAll('tr[data-yr]').forEach(tr => {
+  body.innerHTML = yearsDesc.map(y => buildRow(y, `${y}年`, allRows.filter(r => r.year === y), false)).join('')
+    + buildRow('ALL', '总计', allRows, true);
+  body.querySelectorAll('tr[data-yr]').forEach(tr => {
     tr.addEventListener('click', () => {
       const yr = tr.getAttribute('data-yr');
       selectedYear = (yr !== 'ALL' && selectedYear === yr) ? 'ALL' : yr;
-      renderReplaySection(usableAsc);
+      renderHistoryModal();
     });
   });
+}
 
-  // 2) 年份切换胶囊栏
-  const tabsEl = document.getElementById('yearTabs');
-  const tabDefs = [{ id: 'ALL', text: `全部 (${allRows.length}期)` }]
-    .concat(yearsDesc.map(y => ({ id: y, text: `${y}年` })));
-
-  tabsEl.innerHTML = tabDefs.map(t =>
-    `<button class="tab ${t.id === selectedYear ? 'active' : ''}" data-yr="${t.id}">${t.text}</button>`
-  ).join('');
-  tabsEl.querySelectorAll('button[data-yr]').forEach(btn => {
+function renderYearTabs(allRows) {
+  const yearsDesc = [...new Set(allRows.map(r => r.year))].sort().reverse();
+  const tabs = [{ id: 'ALL', text: `全部 (${allRows.length}期)` }].concat(yearsDesc.map(y => ({ id: y, text: `${y}年` })));
+  const el = document.getElementById('yearTabs');
+  el.innerHTML = tabs.map(t => `<button type="button" class="tab${t.id === selectedYear ? ' active' : ''}" data-yr="${t.id}">${t.text}</button>`).join('');
+  el.querySelectorAll('button[data-yr]').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedYear = btn.getAttribute('data-yr');
-      renderReplaySection(usableAsc);
+      modalHistoryLimit = 120;
+      renderHistoryModal();
     });
   });
+}
 
-  // 3) 逐期各方案有无命中明细表
-  const rows = selectedYear === 'ALL' ? allRows.slice(-500) : allRows.filter(r => r.year === selectedYear);
-  const histBody = document.getElementById('historyBody');
+function modalRows() {
+  const all = activeUsable.map(d => planCache.get(d.label)).filter(Boolean);
+  let rows = selectedYear === 'ALL' ? all : all.filter(r => r.year === selectedYear);
+  const q = historySearchQuery.trim();
+  if (q) rows = rows.filter(r => r.label.includes(q));
+  if (historyOnlyHit) rows = rows.filter(r => tierHitOf(r, activeTier) || r.hitOpt);
+  return { all, rows };
+}
 
-  histBody.innerHTML = rows.slice().reverse().map(r => {
-    const balls = r.raw7.map((n, i) => {
-      const isSp = i === 6, wave = WAVE_MAP[n] || 'green', c = WAVE_COLOR[wave];
-      return `<span class="num ${isSp ? 'special' : ''}" data-wave="${wave}" style="background:${c};border-color:${c};color:#fff">${pad2(n)}</span>`;
-    }).join('');
-    const cell = (hit, cls = 'hit') => hit
-      ? `<span class="badge ${cls}">${pad2(r.special)}</span>`
-      : '<span class="miss-dash">-</span>';
-    const anyHit = r.hitOpt || r.hitHot || r.hitCold || r.hitCycle;
+function renderHistoryModal() {
+  const { all, rows } = modalRows();
+  document.getElementById('modalTotalBadge').textContent = `${all.length} 期`;
+  renderYearlyTable(all);
+  renderYearTabs(all);
 
-    return `<tr class="main-row${anyHit ? ' row-hit' : ''}" data-lbl="${escapeHtml(r.label)}">
-      <td class="col-period">${escapeHtml(r.label)}</td>
-      <td><div class="nums">${balls}</div></td>
-      <td>${cell(r.hitOpt, 'opt-hit')}</td>
-      <td>${cell(r.hitHot)}</td>
-      <td>${cell(r.hitCold)}</td>
-      <td>${cell(r.hitCycle)}</td>
-      <td>${cell(r.hitUnion)}</td>
-      <td><button type="button" class="exp-btn" data-exp="${escapeHtml(r.label)}">展开 ▾</button></td>
-    </tr>`;
-  }).join('');
+  const slice = rows.slice().reverse().slice(0, modalHistoryLimit);
+  document.getElementById('fullHistoryBody').innerHTML = slice.length
+    ? slice.map(r => historyRowHtml(r, activeTier)).join('')
+    : '<tr><td colspan="8" class="empty">没有符合条件的期数</td></tr>';
+
+  const bar = document.getElementById('modalMoreBar');
+  const shown = slice.length, total = rows.length;
+  if (replayBusy) {
+    bar.innerHTML = `<span class="dc-note">正在统计历史数据… ${cachedRowCount(activeUsable)} / ${activeUsable.length} 期</span>`;
+    return;
+  }
+  bar.innerHTML = shown < total
+    ? `<span class="dc-note">已显示 ${shown} / ${total} 期</span>
+       <button type="button" class="btn sm" id="modalLoadMore">加载更多 120 期</button>
+       <button type="button" class="btn sm" id="modalLoadAll">展开全部</button>`
+    : `<span class="dc-note">已显示全部 ${total} 期</span>
+       ${total > 120 ? '<button type="button" class="btn sm" id="modalCollapse">收起</button>' : ''}`;
+  const more = document.getElementById('modalLoadMore');
+  if (more) more.addEventListener('click', () => { modalHistoryLimit += 120; renderHistoryModal(); });
+  const loadAll = document.getElementById('modalLoadAll');
+  if (loadAll) loadAll.addEventListener('click', () => { modalHistoryLimit = Math.max(total, 120); renderHistoryModal(); });
+  const collapse = document.getElementById('modalCollapse');
+  if (collapse) collapse.addEventListener('click', () => { modalHistoryLimit = 120; renderHistoryModal(); });
+}
+
+function openHistoryModal() {
+  const modal = document.getElementById('historyModal');
+  modal.hidden = false;
+  document.body.classList.add('modal-open');
+  document.getElementById('modalMoreBar').innerHTML = '<span class="dc-note">正在统计历史数据…</span>';
+  document.getElementById('yearlyBody').innerHTML = '';
+  document.getElementById('fullHistoryBody').innerHTML = '';
+  const finish = () => renderHistoryModal();
+  const progress = () => {
+    document.getElementById('modalMoreBar').innerHTML =
+      `<span class="dc-note">正在统计历史数据… ${cachedRowCount(activeUsable)} / ${activeUsable.length} 期</span>`;
+  };
+  if (cachedRowCount(activeUsable) >= activeUsable.length) finish();
+  else runFullReplay(progress, finish);
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').hidden = true;
+  document.body.classList.remove('modal-open');
+}
+
+function openDataModal() {
+  document.getElementById('periodLabel').value = expectedNextLabel();
+  document.getElementById('dataModal').hidden = false;
+  document.body.classList.add('modal-open');
+}
+
+function closeDataModal() {
+  document.getElementById('dataModal').hidden = true;
+  document.body.classList.remove('modal-open');
 }
 
 /* ==================== 交互与初始化 ==================== */
 function refreshAll() {
-  const usable = usableRecordsOf(allRecords());
-  document.getElementById('totalCount').textContent = usable.length;
-  ensureReplayCache(usable);
-  const nextLbl = expectedNextLabel();
-  document.getElementById('periodLabel').value = nextLbl;
-  const plan = renderRecommendations(usable, nextLbl);
-  renderHeatSection(usable);
-  renderReplaySection(usable);
-  renderLocks(plan, nextLbl);
+  activeUsable = usableRecordsOf(allRecords());
+  ensureRecentReplayCache(activeUsable);
+  const periodInput = document.getElementById('periodLabel');
+  if (periodInput && document.getElementById('dataModal').hidden) periodInput.value = expectedNextLabel();
+  renderTopBar();
+  renderMainPick();
+  renderThermometer();
+  renderSignal();
+  renderHeatSection(activeUsable);
+  renderHistoryHead();
+  renderRecentHistory();
+  renderLockArea(expectedNextLabel());
   updateDataStatus();
-}
-
-function renderLocks(plan, targetLabel) {
-  if (archiveStaleLock(targetLabel)) saveManual();
-  const title = document.getElementById('lockTitle');
-  const desc = document.getElementById('lockDescription');
-  const btn = document.getElementById('lockBtn');
-  const current = document.getElementById('lockCurrent');
-  if (lockedPlan && lockedPlan.label === targetLabel) {
-    const when = new Date(lockedPlan.createdAt).toLocaleString('zh-CN');
-    title.textContent = '本期号码已锁定';
-    desc.textContent = `锁定于 ${when} · 开奖后自动核对命中`;
-    btn.textContent = '解除锁定';
-    btn.disabled = false;
-    current.hidden = false;
-    current.innerHTML = `<b>已锁定提纯 ${lockedPlan.opt.length} 码</b><div class="numbers">${lockedPlan.opt.map(lockBallHtml).join('')}</div><b>并集 ${lockedPlan.union.length} 码</b><div class="numbers">${lockedPlan.union.map(lockBallHtml).join('')}</div>`;
-  } else {
-    title.textContent = '未锁定';
-    desc.textContent = `可锁定 ${targetLabel} 的提纯主推、三组与并集快照。`;
-    btn.textContent = '锁定本期';
-    btn.disabled = !plan;
-    current.hidden = true;
-    current.innerHTML = '';
-  }
-  document.getElementById('lockHistoryCount').textContent = `${lockHistory.length} 条`;
-  const logs = lockHistory.slice().reverse().slice(0, 100);
-  document.getElementById('lockHistory').innerHTML = logs.length ? logs.map(log => {
-    const when = new Date(log.archivedAt || log.createdAt).toLocaleString('zh-CN');
-    const result = log.special
-      ? `特码 ${lockBallHtml(log.special)} · 提纯${log.hitOpt ? '命中' : '未中'} · 并集${log.hitUnion ? '命中' : '未中'}`
-      : log.stale ? '未开奖前已过期 · 快照已存档' : '锁定快照';
-    return `<div class="lock-record"><strong>${escapeHtml(log.label)}</strong> &nbsp; ${result}<br><small>锁定于 ${escapeHtml(when)}（本机时间）</small><div class="numbers">提纯：${log.opt.map(lockBallHtml).join('')} ｜ 并集：${log.union.map(lockBallHtml).join('')}</div></div>`;
-  }).join('') : '<div class="empty">暂无记录</div>';
 }
 
 function updateDataStatus() {
   const latest = allRecords().at(-1)?.label || '—';
   document.getElementById('noticeLatest').textContent = latest;
-  document.getElementById('dataSourceLabel').textContent = manualRecords.length ? '仓库底库 + 本机同步记录' : '内置仓库底库';
+  document.getElementById('dataSourceLabel').textContent = manualRecords.length ? '内置底库 + 本机同步记录' : '内置离线底库';
   const line = document.getElementById('storageLine');
   line.hidden = false;
   document.getElementById('storageDot').classList.toggle('warn', !!storageProblem);
@@ -1701,18 +2543,16 @@ function updateDataStatus() {
 function showEntryFlash(record, usable) {
   const rec = planCache.get(record.label);
   const idx = usable.findIndex(d => d.label === record.label);
-  const snap = computeHeatSnapshot(usable, idx, 'special');
+  const snap = idx >= 0 ? computeHeatSnapshot(usable, idx, 'special') : null;
   const hits = [];
-  if (rec.hitOpt) hits.push('🎯提纯主推');
-  if (rec.hitHot) hits.push('#1热态');
-  if (rec.hitCold) hits.push('#2遗漏');
-  if (rec.hitCycle) hits.push('#3周期');
-  const hitTxt = hits.length ? `🎯 命中 <b>${hits.join('、')}</b>` : '未中';
-  const incTxt = snap.increased.map(x => `<b>${pad2(x.n)}</b>(${x.prev}→${x.curr})`).join('、') || '无';
-  const decTxt = snap.decreased.map(x => `<b>${pad2(x.n)}</b>(${x.prev}→${x.curr})`).join('、') || '无';
-
+  if (rec?.hitOpt) hits.push('提纯主推');
+  if (rec?.hitHot) hits.push('#1 热态');
+  if (rec?.hitCold) hits.push('#2 遗漏');
+  if (rec?.hitCycle) hits.push('#3 周期');
+  const hitTxt = hits.length ? `命中 <b>${hits.join('、')}</b>` : '未中';
+  const incTxt = (snap?.increased || []).map(x => `<b>${pad2(x.n)}</b>(${x.prev}→${x.curr})`).join('、') || '无';
   const el = document.getElementById('entryFlash');
-  el.innerHTML = `✅ <b>${record.label}</b>（特码 <b>${pad2(record.special)}</b>）：${hitTxt} ｜ 百期热度：🔺+1 [${incTxt}] · 🔻-1 [${decTxt}]`;
+  el.innerHTML = `✅ <b>${record.label}</b>（特码 <b>${pad2(record.special)}</b>）：${hitTxt} ｜ 百期热度变化 +1：${incTxt}`;
   el.classList.add('show');
 }
 
@@ -1828,12 +2668,80 @@ function downloadJson(filename, obj) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function bindHistoryDetail(tbodyId) {
+  document.getElementById(tbodyId).addEventListener('click', e => {
+    const btn = e.target.closest('button[data-exp]');
+    if (!btn) return;
+    const lbl = btn.getAttribute('data-exp');
+    const r = planCache.get(lbl);
+    if (!r) return;
+    const tr = btn.closest('tr');
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('detail-row')) {
+      next.remove();
+      btn.textContent = '展开 ▾';
+      return;
+    }
+    const renderGrp = (title, arr) => {
+      const bs = arr.length
+        ? arr.map(n => ballHtml(n, 'sm' + (n === r.special ? ' hit-ring' : ''))).join('')
+        : '<span class="dc-note">无</span>';
+      return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
+    };
+    const picks = r.ranked.slice(0, activeTier).slice().sort((a, b) => a - b);
+    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="8"><div class="detail-groups">
+      ${renderGrp(`推荐 ${picks.length}码`, picks)}
+      ${renderGrp(`提纯(${r.opt.length})`, r.opt)}
+      ${renderGrp('#1 热态', r.hot)}
+      ${renderGrp('#2 遗漏', r.cold)}
+      ${renderGrp('#3 周期', r.cycle)}
+    </div></td></tr>`);
+    btn.textContent = '收起 ▴';
+  });
+}
+
 function init() {
   const persisted = loadManual();
   manualRecords = persisted.records;
   lockedPlan = persisted.locked;
   lockHistory = persisted.locks;
   setupBallInputs();
+  bindHistoryDetail('historyBody');
+  bindHistoryDetail('fullHistoryBody');
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-copy]');
+    if (!btn || btn.disabled || btn.dataset.copyBound) return;
+    handleCopyButton(btn);
+  });
+
+  document.getElementById('openHistoryModal').addEventListener('click', openHistoryModal);
+  document.getElementById('closeHistoryModal').addEventListener('click', closeHistoryModal);
+  document.getElementById('historyModal').addEventListener('click', e => {
+    if (e.target.id === 'historyModal') closeHistoryModal();
+  });
+  document.getElementById('openDataModal').addEventListener('click', openDataModal);
+  document.getElementById('closeDataModal').addEventListener('click', closeDataModal);
+  document.getElementById('dataModal').addEventListener('click', e => {
+    if (e.target.id === 'dataModal') closeDataModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('historyModal').hidden) closeHistoryModal();
+    if (!document.getElementById('dataModal').hidden) closeDataModal();
+  });
+
+  let searchTimer = null;
+  document.getElementById('historySearch').addEventListener('input', e => {
+    historySearchQuery = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { modalHistoryLimit = 120; renderHistoryModal(); }, 160);
+  });
+  document.getElementById('historyOnlyHit').addEventListener('change', e => {
+    historyOnlyHit = e.target.checked;
+    modalHistoryLimit = 120;
+    renderHistoryModal();
+  });
 
   document.getElementById('submitDraw').addEventListener('click', () => {
     const inputs = [...document.querySelectorAll('#ballInputs .ball-input')];
@@ -1877,9 +2785,9 @@ function init() {
     inputs.forEach(x => { x.value = ''; x.removeAttribute('style'); });
     inputs[0].focus();
     justEnteredLabel = rec.label;
-    deltaTargetLabel = rec.label;
+    planCache.delete(rec.label);
     refreshAll();
-    showEntryFlash(rec, usableRecordsOf(allRecords()));
+    showEntryFlash(rec, activeUsable);
   });
 
   document.getElementById('undoDraw').addEventListener('click', () => {
@@ -1890,7 +2798,7 @@ function init() {
     manualRecords.pop();
     const archived = lockHistory.find(x => x.label === last.label && !x.stale);
     if (archived) {
-      lockedPlan = { ...archived, special: null, hitOpt: false, hitUnion: false, stale: false };
+      lockedPlan = { ...archived, special: null, hitPicks: false, hitOpt: false, hitUnion: false, stale: false };
       lockHistory = lockHistory.filter(x => x !== archived);
     }
     if (!saveManual()) {
@@ -1899,9 +2807,9 @@ function init() {
     }
     planCache.delete(last.label);
     justEnteredLabel = '';
-    deltaTargetLabel = '';
     document.getElementById('entryFlash').classList.remove('show');
     refreshAll();
+    if (!document.getElementById('historyModal').hidden) renderHistoryModal();
   });
 
   document.getElementById('clearData').addEventListener('click', () => {
@@ -1917,9 +2825,9 @@ function init() {
       return;
     }
     justEnteredLabel = '';
-    deltaTargetLabel = '';
     document.getElementById('entryFlash').classList.remove('show');
     refreshAll();
+    if (!document.getElementById('historyModal').hidden) renderHistoryModal();
   });
 
   document.getElementById('lockBtn').addEventListener('click', () => {
@@ -1929,19 +2837,16 @@ function init() {
       if (!confirm(`解除 ${target} 的号码锁定？`)) return;
       lockedPlan = null;
     } else {
-      const p = parseLabel(target);
-      const usable = usableRecordsOf(allRecords());
-      if (!p || !usable.length) return;
-      const plan = runTool2At(usable, usable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-      lockedPlan = lockPlanFromModel(plan, target);
+      if (!currentPlanData) return;
+      lockedPlan = lockPlanFromModel({ ...currentPlanData.plan, ranked: currentPlanData.ranked }, target, activeTier);
     }
     if (!saveManual()) return;
-    refreshAll();
+    renderLockArea(expectedNextLabel());
   });
 
   document.getElementById('exportBtn').addEventListener('click', () => {
-    downloadJson('mark6_backup.json', {
-      app: '特码统计·工具2',
+    downloadJson('te_ma_backup.json', {
+      app: '特码智能选号助手',
       schemaVersion: 3,
       exportedAt: new Date().toISOString(),
       draws: manualRecords.map(r => r.raw7),
@@ -1974,7 +2879,7 @@ function init() {
         lockedPlan = importedLocked && importedLocked.label === expectedNextLabel() ? importedLocked : null;
         lockHistory = importedLocks;
         if (importedLocked && importedLocked.label !== expectedNextLabel()) {
-          lockHistory = lockHistory.filter(x => x.label !== importedLocked.label)
+          lockHistory = lockHistory.filter(y => y.label !== importedLocked.label)
             .concat({ ...importedLocked, stale: true }).slice(-MAX_LOCK_RECORDS);
         }
         if (!saveManual()) {
@@ -1982,8 +2887,8 @@ function init() {
           return;
         }
         justEnteredLabel = '';
-        deltaTargetLabel = '';
         refreshAll();
+        if (!document.getElementById('historyModal').hidden) renderHistoryModal();
       } catch (err) {
         alert(`导入失败：${err.message || '格式无效'}`);
       }
@@ -1996,7 +2901,7 @@ function init() {
       document.querySelectorAll('#heatScopeGroup .seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       heatScope = btn.getAttribute('data-scope');
-      renderHeatSection(usableRecordsOf(allRecords()));
+      renderHeatSection(activeUsable);
     });
   });
   document.querySelectorAll('#heatSortGroup .seg-btn').forEach(btn => {
@@ -2004,64 +2909,20 @@ function init() {
       document.querySelectorAll('#heatSortGroup .seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       heatSort = btn.getAttribute('data-sort');
-      renderHeatSection(usableRecordsOf(allRecords()));
+      renderHeatSection(activeUsable);
     });
-  });
-  document.getElementById('deltaSelect').addEventListener('change', e => {
-    deltaTargetLabel = e.target.value;
-    renderHeatSection(usableRecordsOf(allRecords()));
-  });
-  document.getElementById('deltaPrev').addEventListener('click', () => {
-    const usable = usableRecordsOf(allRecords());
-    const idx = usable.findIndex(d => d.label === deltaTargetLabel);
-    if (idx > 0) {
-      deltaTargetLabel = usable[idx - 1].label;
-      renderHeatSection(usable);
-    }
-  });
-  document.getElementById('deltaNext').addEventListener('click', () => {
-    const usable = usableRecordsOf(allRecords());
-    const idx = usable.findIndex(d => d.label === deltaTargetLabel);
-    if (idx >= 0 && idx < usable.length - 1) {
-      deltaTargetLabel = usable[idx + 1].label;
-      renderHeatSection(usable);
-    }
-  });
-  document.getElementById('deltaLatest').addEventListener('click', () => {
-    const usable = usableRecordsOf(allRecords());
-    deltaTargetLabel = usable.at(-1).label;
-    renderHeatSection(usable);
-  });
-
-  document.getElementById('historyBody').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-exp]');
-    if (!btn) return;
-    const lbl = btn.getAttribute('data-exp');
-    const r = planCache.get(lbl);
-    if (!r) return;
-    const tr = btn.closest('tr');
-    const next = tr.nextElementSibling;
-    if (next && next.classList.contains('detail-row')) {
-      next.remove();
-      btn.textContent = '展开 ▾';
-      return;
-    }
-    const renderGrp = (title, arr) => {
-      const bs = arr.length
-        ? arr.map(n => ballHtml(n, 'sm' + (n === r.special ? ' hit-ring' : ''))).join('')
-        : '<span class="dc-note">无</span>';
-      return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
-    };
-    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="8"><div class="detail-groups">
-      ${renderGrp(`🎯 提纯(${r.opt.length})`, r.opt)}
-      ${renderGrp('🔥 #1热态', r.hot)}
-      ${renderGrp('🎯 #2遗漏', r.cold)}
-      ${renderGrp('🛡️ #3周期', r.cycle)}
-    </div></td></tr>`);
-    btn.textContent = '收起 ▴';
   });
 
   refreshAll();
+
+  // 首页渲染后空闲补齐历史，打开弹窗时通常已就绪
+  setTimeout(() => {
+    if (cachedRowCount(activeUsable) < activeUsable.length) {
+      runFullReplay(() => {}, () => {
+        if (!document.getElementById('historyModal').hidden) renderHistoryModal();
+      });
+    }
+  }, 900);
 }
 
 window.noteSync = {
@@ -2111,14 +2972,14 @@ window.noteSync = {
       throw err;
     }
     justEnteredLabel = '';
-    deltaTargetLabel = '';
     refreshAll();
+    if (!document.getElementById('historyModal').hidden) renderHistoryModal();
     return appended.length;
   }
 };
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.14-r15"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.16-r16"></script>
 </body>
 </html>
