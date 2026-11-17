@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.17-r18">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r18">
+<meta name="app-version" content="v2026.11.17-r19">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r19">
 <style>
 :root{
   --ink:#0f172a;
@@ -1104,7 +1104,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.17-r18';
+const APP_BUILD = '2026.11.17-r19';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1354,7 +1354,7 @@ function loadManual() {
 }
 
 function lockPlanFromModel(plan, label, tier = activeTier) {
-  const picks = plan.ranked.slice(0, tier).slice().sort((a, b) => a - b);
+  const picks = picksOfRow(plan, tier);
   return {
     label,
     createdAt: new Date().toISOString(),
@@ -1914,9 +1914,17 @@ let currentPlanData = null;
 let replayTimer = null;
 let replayBusy = false;
 
+/* 18 码档位 = #1∪#2∪#3 去重后的全部号码；其余档位仍按原版分数排序截取 */
+const UNION_TIER = 18;
+
+function picksOfRow(row, tier) {
+  if (tier === UNION_TIER) return [...row.union].sort((a, b) => a - b);
+  return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);
+}
+
 function currentPicks() {
   if (!currentPlanData) return [];
-  return currentPlanData.ranked.slice(0, activeTier).slice().sort((a, b) => a - b);
+  return picksOfRow(currentPlanData, activeTier);
 }
 
 function currentPicksText() { return currentPicks().map(pad2).join(','); }
@@ -1948,7 +1956,7 @@ function renderTopBar() {
 function renderTierTabs() {
   const wrap = document.getElementById('tierTabs');
   wrap.innerHTML = TIER_SIZES.map(size =>
-    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>高分前${size}</small></button>`
+    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '三组并集' : `高分前${size}`}</small></button>`
   ).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1983,7 +1991,7 @@ function renderPicks() {
   host.innerHTML = `
     <div class="pick-grid">${chips}</div>
     <div class="copy-preview">
-      <span>复制格式（英文逗号分隔）</span>
+      <span>复制格式（英文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
       <code>${currentPicksText()}</code>
     </div>`;
   copyBtn.setAttribute('data-copy', currentPicksText());
@@ -2163,7 +2171,7 @@ function renderMainPick() {
     return;
   }
   const plan = runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-  currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan) };
+  currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan), union: [...plan.union] };
   renderTierTabs();
   renderPicks();
   renderDerive(plan);
@@ -2264,12 +2272,14 @@ function renderHeatSection(usable) {
 
 function renderHistoryHead() {
   const suffix = `${activeTier}`;
+  const actual = currentPlanData ? currentPicks().length : 0;
+  const label = activeTier === UNION_TIER ? `当前并集${actual ? `（${actual}码）` : ''}` : `当前${suffix}码`;
   const a = document.getElementById('recentTierColHead');
   const b = document.getElementById('modalTableTierHead');
   const c = document.getElementById('modalYearlyTierHead');
-  if (a) a.textContent = `当前${suffix}码`;
-  if (b) b.textContent = `当前${suffix}码`;
-  if (c) c.innerHTML = `当前${suffix}码<small>按分截取</small>`;
+  if (a) a.textContent = label;
+  if (b) b.textContent = label;
+  if (c) c.innerHTML = activeTier === UNION_TIER ? `${label}<small>并集去重</small>` : `${label}<small>按分截取</small>`;
 }
 
 function drawBallsHtml(raw7) {
@@ -2280,7 +2290,7 @@ function drawBallsHtml(raw7) {
 }
 
 function tierHitOf(row, tier) {
-  return row.ranked.slice(0, tier).includes(row.special);
+  return picksOfRow(row, tier).includes(row.special);
 }
 
 function historyRowHtml(r, tier) {
@@ -2306,7 +2316,9 @@ function renderRecentHistory() {
     : '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
   const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
   document.getElementById('recent10Summary').textContent =
-    rows.length ? `最近 ${rows.length} 期 · 当前${activeTier}码中 ${hit} 期` : '暂无数据';
+    rows.length
+      ? `最近 ${rows.length} 期 · ${activeTier === UNION_TIER ? '三组并集' : `当前${activeTier}码`}中 ${hit} 期`
+      : '暂无数据';
 }
 
 /* ==================== 历史回放（完整历史逐期明细与年度命中率） ==================== */
@@ -2322,6 +2334,7 @@ function cacheReplayRow(usable, i) {
     raw7: d.raw7,
     special: sp,
     ranked: rankCandidatesFromPlan(plan),
+    union: [...plan.union],
     opt: plan.optPicks,
     hot: plan.groups.hot,
     cold: plan.groups.cold,
@@ -2682,10 +2695,10 @@ function bindHistoryDetail(tbodyId) {
         : '<span class="dc-note">无</span>';
       return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
     };
-    const picks = r.ranked.slice(0, activeTier).slice().sort((a, b) => a - b);
+    const picks = activeTier === UNION_TIER && Array.isArray(r.union) ? [...r.union].sort((x, y) => x - y) : picksOfRow(r, activeTier);
     const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
     tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
-      ${renderGrp(`推荐 ${picks.length}码`, picks)}
+      ${renderGrp(activeTier === UNION_TIER ? `三组并集 ${picks.length}码` : `推荐 ${picks.length}码`, picks)}
       ${renderGrp('#1 热态', r.hot)}
       ${renderGrp('#2 遗漏', r.cold)}
       ${renderGrp('#3 周期', r.cycle)}
@@ -2974,6 +2987,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.17-r18"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.17-r19"></script>
 </body>
 </html>
