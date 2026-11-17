@@ -90,4 +90,7 @@ test('推荐号码一键复制为纯 ASCII 逗号分隔两位数字', () => {
   for (const size of [5, 7, 10, 12, 18]) {
     assert.ok(html.includes(String(size)), `缺少 ${size} 码档位`);
   }
+  // 18 码档位走三组并集，不再按分数截取
+  assert.ok(html.includes('const UNION_TIER = 18;'), '18 码档位应标记为并集口径');
+  assert.ok(html.includes('if (tier === UNION_TIER) return [...row.union].sort((a, b) => a - b);'), '并集档位应直接返回去重并集');
 });

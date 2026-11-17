@@ -209,7 +209,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
   }
 });
 
-test('5/7/10/12/18 码一键切换，复制文本为纯 ASCII 逗号格式', async () => {
+test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为纯 ASCII 逗号格式", async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -225,7 +225,7 @@ test('5/7/10/12/18 码一键切换，复制文本为纯 ASCII 逗号格式', asy
       12: '01,04,06,09,12,16,29,37,39,41,44,49',
       18: '01,04,06,09,12,15,16,22,25,29,34,37,39,41,44,47,48,49'
     };
-    for (const size of [5, 7, 10, 12, 18]) {
+    for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
       assert.equal(doc.querySelectorAll('#optHero .pick-chip').length, size);
       const copy = doc.getElementById('copyMainBtn');
@@ -234,6 +234,21 @@ test('5/7/10/12/18 码一键切换，复制文本为纯 ASCII 逗号格式', asy
       assert.match(text, /^(?:\d{2})(?:,\d{2})*$/, '必须为两位数字 + 英文逗号');
       assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
     }
+
+    // 18 码档位 = 三组并集去重后的全部号码（码数随期数变化，通常 15~21 码）
+    doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
+    const unionChips = doc.querySelectorAll('#optHero .pick-chip').length;
+    assert.ok(unionChips >= 12 && unionChips <= 21, `并集码数异常：${unionChips}`);
+    const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
+    const unionNums = unionText.split(',').map(Number);
+    assert.equal(unionNums.length, unionChips, '复制文本应与并集号码一致');
+    assert.deepEqual(unionNums, [...unionNums].sort((a, b) => a - b), '并集号码应升序');
+    assert.equal(new Set(unionNums).size, unionNums.length, '并集号码不应重复');
+    assert.match(doc.getElementById('recentTierColHead').textContent, /当前并集（\d+码）/);
+    assert.match(doc.getElementById('recent10Summary').textContent, /三组并集中 \d+ 期/);
+    // 与推导细节里的并集口径一致
+    const unionShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
+    assert.deepEqual(unionShown, unionNums);
 
     // 档位切换后锁定跟随当前档位
     doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
