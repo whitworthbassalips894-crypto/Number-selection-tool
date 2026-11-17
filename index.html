@@ -527,7 +527,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
   .heat-cell small{font-size:10px}
   .hc-flag{font-size:8.5px;padding:1px 3.5px;top:-5px;right:-2px}
   .recent-head-btn{width:100%;min-height:42px}
-  .history{min-width:452px;font-size:11.5px}
+  .history{min-width:404px;font-size:11.5px}
   .history th,.history td{padding:7px 3px}
   .history td.col-period{padding-left:7px;font-size:10.5px}
   .history .num{width:20px;height:20px;font-size:9px}
@@ -700,7 +700,6 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
             <th class="col-period">期号</th>
             <th>开奖号码（末位特码）</th>
             <th id="recentTierColHead">当前10码</th>
-            <th>提纯主推</th>
             <th>#1 热态</th>
             <th>#2 遗漏</th>
             <th>#3 周期</th>
@@ -2287,16 +2286,17 @@ function tierHitOf(row, tier) {
   return row.ranked.slice(0, tier).includes(row.special);
 }
 
-function historyRowHtml(r, tier) {
+function historyRowHtml(r, tier, showOpt = true) {
   const cell = (hit, cls = 'hit') => hit
     ? `<span class="badge ${cls}">${pad2(r.special)}</span>`
     : '<span class="miss-dash">-</span>';
-  const anyHit = tierHitOf(r, tier) || r.hitOpt || r.hitHot || r.hitCold || r.hitCycle;
+  const anyHit = tierHitOf(r, tier) || r.hitHot || r.hitCold || r.hitCycle || (showOpt && r.hitOpt);
+  const optCell = showOpt ? `<td>${cell(r.hitOpt, 'opt-hit')}</td>` : '';
   return `<tr class="main-row${anyHit ? ' row-hit' : ''}" data-lbl="${escapeHtml(r.label)}">
     <td class="col-period">${escapeHtml(r.label)}</td>
     <td>${drawBallsHtml(r.raw7)}</td>
     <td>${cell(tierHitOf(r, tier), 'tier-hit')}</td>
-    <td>${cell(r.hitOpt, 'opt-hit')}</td>
+    ${optCell}
     <td>${cell(r.hitHot)}</td>
     <td>${cell(r.hitCold)}</td>
     <td>${cell(r.hitCycle)}</td>
@@ -2307,14 +2307,14 @@ function historyRowHtml(r, tier) {
 function renderRecentHistory() {
   const rows = recentPlanRows(10).slice().reverse();
   document.getElementById('historyBody').innerHTML = rows.length
-    ? rows.map(r => historyRowHtml(r, activeTier)).join('')
-    : '<tr><td colspan="8" class="empty">暂无数据</td></tr>';
-  const hit = rows.filter(r => r.hitOpt).length;
+    ? rows.map(r => historyRowHtml(r, activeTier, false)).join('')
+    : '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
+  const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
   document.getElementById('recent10Summary').textContent =
-    rows.length ? `最近 ${rows.length} 期 · 提纯主推中 ${hit} 期` : '暂无数据';
+    rows.length ? `最近 ${rows.length} 期 · 当前${activeTier}码中 ${hit} 期` : '暂无数据';
 }
 
-/* ==================== 历史回放（完整 1779 期明细与年度命中率） ==================== */
+/* ==================== 历史回放（完整历史逐期明细与年度命中率） ==================== */
 function cacheReplayRow(usable, i) {
   const d = usable[i];
   if (planCache.has(d.label)) return;
@@ -2689,7 +2689,8 @@ function bindHistoryDetail(tbodyId) {
       return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
     };
     const picks = r.ranked.slice(0, activeTier).slice().sort((a, b) => a - b);
-    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="8"><div class="detail-groups">
+    const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
+    tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
       ${renderGrp(`推荐 ${picks.length}码`, picks)}
       ${renderGrp(`提纯(${r.opt.length})`, r.opt)}
       ${renderGrp('#1 热态', r.hot)}
