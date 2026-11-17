@@ -23,8 +23,8 @@ function sortedUnique(values) {
 
 test('工具2输出三组各 7 码，提纯与并集关系保持不变', () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
-  assert.equal(usable.length, 1779);
-  const plan = api.runTool2At(usable, usable.length, 2026, 320, '2026-11-16');
+  assert.equal(usable.length, 1780);
+  const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
   const hot = [...plan.groups.hot], cold = [...plan.groups.cold], cycle = [...plan.groups.cycle];
   for (const list of [hot, cold, cycle]) {
     assert.equal(list.length, 7);
