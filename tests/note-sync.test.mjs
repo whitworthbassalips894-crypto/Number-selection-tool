@@ -148,6 +148,20 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     // 近 10 期命中简表 & 完整历史在弹窗内
     const recentRows = doc.querySelectorAll('#historyBody tr.main-row');
     assert.equal(recentRows.length, 10);
+
+    // 近 10 期简表不再展示「提纯主推」列，命中概览改为按当前码数统计
+    const homeHead = [...doc.querySelectorAll('#recentHistorySection thead th')].map(th => th.textContent.trim());
+    assert.equal(homeHead.length, 7);
+    assert.ok(!homeHead.includes('提纯主推'), '首页简表不应再有提纯主推列');
+    assert.equal(recentRows[0].querySelectorAll(':scope > td').length, 7, '首页简表每行应有 7 列');
+    assert.match(doc.getElementById('recent10Summary').textContent, /当前10码中 \d+ 期/);
+
+    // 展开明细的 colspan 必须与表头列数一致，否则整行错位
+    doc.querySelector('#historyBody .exp-btn').click();
+    const homeDetail = doc.querySelector('#historyBody tr.detail-row td');
+    assert.equal(Number(homeDetail.getAttribute('colspan')), homeHead.length);
+    assert.match(homeDetail.textContent, /推荐 10码/);
+    doc.querySelector('#historyBody .exp-btn').click();
     sample('#historyBody .num', 70);
     assert.equal(doc.getElementById('historyModal').hidden, true);
     assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 0);
