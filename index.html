@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.17-r19">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r19">
+<meta name="app-version" content="v2026.11.17-r20">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r20">
 <style>
 :root{
   --ink:#0f172a;
@@ -172,6 +172,12 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .temp-tag.warm{background:#fef2f2;color:#dc2626}
 .temp-tag.normal{background:#eff6ff;color:#2563eb}
 .temp-tag.cool{background:#f1f5f9;color:#64748b}
+.sync-stamp{font-family:Consolas,monospace;color:var(--ink-soft);font-weight:700}
+.thermo-baseline{
+  margin-top:10px;padding:7px 10px;border-radius:8px;
+  background:#f8fafc;border:1px dashed var(--line-strong);
+  font-size:11.5px;color:var(--muted);line-height:1.6;
+}
 .thermo-track{
   width:100%;height:9px;border-radius:99px;background:#e2e8f0;overflow:hidden;position:relative;
 }
@@ -249,6 +255,19 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
   font:700 13px/1.4 Consolas,ui-monospace,monospace;color:var(--ink);
   word-break:break-all;
 }
+.pick-mix{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px;
+  font-size:11.5px;color:var(--muted);
+}
+.mix-label{font-weight:700;color:var(--ink-soft)}
+.mix-chip{
+  background:#f1f5f9;border:1px solid var(--line);border-radius:99px;
+  padding:2px 8px;font-weight:700;font-size:11px;color:var(--ink-soft);
+}
+.mix-chip.hot{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.mix-chip.cold{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.mix-chip.both{background:#fffbeb;border-color:#fcd34d;color:#b45309}
+.mix-note{font-size:11px;color:var(--muted)}
 .hero-actions{
   display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:12px;
 }
@@ -282,6 +301,15 @@ summary::-webkit-details-marker{display:none}
 details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 .fold-content{border-top:1px solid var(--line);padding:13px;font-size:12.5px;line-height:1.6}
 
+.derive-toggle{width:100%;margin-top:10px}
+.engine-stack.collapsed .panel table{display:none}
+.engine-stack.collapsed .panel .ep-summary{display:flex}
+.engine-stack:not(.collapsed) .panel .ep-summary{display:none}
+.ep-summary{
+  align-items:center;gap:6px;flex-wrap:wrap;
+  font-size:12px;color:var(--ink-soft);padding-top:2px;
+}
+.ep-summary .empty-hint{color:var(--muted);font-weight:600}
 .derive-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
 .sub-chip{background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-size:12px;color:var(--ink-soft)}
 .sub-chip b{font-family:Consolas,monospace;color:var(--ink)}
@@ -553,7 +581,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <div class="brand-sub">
           <span id="storageLine"><span id="storageDot" class="status-dot"></span> <span id="storageLabel">底库就绪</span></span>
           <span>·</span>
-          <span>数据截至 <b id="noticeLatest">—</b>（<span id="dataSourceLabel">内置底库</span>，有效 <b id="totalCount">--</b> 期）</span>
+          <span>数据截至 <b id="noticeLatest">—</b>（<span id="dataSourceLabel">内置底库</span>，有效 <b id="totalCount">--</b> 期）<span id="syncStamp"></span></span>
         </div>
       </div>
       <div class="top-actions">
@@ -585,6 +613,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
       </div>
     </div>
     <div class="thermo-list" id="thermometerList"></div>
+    <div class="thermo-baseline" id="thermoBaseline">7码单组随机基线 ≈ 14.3% · 30 期样本波动约 ±12pp，短期高低多为随机起伏，暂不足以判断优劣。</div>
   </section>
 
   <!-- 模块 3：下期智能主推卡片 -->
@@ -645,8 +674,8 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
     <details class="fold-card" id="deriveFold">
       <summary class="wide-summary">
         <span class="left">
-          <b>查看推导细节</b>
-          <span class="sub-hint">展开查看 #1 热态 / #2 遗漏 / #3 周期 / 冷却池 原表</span>
+          <b>选号依据</b>
+          <span class="sub-hint">默认只显示摘要，点「展开完整表」再看逐号明细</span>
         </span>
         <span class="arrow">⌄</span>
       </summary>
@@ -654,6 +683,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <div class="derive-chips" id="deriveChips"></div>
         <div class="engine-stack" id="tool2Panels"></div>
         <div class="cool-pool-box" id="tool2Summary"></div>
+        <button type="button" class="btn sm derive-toggle" id="deriveToggle" data-expanded="0">展开完整表 ▾</button>
       </div>
     </details>
   </section>
@@ -743,7 +773,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <div class="search-row">
           <input type="search" id="historySearch" class="search-input" placeholder="搜期号 如 2026-300">
           <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:inline-flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="checkbox" id="historyOnlyHit"> 仅看主推命中
+            <input type="checkbox" id="historyOnlyHit"> 仅看命中
           </label>
         </div>
       </div>
@@ -1104,7 +1134,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.17-r19';
+const APP_BUILD = '2026.11.17-r20';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1956,7 +1986,7 @@ function renderTopBar() {
 function renderTierTabs() {
   const wrap = document.getElementById('tierTabs');
   wrap.innerHTML = TIER_SIZES.map(size =>
-    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '三组并集' : `高分前${size}`}</small></button>`
+    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '并集全取' : `高分前${size}`}</small></button>`
   ).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1993,10 +2023,31 @@ function renderPicks() {
     <div class="copy-preview">
       <span>复制格式（英文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
       <code>${currentPicksText()}</code>
-    </div>`;
+    </div>
+    ${activeTier === UNION_TIER ? '' : `<div class="pick-mix">${buildMixHint(plan, picks)}</div>`}`;
   copyBtn.setAttribute('data-copy', currentPicksText());
   copyBtn.setAttribute('data-copy-label', '一键复制推荐号码');
   copyBtn.disabled = picks.length === 0;
+}
+
+function buildMixHint(plan, picks) {
+  const hotSet = new Set(plan.groups.hot);
+  const coldSet = new Set(plan.groups.cold);
+  let hot = 0, cold = 0, both = 0;
+  for (const n of picks) {
+    const h = hotSet.has(n), c = coldSet.has(n);
+    if (h && c) both++;
+    else if (h) hot++;
+    else if (c) cold++;
+  }
+  const parts = [
+    `<span class="mix-chip hot">热态 ${hot}</span>`,
+    `<span class="mix-chip cold">遗漏 ${cold}</span>`
+  ];
+  if (both) parts.push(`<span class="mix-chip both">双中 ${both}</span>`);
+  const other = picks.length - hot - cold - both;
+  if (other > 0) parts.push(`<span class="mix-chip">其他 ${other}</span>`);
+  return `<span class="mix-label">本档构成</span>${parts.join('')}<span class="mix-note">（#2 遗漏长期略高于 #1 热态，#1 号更易被周期/近5期排除，故偏多）</span>`;
 }
 
 function renderDerive(plan) {
@@ -2010,6 +2061,7 @@ function renderDerive(plan) {
   const hcUnionSet = new Set([...plan.groups.hot, ...plan.groups.cold]);
   const optSet = new Set(plan.optPicks);
 
+  document.getElementById('tool2Panels').classList.add('collapsed');
   document.getElementById('tool2Panels').innerHTML = DAILY_THREE_CATALOG.map(cat => {
     const nums = plan.groups[cat.id];
     const scMap = plan.scores[cat.id];
@@ -2037,11 +2089,24 @@ function renderDerive(plan) {
       </tr>`;
     }).join('');
 
+    const summaryBalls = nums.map(n => ballHtml(n, 'sm' + (isCycPanel ? (hcUnionSet.has(n) ? ' cool-dim' : '') : (!optSet.has(n) ? ' cool-dim' : '')))).join('');
+    let summaryNote = '';
+    if (isCycPanel) {
+      const killed = nums.filter(n => hcUnionSet.has(n)).length;
+      summaryNote = `<span class="empty-hint">命中热/冷组 ${killed} 个，作为反向排除</span>`;
+    } else {
+      const keptN = nums.filter(n => optSet.has(n)).length;
+      const cycN = nums.filter(n => plan.cycSet.has(n)).length;
+      const coolN = nums.filter(n => plan.coolSet.has(n)).length;
+      summaryNote = `<span class="empty-hint">主推保留 ${keptN} · 周期排除 ${cycN} · 近5期开过 ${coolN}</span>`;
+    }
+
     return `<div class="panel" style="border-top:3px solid ${cat.color}">
       <div class="ep-head">
         <span class="ep-title">${cat.icon} ${cat.fullTitle}</span>
         <span class="ep-meta${isCycPanel ? ' warn' : ''}">${cat.role}</span>
       </div>
+      <div class="ep-summary">${summaryBalls}${summaryNote}</div>
       <table class="prediction">
         <thead><tr><th style="text-align:left;padding-left:10px">号码</th><th>生肖</th><th>形态</th><th>遗漏</th><th>得分</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
@@ -2461,7 +2526,7 @@ function renderHistoryModal() {
   const slice = rows.slice().reverse().slice(0, modalHistoryLimit);
   document.getElementById('fullHistoryBody').innerHTML = slice.length
     ? slice.map(r => historyRowHtml(r, activeTier)).join('')
-    : '<tr><td colspan="8" class="empty">没有符合条件的期数</td></tr>';
+    : '<tr><td colspan="7" class="empty">没有符合条件的期数</td></tr>';
 
   const bar = document.getElementById('modalMoreBar');
   const shown = slice.length, total = rows.length;
@@ -2534,6 +2599,13 @@ function refreshAll() {
 
 function updateDataStatus() {
   const latest = allRecords().at(-1)?.label || '—';
+  const stampEl = document.getElementById('syncStamp');
+  if (stampEl) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    stampEl.innerHTML = ` · <span class="sync-stamp" id="syncStampText">同步于 ${hh}:${mm}</span>`;
+  }
   document.getElementById('noticeLatest').textContent = latest;
   document.getElementById('dataSourceLabel').textContent = manualRecords.length ? '内置底库 + 本机同步记录' : '内置离线底库';
   const line = document.getElementById('storageLine');
@@ -2713,6 +2785,16 @@ function init() {
   lockedPlan = persisted.locked;
   lockHistory = persisted.locks;
   setupBallInputs();
+
+  // 选号依据：默认只显示摘要，可切换完整表
+  const deriveToggle = document.getElementById('deriveToggle');
+  deriveToggle.addEventListener('click', () => {
+    const stack = document.getElementById('tool2Panels');
+    const expanded = stack.classList.toggle('collapsed') === false;
+    deriveToggle.dataset.expanded = expanded ? '1' : '0';
+    deriveToggle.textContent = expanded ? '收起完整表 ▴' : '展开完整表 ▾';
+  });
+
   bindHistoryDetail('historyBody');
   bindHistoryDetail('fullHistoryBody');
 
@@ -2987,6 +3069,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.17-r19"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.17-r20"></script>
 </body>
 </html>
