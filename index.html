@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.17-r17">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r17">
+<meta name="app-version" content="v2026.11.17-r18">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r18">
 <style>
 :root{
   --ink:#0f172a;
@@ -408,7 +408,6 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 }
 .badge{display:inline-block;padding:2px 7px;border-radius:6px;font:800 11.5px Consolas,monospace}
 .badge.hit{background:#fee2e2;color:#b91c1c}
-.badge.opt-hit{background:#dbeafe;color:#1d4ed8}
 .badge.tier-hit{background:#2563eb;color:#fff}
 .miss-dash{color:#cbd5e1;font:700 13px Consolas,monospace}
 .exp-btn{
@@ -711,7 +710,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
     </div>
   </section>
 
-  <div class="foot-note">仅供历史数据统计参考，每期开奖独立随机，请理性娱乐。 · 特码智能选号助手 构建 v2026.11.17-r17</div>
+  <div class="foot-note">仅供历史数据统计参考，每期开奖独立随机，请理性娱乐。</div>
 </div>
 
 <!-- 弹窗 1：完整历史明细（全部 1779+ 期） -->
@@ -729,7 +728,6 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
               <th>年份</th>
               <th>期数</th>
               <th id="modalYearlyTierHead">当前10码<small>按分截取</small></th>
-              <th>提纯主推<small>原版提纯</small></th>
               <th>#1 热态<small>7码</small></th>
               <th>#2 遗漏<small>7码</small></th>
               <th>#3 周期<small>7码</small></th>
@@ -757,7 +755,6 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
               <th class="col-period">期号</th>
               <th>开奖号码（末位特码）</th>
               <th id="modalTableTierHead">当前10码</th>
-              <th>提纯主推</th>
               <th>#1 热态</th>
               <th>#2 遗漏</th>
               <th>#3 周期</th>
@@ -1107,7 +1104,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.17-r17';
+const APP_BUILD = '2026.11.17-r18';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -2286,17 +2283,15 @@ function tierHitOf(row, tier) {
   return row.ranked.slice(0, tier).includes(row.special);
 }
 
-function historyRowHtml(r, tier, showOpt = true) {
+function historyRowHtml(r, tier) {
   const cell = (hit, cls = 'hit') => hit
     ? `<span class="badge ${cls}">${pad2(r.special)}</span>`
     : '<span class="miss-dash">-</span>';
-  const anyHit = tierHitOf(r, tier) || r.hitHot || r.hitCold || r.hitCycle || (showOpt && r.hitOpt);
-  const optCell = showOpt ? `<td>${cell(r.hitOpt, 'opt-hit')}</td>` : '';
+  const anyHit = tierHitOf(r, tier) || r.hitHot || r.hitCold || r.hitCycle;
   return `<tr class="main-row${anyHit ? ' row-hit' : ''}" data-lbl="${escapeHtml(r.label)}">
     <td class="col-period">${escapeHtml(r.label)}</td>
     <td>${drawBallsHtml(r.raw7)}</td>
     <td>${cell(tierHitOf(r, tier), 'tier-hit')}</td>
-    ${optCell}
     <td>${cell(r.hitHot)}</td>
     <td>${cell(r.hitCold)}</td>
     <td>${cell(r.hitCycle)}</td>
@@ -2307,7 +2302,7 @@ function historyRowHtml(r, tier, showOpt = true) {
 function renderRecentHistory() {
   const rows = recentPlanRows(10).slice().reverse();
   document.getElementById('historyBody').innerHTML = rows.length
-    ? rows.map(r => historyRowHtml(r, activeTier, false)).join('')
+    ? rows.map(r => historyRowHtml(r, activeTier)).join('')
     : '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
   const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
   document.getElementById('recent10Summary').textContent =
@@ -2404,7 +2399,6 @@ function renderYearlyTable(allRows) {
       <td class="yr-label">${labelText}</td>
       <td class="yr-cnt">${rows.length}</td>
       ${replayRateCell(rows, r => tierHitOf(r, activeTier))}
-      ${replayRateCell(rows, r => r.hitOpt)}
       ${replayRateCell(rows, r => r.hitHot)}
       ${replayRateCell(rows, r => r.hitCold)}
       ${replayRateCell(rows, r => r.hitCycle)}
@@ -2441,7 +2435,7 @@ function modalRows() {
   let rows = selectedYear === 'ALL' ? all : all.filter(r => r.year === selectedYear);
   const q = historySearchQuery.trim();
   if (q) rows = rows.filter(r => r.label.includes(q));
-  if (historyOnlyHit) rows = rows.filter(r => tierHitOf(r, activeTier) || r.hitOpt);
+  if (historyOnlyHit) rows = rows.filter(r => tierHitOf(r, activeTier));
   return { all, rows };
 }
 
@@ -2692,7 +2686,6 @@ function bindHistoryDetail(tbodyId) {
     const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
     tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
       ${renderGrp(`推荐 ${picks.length}码`, picks)}
-      ${renderGrp(`提纯(${r.opt.length})`, r.opt)}
       ${renderGrp('#1 热态', r.hot)}
       ${renderGrp('#2 遗漏', r.cold)}
       ${renderGrp('#3 周期', r.cycle)}
@@ -2981,6 +2974,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.17-r17"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.17-r18"></script>
 </body>
 </html>

@@ -40,4 +40,4 @@ npm start
 npm run sync
 ```
 
-构建版本需同步更新 `src/constants.js`、`index.html` 与 `sw.js`，当前为 `2026.11.17-r17`。
+构建版本需同步更新 `src/constants.js`、`index.html` 与 `sw.js`，当前为 `2026.11.17-r18`。
