@@ -8,7 +8,7 @@
  *  4. BUILD_ID 必须与 src/constants.js 的 APP_BUILD、index.html 的 ?v= 参数一致，由单测自动校验。
  */
 
-const BUILD_ID = '2026.11.17-r20';
+const BUILD_ID = '2026.11.17-r22';
 const CACHE_PREFIX = 'mark6-nst-';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 
@@ -16,6 +16,7 @@ const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const SHELL_FILES = [
   './',
   './index.html',
+  './simulator.html',
   './manifest.webmanifest',
   './assets/styles.css',
   './assets/six-tier.css',
