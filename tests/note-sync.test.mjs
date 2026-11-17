@@ -260,6 +260,52 @@ test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为�
   }
 });
 
+test('温度计随机基线、选号依据默认摘要、本档构成与同步时间', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+
+    // 温度计随机基线提示
+    const baseline = doc.getElementById('thermoBaseline');
+    assert.ok(baseline, '应有随机基线提示');
+    assert.match(baseline.textContent, /14\.3%/);
+    assert.match(baseline.textContent, /±12pp/);
+
+    // 选号依据：默认只有摘要，表格折叠
+    const fold = doc.getElementById('deriveFold');
+    assert.equal(fold.open, false);
+    assert.equal(doc.querySelector('#deriveFold .wide-summary b').textContent, '选号依据');
+    const stack = doc.getElementById('tool2Panels');
+    assert.ok(stack.classList.contains('collapsed'), '默认应折叠完整表');
+    assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
+    assert.equal(doc.querySelectorAll('#tool2Panels .ep-summary').length, 3, '每个面板都应有摘要行');
+    const toggle = doc.getElementById('deriveToggle');
+    assert.match(toggle.textContent, /展开完整表/);
+    toggle.click();
+    assert.ok(!stack.classList.contains('collapsed'));
+    assert.match(toggle.textContent, /收起完整表/);
+    toggle.click();
+    assert.ok(stack.classList.contains('collapsed'));
+
+    // 本档构成提示（18 码并集档位不显示）
+    assert.ok(doc.querySelector('.pick-mix'), '5/7/10/12 档位应显示构成');
+    assert.match(doc.querySelector('.pick-mix').textContent, /热态 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /遗漏 \d+/);
+    doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
+    assert.equal(doc.querySelector('.pick-mix'), null, '并集档位不显示单一构成');
+    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
+
+    // 顶部同步时间
+    assert.match(doc.getElementById('syncStamp').textContent, /同步于 \d{2}:\d{2}/);
+
+    // 弹窗筛选文案已改为「仅看命中」
+    assert.match(doc.querySelector('#historyOnlyHit').parentElement.textContent, /仅看命中/);
+  } finally {
+    dom.window.close();
+  }
+});
+
 test('近 30 期温度计、连错期数与推导细节折叠面板', async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
@@ -318,6 +364,17 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     doc.querySelector('#fullHistoryBody .exp-btn').click();
 
     // 底部说明不再带版本号
+    // 搜索无结果时空态 colspan 必须与表头列数一致（曾有写死 8 的问题）
+    const search = doc.getElementById('historySearch');
+    search.value = '9999-999';
+    search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 260));
+    const emptyCell = doc.querySelector('#fullHistoryBody td');
+    assert.equal(Number(emptyCell.getAttribute('colspan')), modalHead.length, '空态 colspan 应与表头列数一致');
+    search.value = '';
+    search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 260));
+
     const foot = doc.querySelector('.foot-note');
     assert.ok(!/v\d{4}\.\d{2}\.\d{2}/.test(foot.textContent), '底部不应再显示构建版本号');
     assert.ok(foot.textContent.includes('仅供历史数据统计参考'));
