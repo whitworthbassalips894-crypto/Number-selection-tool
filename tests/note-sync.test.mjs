@@ -284,6 +284,28 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     assert.equal(doc.getElementById('historyModal').hidden, false);
     assert.equal(doc.body.classList.contains('modal-open'), true);
     assert.ok(doc.querySelectorAll('#yearlyBody tr').length >= 6);
+
+    // 弹窗内两张表同样不再展示「提纯主推」
+    const modalHead = [...doc.querySelectorAll('#historyModal table.history thead th')].map(th => th.textContent.trim());
+    const yearlyHead = [...doc.querySelectorAll('#historyModal .yearly-table thead th')].map(th => th.textContent.trim());
+    assert.ok(!modalHead.includes('提纯主推'), '弹窗明细表不应再有提纯主推列');
+    assert.ok(!yearlyHead.some(t => t.startsWith('提纯')), '年度总表不应再有提纯主推列');
+    assert.equal(modalHead.length, 7);
+    assert.equal(yearlyHead.length, 7);
+    const modalFirst = doc.querySelector('#fullHistoryBody tr.main-row');
+    assert.equal(modalFirst.querySelectorAll(':scope > td').length, 7);
+    const yearlyTotal = doc.querySelector('#yearlyBody tr.yr-total');
+    assert.equal(yearlyTotal.querySelectorAll(':scope > td').length, 7);
+    doc.querySelector('#fullHistoryBody .exp-btn').click();
+    const modalDetail = doc.querySelector('#fullHistoryBody tr.detail-row td');
+    assert.equal(Number(modalDetail.getAttribute('colspan')), 7);
+    assert.ok(!modalDetail.textContent.includes('提纯'));
+    doc.querySelector('#fullHistoryBody .exp-btn').click();
+
+    // 底部说明不再带版本号
+    const foot = doc.querySelector('.foot-note');
+    assert.ok(!/v\d{4}\.\d{2}\.\d{2}/.test(foot.textContent), '底部不应再显示构建版本号');
+    assert.ok(foot.textContent.includes('仅供历史数据统计参考'));
     assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 120);
     assert.match(doc.getElementById('modalTotalBadge').textContent, /1780/);
     assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1780 期/);
