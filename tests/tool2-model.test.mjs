@@ -22,6 +22,10 @@ function sortedUnique(values) {
   return [...new Set(values)].sort((a, b) => a - b);
 }
 
+function unionExpectedFor(plan) {
+  return sortedUnique([...plan.groups.hot, ...plan.groups.cold, ...plan.groups.cycle]);
+}
+
 test('三策略输出三组各 7 码，并集与提纯逻辑已移除', () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
   assert.equal(usable.length, 1780);
@@ -61,14 +65,17 @@ test('综合评分：49 码全部参与排序，权重与组内加成可复现',
     + weights.cycle * api.strategyPercentile(plan.scores.cycle)[sample.n];
   assert.ok(sample.score > base, '进入策略 7 码的号码应获得组内加成');
 
-  // 每个档位都是同一份综合分排序的前 N 码（没有任何号码被提前剔除）
+  // 5/7/10/12 码档位取同一份综合分排序的前 N 码（没有任何号码被提前剔除）
   const ranked = api.rankCandidatesFromPlan(plan);
   assert.deepEqual(ranked, rows.map(r => r.n));
   assert.equal(ranked.length, 49);
-  for (const size of [5, 7, 10, 12, 18]) {
+  for (const size of [5, 7, 10, 12]) {
     const picks = ranked.slice(0, size);
     assert.equal(new Set(picks).size, size, `${size} 码档位不应有重复号码`);
   }
+  // 18 码档位 = 三组去重并集，当期有多少码就多少码
+  assert.deepEqual([...plan.union], unionExpectedFor(plan));
+  assert.ok(plan.union.length >= 12 && plan.union.length <= 21);
   // 三组 7 码里的号码整体应排在未入组号码之前
   const groupMembers = new Set([...plan.groups.hot, ...plan.groups.cold, ...plan.groups.cycle]);
   const top18 = ranked.slice(0, 18);
