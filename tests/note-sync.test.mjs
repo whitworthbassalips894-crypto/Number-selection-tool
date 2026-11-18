@@ -208,7 +208,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
   }
 });
 
-test("5/7/10/12/18 码一键切换（均按三策略综合分截取），复制文本为纯 ASCII 逗号格式", async () => {
+test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，复制文本为纯 ASCII 逗号格式", async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -222,7 +222,7 @@ test("5/7/10/12/18 码一键切换（均按三策略综合分截取），复制�
       7: '05,13,14,17,26,38,46',
       10: '05,13,14,17,19,20,26,37,38,46',
       12: '05,06,13,14,17,19,20,23,26,37,38,46',
-      18: '05,06,13,14,15,17,19,20,23,24,26,29,31,37,38,39,41,46'
+      18: '04,05,06,12,13,14,17,19,20,26,29,31,37,38,39,41,46'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -234,23 +234,27 @@ test("5/7/10/12/18 码一键切换（均按三策略综合分截取），复制�
       assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
     }
 
-    // 18 码档位同样是同一份综合分排序的前 18 码（固定 18 码，不再走并集）
+    // 18 码档位 = #1∪#2∪#3 去重后的全部号码（当期有多少码就显示多少码）
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
-    const bigChips = doc.querySelectorAll('#optHero .pick-chip').length;
-    assert.equal(bigChips, 18, `18 码档位应为 18 码：${bigChips}`);
-    const bigText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
-    assert.equal(bigText, expect[18]);
-    const bigNums = bigText.split(',').map(Number);
-    assert.equal(new Set(bigNums).size, 18, '号码不应重复');
-    assert.match(doc.getElementById('recentTierColHead').textContent, /当前18码（18码）/);
-    assert.match(doc.getElementById('recentSummary').textContent, /当前18码中 \d+ 期/);
-    // 档位之间应严格是包含关系（前 N 码）
+    const unionChips = doc.querySelectorAll('#optHero .pick-chip').length;
+    assert.ok(unionChips >= 12 && unionChips <= 21, `并集码数异常：${unionChips}`);
+    const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
+    assert.equal(unionText, expect[18]);
+    const unionNums = unionText.split(',').map(Number);
+    assert.equal(unionNums.length, unionChips, '复制文本应与并集号码一致');
+    assert.deepEqual(unionNums, [...unionNums].sort((a, b) => a - b), '并集号码应升序');
+    assert.equal(new Set(unionNums).size, unionNums.length, '并集号码不应重复');
+    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
+    assert.match(doc.getElementById('recentTierColHead').textContent, new RegExp(`当前并集（${unionChips}码）`));
+    assert.match(doc.getElementById('recentSummary').textContent, /三组并集中 \d+ 期/);
+    assert.match(doc.querySelector('#optHero .copy-preview').textContent, new RegExp(`三组并集共 ${unionChips} 码`));
+    // 号码越多，18 码档位应包含 5 码档位的全部号码
+    const unionShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
+    assert.deepEqual(unionShown, unionNums);
     doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
-    const five = new Set(doc.getElementById('copyMainBtn').getAttribute('data-copy').split(',').map(Number));
-    for (const n of five) assert.ok(bigNums.includes(n), `${n} 应同时出现在 18 码档位`);
+    const five = doc.getElementById('copyMainBtn').getAttribute('data-copy').split(',').map(Number);
+    for (const n of five) assert.ok(unionNums.includes(n), `${n} 应同时出现在三组并集里`);
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
-    const bigShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
-    assert.deepEqual(bigShown, bigNums);
 
     // 档位切换后锁定跟随当前档位
     doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
@@ -289,8 +293,8 @@ test('温度计随机基线、选号依据已移除、本档构成与同步时�
     assert.match(doc.querySelector('.pick-mix').textContent, /含遗漏 \d+/);
     assert.match(doc.querySelector('.pick-mix').textContent, /含周期 \d+/);
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
-    assert.ok(doc.querySelector('.pick-mix'), '18 码档位同样显示构成');
-    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /高分前18/);
+    assert.ok(doc.querySelector('.pick-mix'), '18 码并集档位同样显示构成');
+    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
 
     // 顶部同步时间
     assert.match(doc.getElementById('syncStamp').textContent, /同步于 \d{2}:\d{2}/);

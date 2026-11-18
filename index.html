@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.18-r21">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r21">
+<meta name="app-version" content="v2026.11.18-r22">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r22">
 <style>
 :root{
   --ink:#0f172a;
@@ -1079,7 +1079,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.18-r21';
+const APP_BUILD = '2026.11.18-r22';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1859,8 +1859,14 @@ let currentPlanData = null;
 let replayTimer = null;
 let replayBusy = false;
 
-/* 五个档位（5 / 7 / 10 / 12 / 18 码）全部按三策略综合分从高到低截取 */
+/* 5 / 7 / 10 / 12 码按三策略综合分从高到低截取；18 码档位 = #1∪#2∪#3 去重后的全部号码（码数随期浮动） */
+const UNION_TIER = 18;
+
 function picksOfRow(row, tier) {
+  if (tier === UNION_TIER) {
+    const union = Array.isArray(row.union) ? row.union : [];
+    return [...new Set(union)].sort((a, b) => a - b);
+  }
   return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);
 }
 
@@ -1898,7 +1904,7 @@ function renderTopBar() {
 function renderTierTabs() {
   const wrap = document.getElementById('tierTabs');
   wrap.innerHTML = TIER_SIZES.map(size =>
-    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>高分前${size}</small></button>`
+    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '并集全取' : `高分前${size}`}</small></button>`
   ).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1935,16 +1941,16 @@ function renderPicks() {
   host.innerHTML = `
     <div class="pick-grid">${chips}</div>
     <div class="copy-preview">
-      <span>复制格式（英文逗号分隔）</span>
+      <span>复制格式（英文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
       <code>${currentPicksText()}</code>
     </div>
-    <div class="pick-mix">${buildMixHint(plan, picks)}</div>`;
+    <div class="pick-mix">${buildMixHint(plan, picks, activeTier)}</div>`;
   copyBtn.setAttribute('data-copy', currentPicksText());
   copyBtn.setAttribute('data-copy-label', '一键复制推荐号码');
   copyBtn.disabled = picks.length === 0;
 }
 
-function buildMixHint(plan, picks) {
+function buildMixHint(plan, picks, tier = activeTier) {
   const hotSet = new Set(plan.groups.hot);
   const coldSet = new Set(plan.groups.cold);
   const cycleSet = new Set(plan.groups.cycle);
@@ -1964,7 +1970,10 @@ function buildMixHint(plan, picks) {
   if (multi) parts.push(`<span class="mix-chip both">多策共识 ${multi}</span>`);
   const other = picks.length - hot - cold - cycle;
   if (other > 0) parts.push(`<span class="mix-chip">综合 ${other}</span>`);
-  return `<span class="mix-label">本档构成</span>${parts.join('')}<span class="mix-note">（按三策略综合分排序截取，热态 40% / 遗漏 34% / 周期 26%）</span>`;
+  const note = tier === UNION_TIER
+    ? '（#1∪#2∪#3 去重后的全部号码，当期有多少码就显示多少码）'
+    : '（按三策略综合分排序截取，热态 40% / 遗漏 34% / 周期 26%）';
+  return `<span class="mix-label">本档构成</span>${parts.join('')}<span class="mix-note">${note}</span>`;
 }
 
 function recentPlanRows(count) {
@@ -2028,7 +2037,8 @@ function renderSignal() {
   const hit20 = last20.filter(r => tierHitOf(r, activeTier)).length;
 
   document.getElementById('losingStreakBadge').textContent = `当前连错 ${streak} 期`;
-  document.getElementById('recentHitBadge').textContent = `近20期${activeTier}码中 ${hit20} 期`;
+  document.getElementById('recentHitBadge').textContent =
+    `近20期${activeTier === UNION_TIER ? '三组并集' : `${activeTier}码`}中 ${hit20} 期`;
 
   const banner = document.getElementById('signalBanner');
   const textEl = document.getElementById('signalText');
@@ -2091,7 +2101,8 @@ function renderLockArea(targetLabel) {
     btn.textContent = '解除锁定';
     btn.disabled = false;
     current.hidden = false;
-    current.innerHTML = `<div class="lock-current-head"><b>已锁定 ${lockedPlan.tier || picks.length} 码</b><span>${escapeHtml(when)}</span></div>
+    const tierText = lockedPlan.tier === UNION_TIER ? `三组并集 ${picks.length} 码` : `${lockedPlan.tier || picks.length} 码`;
+    current.innerHTML = `<div class="lock-current-head"><b>已锁定 ${tierText}</b><span>${escapeHtml(when)}</span></div>
       <div class="numbers">${picks.map(lockBallHtml).join('')}</div>`;
   } else {
     title.textContent = '未锁定';
@@ -2108,7 +2119,7 @@ function renderLockArea(targetLabel) {
     const when = new Date(log.archivedAt || log.createdAt).toLocaleString('zh-CN');
     const picks = (log.picks && log.picks.length) ? log.picks : log.opt;
     const result = log.special
-      ? `特码 ${lockBallHtml(log.special)} · ${log.tier || picks.length}码${log.hitPicks ? '命中' : '未中'}`
+      ? `特码 ${lockBallHtml(log.special)} · ${log.tier === UNION_TIER ? `三组并集 ${picks.length}码` : `${log.tier || picks.length}码`}${log.hitPicks ? '命中' : '未中'}`
       : log.stale ? '未开奖前已过期 · 快照已存档' : '锁定快照';
     return `<div class="lock-record"><strong>${escapeHtml(log.label)}</strong> &nbsp; ${result}<br><small>锁定于 ${escapeHtml(when)}（本机时间）</small><div class="numbers">${picks.map(lockBallHtml).join('')}</div></div>`;
   }).join('') : '<div class="empty">暂无锁定记录</div>';
@@ -2171,13 +2182,13 @@ function renderHeatSection(usable) {
 function renderHistoryHead() {
   const suffix = `${activeTier}`;
   const actual = currentPlanData ? currentPicks().length : 0;
-  const label = `当前${suffix}码${actual ? `（${actual}码）` : ''}`;
+  const label = activeTier === UNION_TIER ? `当前并集${actual ? `（${actual}码）` : ''}` : `当前${suffix}码${actual ? `（${actual}码）` : ''}`;
   const a = document.getElementById('recentTierColHead');
   const b = document.getElementById('modalTableTierHead');
   const c = document.getElementById('modalYearlyTierHead');
   if (a) a.textContent = label;
   if (b) b.textContent = label;
-  if (c) c.innerHTML = `${label}<small>综合分截取</small>`;
+  if (c) c.innerHTML = activeTier === UNION_TIER ? `${label}<small>并集去重</small>` : `${label}<small>综合分截取</small>`;
 }
 
 function drawBallsHtml(raw7) {
@@ -2215,7 +2226,7 @@ function renderRecentHistory() {
   const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
   document.getElementById('recentSummary').textContent =
     rows.length
-      ? `最近 ${rows.length} 期 · 当前${activeTier}码中 ${hit} 期`
+      ? `最近 ${rows.length} 期 · ${activeTier === UNION_TIER ? '三组并集' : `当前${activeTier}码`}中 ${hit} 期`
       : '暂无数据';
 }
 
@@ -2604,10 +2615,10 @@ function bindHistoryDetail(tbodyId) {
         : '<span class="dc-note">无</span>';
       return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
     };
-    const picks = picksOfRow(r, activeTier);
+    const picks = activeTier === UNION_TIER && Array.isArray(r.union) ? [...new Set(r.union)].sort((x, y) => x - y) : picksOfRow(r, activeTier);
     const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
     tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
-      ${renderGrp(`推荐 ${picks.length}码`, picks)}
+      ${renderGrp(activeTier === UNION_TIER ? `三组并集 ${picks.length}码` : `推荐 ${picks.length}码`, picks)}
       ${renderGrp('#1 热态', r.hot)}
       ${renderGrp('#2 遗漏', r.cold)}
       ${renderGrp('#3 周期', r.cycle)}
@@ -2897,6 +2908,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.18-r21"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.18-r22"></script>
 </body>
 </html>

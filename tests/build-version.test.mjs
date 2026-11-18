@@ -91,8 +91,9 @@ test('推荐号码一键复制为纯 ASCII 逗号分隔两位数字', () => {
   for (const size of [5, 7, 10, 12, 18]) {
     assert.ok(html.includes(String(size)), `缺少 ${size} 码档位`);
   }
-  // 五个档位统一按三策略综合分截取，不再有并集/提纯口径
-  assert.ok(html.includes('function picksOfRow(row, tier) {\n  return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);\n}'), '各档位应统一按综合分截取');
-  assert.ok(!html.includes('UNION_TIER'), '不应再有并集专属档位');
+  // 5/7/10/12 码按三策略综合分截取，18 码档位取三组去重并集（码数随期浮动）
+  assert.ok(html.includes("if (tier === UNION_TIER) {"), '18 码档位应单独走并集分支');
+  assert.ok(html.includes('const UNION_TIER = 18;'), '18 码档位应标记为并集口径');
+  assert.ok(html.includes('return [...new Set(union)].sort((a, b) => a - b);'), '并集号码应去重后升序');
   assert.ok(html.includes('const STRATEGY_WEIGHTS = { hot: 0.40, cold: 0.34, cycle: 0.26 };'), '应保留三策略权重');
 });
