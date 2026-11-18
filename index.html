@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.18-r22">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r22">
+<meta name="app-version" content="v2026.11.18-r23">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r23">
 <style>
 :root{
   --ink:#0f172a;
@@ -1079,7 +1079,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.18-r22';
+const APP_BUILD = '2026.11.18-r23';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1901,11 +1901,22 @@ function renderTopBar() {
   }
 }
 
+function unionCountOf(row) {
+  if (!row) return 0;
+  const union = Array.isArray(row.union) ? row.union : [];
+  return new Set(union).size;
+}
+
 function renderTierTabs() {
   const wrap = document.getElementById('tierTabs');
-  wrap.innerHTML = TIER_SIZES.map(size =>
-    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '并集全取' : `高分前${size}`}</small></button>`
-  ).join('');
+  const unionCount = unionCountOf(currentPlanData);
+  wrap.innerHTML = TIER_SIZES.map(size => {
+    // 并集档位不写死码数：当期三组去重后有多少个就显示多少个
+    const label = size === UNION_TIER
+      ? (unionCount ? `并集全取 <small>${unionCount}码</small>` : '并集全取')
+      : `${size}码<small>高分前${size}</small>`;
+    return `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${label}</button>`;
+  }).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
     btn.addEventListener('click', () => {
       const size = Number(btn.getAttribute('data-tier'));
@@ -2908,6 +2919,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.18-r22"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.18-r23"></script>
 </body>
 </html>
