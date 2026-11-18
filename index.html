@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.17-r20">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.17-r20">
+<meta name="app-version" content="v2026.11.18-r21">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r21">
 <style>
 :root{
   --ink:#0f172a;
@@ -104,7 +104,6 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .ball.sm{width:24px;height:24px;font-size:11.5px}
 .ball.lg{width:38px;height:38px;font-size:15px}
 .ball.xl{width:42px;height:42px;font-size:16.5px}
-.ball.shared-ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #f59e0b}
 .ball.hit-ring{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--hot)}
 .ball.cool-dim{opacity:.45}
 
@@ -244,6 +243,7 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .pick-chip.is-dual .pick-tag{background:#fef3c7;color:#b45309}
 .pick-chip.is-hot .pick-tag{background:#fef2f2;color:#b91c1c}
 .pick-chip.is-cold .pick-tag{background:#eff6ff;color:#1d4ed8}
+.pick-chip.is-cycle .pick-tag{background:#ecfdf5;color:#047857}
 
 .copy-preview{
   margin-top:12px;padding:8px 11px;border-radius:8px;
@@ -267,6 +267,7 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .mix-chip.hot{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
 .mix-chip.cold{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
 .mix-chip.both{background:#fffbeb;border-color:#fcd34d;color:#b45309}
+.mix-chip.cycle{background:#ecfdf5;border-color:#a7f3d0;color:#047857}
 .mix-note{font-size:11px;color:var(--muted)}
 .hero-actions{
   display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:12px;
@@ -300,47 +301,6 @@ summary::-webkit-details-marker{display:none}
 .wide-summary .arrow{color:var(--muted);font-size:13px;transition:transform .2s}
 details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 .fold-content{border-top:1px solid var(--line);padding:13px;font-size:12.5px;line-height:1.6}
-
-.derive-toggle{width:100%;margin-top:10px}
-.engine-stack.collapsed .panel table{display:none}
-.engine-stack.collapsed .panel .ep-summary{display:flex}
-.engine-stack:not(.collapsed) .panel .ep-summary{display:none}
-.ep-summary{
-  align-items:center;gap:6px;flex-wrap:wrap;
-  font-size:12px;color:var(--ink-soft);padding-top:2px;
-}
-.ep-summary .empty-hint{color:var(--muted);font-weight:600}
-.derive-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
-.sub-chip{background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-size:12px;color:var(--ink-soft)}
-.sub-chip b{font-family:Consolas,monospace;color:var(--ink)}
-.sub-chip.kill{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
-.engine-stack{display:flex;flex-direction:column;gap:10px}
-.panel{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff}
-.ep-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-.ep-title{font-weight:800;font-size:13.5px;color:var(--ink)}
-.ep-meta{font-size:11px;color:var(--muted);background:#f1f5f9;border-radius:99px;padding:2px 8px;font-weight:700}
-.ep-meta.warn{background:#fef2f2;color:#b91c1c}
-.prediction{width:100%;border-collapse:collapse;font-size:12px}
-.prediction th{color:var(--muted);font-size:11px;background:#f8fafc;font-weight:700;padding:6px 4px;text-align:center}
-.prediction td{padding:6px 4px;text-align:center;border-top:1px solid #f1f5f9}
-.prediction tbody tr.is-kept{background:#f8fbff}
-.ov-tag{
-  display:inline-block;font:700 10.5px "PingFang SC",sans-serif;
-  color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;
-  border-radius:4px;padding:0 5px;margin-left:4px;vertical-align:middle;
-}
-.ov-tag.x3{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
-.ov-tag.cool{background:#e2e8f0;color:#475569;border-color:#cbd5e1}
-
-.cool-pool-box{
-  margin-top:10px;border:1px solid var(--line);background:var(--surface);
-  border-radius:10px;padding:11px 13px;
-  display:flex;flex-direction:column;gap:10px;
-}
-.cool-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.cool-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.cool-label{font-size:12.5px;font-weight:800;color:var(--ink-soft)}
-.sum-balls{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 .lock-list{display:grid;gap:8px}
 .lock-record{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 11px;font-size:12px}
@@ -410,7 +370,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 .hc-flag.hot{background:#e11d48;color:#fff}
 .hc-flag.cold{background:#2563eb;color:#fff}
 
-/* 5. 近 10 期命中简表 & 表格通用 */
+/* 5. 近 30 期命中简表 & 表格通用 */
 .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:#fff}
 .history{width:100%;border-collapse:collapse;font-size:12.5px;min-width:600px}
 .history th{
@@ -671,21 +631,6 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
       </div>
     </details>
 
-    <details class="fold-card" id="deriveFold">
-      <summary class="wide-summary">
-        <span class="left">
-          <b>选号依据</b>
-          <span class="sub-hint">默认只显示摘要，点「展开完整表」再看逐号明细</span>
-        </span>
-        <span class="arrow">⌄</span>
-      </summary>
-      <div class="fold-content">
-        <div class="derive-chips" id="deriveChips"></div>
-        <div class="engine-stack" id="tool2Panels"></div>
-        <div class="cool-pool-box" id="tool2Summary"></div>
-        <button type="button" class="btn sm derive-toggle" id="deriveToggle" data-expanded="0">展开完整表 ▾</button>
-      </div>
-    </details>
   </section>
 
   <!-- 模块 4：近 100 期热度分布 -->
@@ -712,12 +657,12 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
     <div id="heatmap" class="heat"></div>
   </section>
 
-  <!-- 模块 5：近 10 期命中简表 -->
+  <!-- 模块 5：近 30 期命中简表 -->
   <section class="card" id="recentHistorySection" data-module="recent-history">
     <div class="card-head">
       <div class="card-title-wrap">
-        <h2>近 10 期命中简表</h2>
-        <span class="pill subtle" id="recent10Summary">最近 10 期</span>
+        <h2>近 30 期命中简表</h2>
+        <span class="pill subtle" id="recentSummary">最近 30 期</span>
       </div>
       <button type="button" class="btn ghost recent-head-btn" id="openHistoryModal">查看全部</button>
     </div>
@@ -1134,7 +1079,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.17-r20';
+const APP_BUILD = '2026.11.18-r21';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1162,12 +1107,6 @@ const LUNAR_NEW_YEAR_DATES = {
   2031: { date: '2031-01-23', zodiac: '猪', prevZodiac: '狗' },
   2032: { date: '2032-02-11', zodiac: '鼠', prevZodiac: '猪' }
 };
-
-const DAILY_THREE_CATALOG = [
-  { id: 'hot', code: '#1', name: '热态', fullTitle: '#1 热态（近期活跃）', icon: '🔥', color: '#e54b4b', role: '7码候选' },
-  { id: 'cold', code: '#2', name: '遗漏', fullTitle: '#2 遗漏（冷号回补）', icon: '🎯', color: '#3b82f6', role: '7码候选' },
-  { id: 'cycle', code: '#3', name: '周期', fullTitle: '#3 周期（反向杀号池）', icon: '🛡️', color: '#10a878', role: '排除重叠' }
-];
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -1227,10 +1166,10 @@ function sanitizeLockSnapshot(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const parsed = parseLabel(raw.label);
   if (!parsed) return null;
-  const opt = cleanNumberList(raw.opt);
-  if (!opt.length) return null;
   const picks = cleanNumberList(raw.picks);
+  const opt = cleanNumberList(raw.opt);
   const effectivePicks = picks.length ? picks : opt;
+  if (!effectivePicks.length) return null;
   const tierVal = Number(raw.tier);
   const tier = TIER_SIZES.includes(tierVal) ? tierVal : effectivePicks.length;
   const stamp = Date.parse(String(raw.createdAt || ''));
@@ -1245,14 +1184,12 @@ function sanitizeLockSnapshot(raw) {
     createdAt,
     tier,
     picks: effectivePicks,
-    opt,
     hot,
     cold,
     cycle,
     union: unionClean,
     special: sp,
-    hitPicks: sp != null ? effectivePicks.includes(sp) : !!(raw.hitPicks ?? raw.hitOpt),
-    hitOpt: sp != null ? opt.includes(sp) : !!raw.hitOpt,
+    hitPicks: sp != null ? effectivePicks.includes(sp) : !!raw.hitPicks,
     hitUnion: sp != null ? unionClean.includes(sp) : !!raw.hitUnion,
     stale: !!raw.stale
   };
@@ -1390,14 +1327,12 @@ function lockPlanFromModel(plan, label, tier = activeTier) {
     createdAt: new Date().toISOString(),
     tier,
     picks,
-    opt: [...plan.optPicks],
     hot: [...plan.groups.hot],
     cold: [...plan.groups.cold],
     cycle: [...plan.groups.cycle],
     union: [...plan.union],
     special: null,
     hitPicks: false,
-    hitOpt: false,
     hitUnion: false,
     stale: false
   };
@@ -1414,13 +1349,12 @@ function archiveStaleLock(targetLabel) {
 function archiveLockedResult(record) {
   if (!lockedPlan || lockedPlan.label !== record.label) return;
   const sp = record.special;
-  const picks = Array.isArray(lockedPlan.picks) && lockedPlan.picks.length ? lockedPlan.picks : lockedPlan.opt;
+  const picks = Array.isArray(lockedPlan.picks) && lockedPlan.picks.length ? lockedPlan.picks : lockedPlan.union;
   const log = {
     ...lockedPlan,
     picks,
     special: sp,
     hitPicks: picks.includes(sp),
-    hitOpt: lockedPlan.opt.includes(sp),
     hitUnion: lockedPlan.union.includes(sp),
     archivedAt: new Date().toISOString(),
     stale: false
@@ -1429,7 +1363,7 @@ function archiveLockedResult(record) {
   lockedPlan = null;
 }
 
-/* ==================== 原版工具2 选号与专属提纯引擎 ==================== */
+/* ==================== 三策略选号引擎（#1 热态 / #2 遗漏 / #3 周期） ==================== */
 function zoneOf(n) { return n <= 16 ? 1 : n <= 33 ? 2 : 3; }
 
 function selectBalancedSeven(scoreMap, opts) {
@@ -1656,7 +1590,6 @@ function runTool2At(usableAsc, P, year, periodNum, dateStr) {
   const hotMap = new Float64Array(50);
   const coldMap = new Float64Array(50);
   const cycleMap = new Float64Array(50);
-  const spMeta = new Array(50);
   const lastSpZone = lastSpecial != null ? zoneOf(lastSpecial) : -1;
   const tailSpan = Math.max(1, maxSTail - minSTail);
 
@@ -1725,8 +1658,6 @@ function runTool2At(usableAsc, P, year, periodNum, dateStr) {
       (lastNormMask[n] ? 0.35 : 0) -
       (isLastSp ? 0.80 : 0) +
       jitter(n, 89) * 0.45;
-
-    spMeta[n] = { zodiac: ZODIACS[zIdx], omission: sCur };
   }
 
   const hot = selectBalancedSeven(hotMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
@@ -1741,37 +1672,62 @@ function runTool2At(usableAsc, P, year, periodNum, dateStr) {
   const union = [];
   for (let n = 1; n <= 49; n++) if (counts[n] >= 1) union.push(n);
 
-  const recentCool = [];
-  for (let k = 1; k <= COOLDOWN_LOOKBACK && P - k >= 0; k++) {
-    const s = usableAsc[P - k].special;
-    if (!recentCool.includes(s)) recentCool.push(s);
-  }
-  const coolSet = new Set(recentCool);
-  const cycSet = new Set(cycle);
-  const hcUnion = [...new Set([...hot, ...cold])].sort((a, b) => a - b);
-  const optPicks = hcUnion.filter(n => !cycSet.has(n) && !coolSet.has(n));
-  const killedByCyc = hcUnion.filter(n => cycSet.has(n));
-  const killedByCool = hcUnion.filter(n => !cycSet.has(n) && coolSet.has(n));
-  const hotKept = hot.filter(n => !cycSet.has(n) && !coolSet.has(n));
-  const coldKept = cold.filter(n => !cycSet.has(n) && !coolSet.has(n));
-  const hotColdShared = hot.filter(n => cold.includes(n));
-
   return {
     groups: { hot, cold, cycle },
     scores: { hot: hotMap, cold: coldMap, cycle: cycleMap },
     counts,
-    union,
-    spMeta,
-    recentCool,
-    coolSet,
-    cycSet,
-    optPicks,
-    killedByCyc,
-    killedByCool,
-    hotKept,
-    coldKept,
-    hotColdShared
+    union
   };
+}
+
+/**
+ * 三策略统一评分（不做任何排除，49 码全部参与排序）
+ *
+ * 1. 先算出 49 码在 #1 热态 / #2 遗漏 / #3 周期 三张评分表里的百分位（0~1，最高分=1）；
+ * 2. 综合分 = 0.40×热态百分位 + 0.34×遗漏百分位 + 0.26×周期百分位；
+ * 3. 组内加成：进入该策略最终 7 码 +0.30(热) / +0.24(遗) / +0.18(周期)，
+ *    同时进入两个及以上策略再 +0.12（三策略共识优先）；
+ * 4. 49 码全部参与排序，按分数从高到低截取 5 / 7 / 10 / 12 / 18 五档，没有任何号码被提前剔除。
+ */
+const STRATEGY_WEIGHTS = { hot: 0.40, cold: 0.34, cycle: 0.26 };
+const GROUP_BONUS = { hot: 0.30, cold: 0.24, cycle: 0.18 };
+const CONSENSUS_BONUS = 0.12;
+
+function strategyPercentile(map) {
+  const entries = [];
+  for (let n = 1; n <= 49; n++) entries.push([n, map[n]]);
+  entries.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+  const out = new Float64Array(50);
+  for (let idx = 0; idx < entries.length; idx++) out[entries[idx][0]] = (49 - idx) / 49;
+  return out;
+}
+
+function scoreAllNumbers(scores, groups) {
+  const pct = {
+    hot: strategyPercentile(scores.hot),
+    cold: strategyPercentile(scores.cold),
+    cycle: strategyPercentile(scores.cycle)
+  };
+  const members = {
+    hot: new Set(groups.hot),
+    cold: new Set(groups.cold),
+    cycle: new Set(groups.cycle)
+  };
+  const rows = [];
+  for (let n = 1; n <= 49; n++) {
+    const inHot = members.hot.has(n), inCold = members.cold.has(n), inCycle = members.cycle.has(n);
+    const hitCount = (inHot ? 1 : 0) + (inCold ? 1 : 0) + (inCycle ? 1 : 0);
+    const base = STRATEGY_WEIGHTS.hot * pct.hot[n]
+      + STRATEGY_WEIGHTS.cold * pct.cold[n]
+      + STRATEGY_WEIGHTS.cycle * pct.cycle[n];
+    const bonus = (inHot ? GROUP_BONUS.hot : 0)
+      + (inCold ? GROUP_BONUS.cold : 0)
+      + (inCycle ? GROUP_BONUS.cycle : 0)
+      + (hitCount >= 2 ? CONSENSUS_BONUS : 0);
+    rows.push({ n, score: Math.round((base + bonus) * 10000) / 10000, hitCount, inHot, inCold, inCycle });
+  }
+  rows.sort((a, b) => b.score - a.score || a.n - b.n);
+  return rows;
 }
 
 /* ==================== 渲染组件 ==================== */
@@ -1812,14 +1768,6 @@ async function handleCopyButton(btn) {
   btn.classList.add('copied');
   btn.textContent = '已复制 ✓';
   setTimeout(() => { btn.classList.remove('copied'); btn.textContent = label; }, 1200);
-}
-
-function bindCopyButtons(root) {
-  root.querySelectorAll('button[data-copy]').forEach(btn => {
-    if (btn.dataset.copyBound) return;
-    btn.dataset.copyBound = '1';
-    btn.addEventListener('click', () => handleCopyButton(btn));
-  });
 }
 
 /* ==================== 近100期热度统计 ==================== */
@@ -1878,56 +1826,21 @@ function heatCellStyle(freq, scope) {
 
 function heatHotThreshold(scope) { return scope === 'special' ? 5 : 18; }
 
-/* ==================== 主推候选排序（沿用原版三组分数，仅按固定层级截取） ==================== */
+/* ==================== 主推候选排序（三策略综合评分，全 49 码参与） ==================== */
 function rankCandidatesFromPlan(plan) {
-  const rankPct = (map) => {
-    const entries = [];
-    for (let n = 1; n <= 49; n++) entries.push([n, map[n]]);
-    entries.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
-    const out = new Float64Array(50);
-    for (let idx = 0; idx < entries.length; idx++) out[entries[idx][0]] = (49 - idx) / 49;
-    return out;
-  };
-
-  const rh = rankPct(plan.scores.hot);
-  const rc = rankPct(plan.scores.cold);
-  const rcy = rankPct(plan.scores.cycle);
-  const optSet = new Set(plan.optPicks);
-  const sharedSet = new Set(plan.hotColdShared);
-  const hotSet = new Set(plan.groups.hot);
-  const coldSet2 = new Set(plan.groups.cold);
-
-  const rows = [];
-  for (let n = 1; n <= 49; n++) {
-    let tier, score;
-    if (optSet.has(n) && sharedSet.has(n)) {
-      tier = 4;
-      score = (rh[n] + rc[n]) / 2;
-    } else if (optSet.has(n)) {
-      tier = 3;
-      score = hotSet.has(n) ? rh[n] + 0.15 * rc[n] : rc[n] + 0.15 * rh[n];
-    } else if (!plan.cycSet.has(n) && !plan.coolSet.has(n)) {
-      tier = 2;
-      score = Math.max(rh[n], rc[n]) + 0.25 * Math.min(rh[n], rc[n]) - 0.20 * rcy[n];
-    } else if (!plan.coolSet.has(n)) {
-      tier = 1;
-      score = Math.max(rh[n], rc[n]) + 0.10 * Math.min(rh[n], rc[n]) - 0.25 * rcy[n];
-    } else {
-      tier = 0;
-      score = Math.max(rh[n], rc[n]) / 2 - 0.20 * rcy[n] - (hotSet.has(n) ? 0.05 : 0) - (coldSet2.has(n) ? 0.05 : 0);
-    }
-    rows.push({ n, tier, score });
-  }
-  rows.sort((a, b) => b.tier - a.tier || b.score - a.score || a.n - b.n);
-  return rows.map(r => r.n);
+  return scoreAllNumbers(plan.scores, plan.groups).map(r => r.n);
 }
 
 function pickTagOf(plan, n) {
-  if (plan.hotColdShared.includes(n)) return { text: '热冷双中', cls: 'is-dual' };
-  if (plan.groups.hot.includes(n)) return { text: '热态', cls: 'is-hot' };
-  if (plan.groups.cold.includes(n)) return { text: '遗漏', cls: 'is-cold' };
-  if (plan.cycSet.has(n)) return { text: '周期', cls: '' };
-  if (plan.coolSet.has(n)) return { text: '冷码', cls: '' };
+  const inHot = plan.groups.hot.includes(n);
+  const inCold = plan.groups.cold.includes(n);
+  const inCycle = plan.groups.cycle.includes(n);
+  const count = (inHot ? 1 : 0) + (inCold ? 1 : 0) + (inCycle ? 1 : 0);
+  if (count >= 3) return { text: '三策共识', cls: 'is-dual' };
+  if (count === 2) return { text: '双策共振', cls: 'is-dual' };
+  if (inHot) return { text: '热态', cls: 'is-hot' };
+  if (inCold) return { text: '遗漏', cls: 'is-cold' };
+  if (inCycle) return { text: '周期', cls: 'is-cycle' };
   return { text: '综合', cls: '' };
 }
 
@@ -1938,17 +1851,16 @@ const THERMO_DEFS = [
   { key: 'hitCycle', code: '#3', name: '周期', color: '#10a878', desc: '周期均衡池' }
 ];
 const RECENT_REPLAY_WINDOW = 48;
+const THERMO_WINDOW = 30;
+const RECENT_TABLE_WINDOW = 30;
 
 let activeUsable = [];
 let currentPlanData = null;
 let replayTimer = null;
 let replayBusy = false;
 
-/* 18 码档位 = #1∪#2∪#3 去重后的全部号码；其余档位仍按原版分数排序截取 */
-const UNION_TIER = 18;
-
+/* 五个档位（5 / 7 / 10 / 12 / 18 码）全部按三策略综合分从高到低截取 */
 function picksOfRow(row, tier) {
-  if (tier === UNION_TIER) return [...row.union].sort((a, b) => a - b);
   return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);
 }
 
@@ -1986,7 +1898,7 @@ function renderTopBar() {
 function renderTierTabs() {
   const wrap = document.getElementById('tierTabs');
   wrap.innerHTML = TIER_SIZES.map(size =>
-    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>${size === UNION_TIER ? '并集全取' : `高分前${size}`}</small></button>`
+    `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${size}码<small>高分前${size}</small></button>`
   ).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1995,6 +1907,8 @@ function renderTierTabs() {
       activeTier = size;
       renderTierTabs();
       renderPicks();
+      renderThermometer();
+      renderSignal();
       renderLockArea(expectedNextLabel());
       renderHistoryHead();
       renderRecentHistory();
@@ -2021,10 +1935,10 @@ function renderPicks() {
   host.innerHTML = `
     <div class="pick-grid">${chips}</div>
     <div class="copy-preview">
-      <span>复制格式（英文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
+      <span>复制格式（英文逗号分隔）</span>
       <code>${currentPicksText()}</code>
     </div>
-    ${activeTier === UNION_TIER ? '' : `<div class="pick-mix">${buildMixHint(plan, picks)}</div>`}`;
+    <div class="pick-mix">${buildMixHint(plan, picks)}</div>`;
   copyBtn.setAttribute('data-copy', currentPicksText());
   copyBtn.setAttribute('data-copy-label', '一键复制推荐号码');
   copyBtn.disabled = picks.length === 0;
@@ -2033,104 +1947,24 @@ function renderPicks() {
 function buildMixHint(plan, picks) {
   const hotSet = new Set(plan.groups.hot);
   const coldSet = new Set(plan.groups.cold);
-  let hot = 0, cold = 0, both = 0;
+  const cycleSet = new Set(plan.groups.cycle);
+  let hot = 0, cold = 0, cycle = 0, multi = 0;
   for (const n of picks) {
-    const h = hotSet.has(n), c = coldSet.has(n);
-    if (h && c) both++;
-    else if (h) hot++;
-    else if (c) cold++;
+    const count = (hotSet.has(n) ? 1 : 0) + (coldSet.has(n) ? 1 : 0) + (cycleSet.has(n) ? 1 : 0);
+    if (count >= 2) multi++;
+    if (hotSet.has(n)) hot++;
+    else if (coldSet.has(n)) cold++;
+    else if (cycleSet.has(n)) cycle++;
   }
   const parts = [
-    `<span class="mix-chip hot">热态 ${hot}</span>`,
-    `<span class="mix-chip cold">遗漏 ${cold}</span>`
+    `<span class="mix-chip hot">含热态 ${hot}</span>`,
+    `<span class="mix-chip cold">含遗漏 ${cold}</span>`,
+    `<span class="mix-chip cycle">含周期 ${cycle}</span>`
   ];
-  if (both) parts.push(`<span class="mix-chip both">双中 ${both}</span>`);
-  const other = picks.length - hot - cold - both;
-  if (other > 0) parts.push(`<span class="mix-chip">其他 ${other}</span>`);
-  return `<span class="mix-label">本档构成</span>${parts.join('')}<span class="mix-note">（#2 遗漏长期略高于 #1 热态，#1 号更易被周期/近5期排除，故偏多）</span>`;
-}
-
-function renderDerive(plan) {
-  document.getElementById('deriveChips').innerHTML = [
-    `<span class="sub-chip">#1 热态净留：<b>${plan.hotKept.map(pad2).join(' ') || '无'}</b></span>`,
-    `<span class="sub-chip">#2 遗漏净留：<b>${plan.coldKept.map(pad2).join(' ') || '无'}</b></span>`,
-    plan.killedByCyc.length ? `<span class="sub-chip kill">被 #3 周期排除：<b>${plan.killedByCyc.map(pad2).join(' ')}</b></span>` : '',
-    plan.killedByCool.length ? `<span class="sub-chip kill">近5期已开剔除：<b>${plan.killedByCool.map(pad2).join(' ')}</b></span>` : ''
-  ].join('');
-
-  const hcUnionSet = new Set([...plan.groups.hot, ...plan.groups.cold]);
-  const optSet = new Set(plan.optPicks);
-
-  document.getElementById('tool2Panels').classList.add('collapsed');
-  document.getElementById('tool2Panels').innerHTML = DAILY_THREE_CATALOG.map(cat => {
-    const nums = plan.groups[cat.id];
-    const scMap = plan.scores[cat.id];
-    const isCycPanel = cat.id === 'cycle';
-    const rowsHtml = nums.map(n => {
-      const m = plan.spMeta[n];
-      const isKept = !isCycPanel && optSet.has(n);
-      const inCyc = !isCycPanel && plan.cycSet.has(n);
-      const inCool = plan.coolSet.has(n);
-      let tags = '';
-      if (isCycPanel) {
-        if (hcUnionSet.has(n)) tags += '<span class="ov-tag x3">已排除</span>';
-      } else {
-        if (isKept) tags += '<span class="ov-tag">★主推</span>';
-        if (inCyc) tags += '<span class="ov-tag x3">周期排除</span>';
-        if (inCool) tags += '<span class="ov-tag cool">近5期开过</span>';
-      }
-      const dim = isCycPanel ? (hcUnionSet.has(n) ? 'cool-dim' : '') : (!isKept ? 'cool-dim' : '');
-      return `<tr class="${isKept ? 'is-kept' : ''}">
-        <td style="text-align:left;padding-left:10px">${ballHtml(n, dim)}${tags}</td>
-        <td>${m.zodiac}</td>
-        <td>${(n & 1) ? '单' : '双'}·${n >= 25 ? '大' : '小'}</td>
-        <td>${m.omission}期</td>
-        <td><b>${scMap[n].toFixed(1)}</b></td>
-      </tr>`;
-    }).join('');
-
-    const summaryBalls = nums.map(n => ballHtml(n, 'sm' + (isCycPanel ? (hcUnionSet.has(n) ? ' cool-dim' : '') : (!optSet.has(n) ? ' cool-dim' : '')))).join('');
-    let summaryNote = '';
-    if (isCycPanel) {
-      const killed = nums.filter(n => hcUnionSet.has(n)).length;
-      summaryNote = `<span class="empty-hint">命中热/冷组 ${killed} 个，作为反向排除</span>`;
-    } else {
-      const keptN = nums.filter(n => optSet.has(n)).length;
-      const cycN = nums.filter(n => plan.cycSet.has(n)).length;
-      const coolN = nums.filter(n => plan.coolSet.has(n)).length;
-      summaryNote = `<span class="empty-hint">主推保留 ${keptN} · 周期排除 ${cycN} · 近5期开过 ${coolN}</span>`;
-    }
-
-    return `<div class="panel" style="border-top:3px solid ${cat.color}">
-      <div class="ep-head">
-        <span class="ep-title">${cat.icon} ${cat.fullTitle}</span>
-        <span class="ep-meta${isCycPanel ? ' warn' : ''}">${cat.role}</span>
-      </div>
-      <div class="ep-summary">${summaryBalls}${summaryNote}</div>
-      <table class="prediction">
-        <thead><tr><th style="text-align:left;padding-left:10px">号码</th><th>生肖</th><th>形态</th><th>遗漏</th><th>得分</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    </div>`;
-  }).join('');
-
-  const sharedHtml = plan.hotColdShared.length
-    ? plan.hotColdShared.map(n => ballHtml(n, 'sm shared-ring')).join('')
-    : '<span class="dc-note">本期无</span>';
-
-  document.getElementById('tool2Summary').innerHTML = `
-    <div class="cool-row">
-      <div class="cool-group"><span class="cool-label">★ 热态 ∩ 遗漏（${plan.hotColdShared.length}码）</span><span class="sum-balls">${sharedHtml}</span></div>
-    </div>
-    <div class="cool-row">
-      <div class="cool-group"><span class="cool-label">🧊 近5期已开（自动回避）</span><span class="sum-balls">${plan.recentCool.map(n => ballHtml(n, 'sm cool-dim')).join('') || '<span class="dc-note">无</span>'}</span></div>
-    </div>
-    <div class="cool-row">
-      <div class="cool-group"><span class="cool-label">原版提纯主推（${plan.optPicks.length}码）</span><span class="sum-balls">${plan.optPicks.map(n => ballHtml(n, 'sm')).join('') || '<span class="dc-note">本期空仓</span>'}</span></div>
-      <button type="button" class="btn sm" data-copy="${escapeHtml(plan.optPicks.map(pad2).join(','))}" data-copy-label="复制提纯">复制提纯</button>
-    </div>`;
-
-  bindCopyButtons(document.getElementById('tool2Summary'));
+  if (multi) parts.push(`<span class="mix-chip both">多策共识 ${multi}</span>`);
+  const other = picks.length - hot - cold - cycle;
+  if (other > 0) parts.push(`<span class="mix-chip">综合 ${other}</span>`);
+  return `<span class="mix-label">本档构成</span>${parts.join('')}<span class="mix-note">（按三策略综合分排序截取，热态 40% / 遗漏 34% / 周期 26%）</span>`;
 }
 
 function recentPlanRows(count) {
@@ -2148,14 +1982,14 @@ function losingStreak() {
   for (let i = activeUsable.length - 1; i >= 0; i--) {
     const r = planCache.get(activeUsable[i].label);
     if (!r) break;
-    if (r.hitOpt) break;
+    if (tierHitOf(r, activeTier)) break;
     streak++;
   }
   return streak;
 }
 
 function renderThermometer() {
-  const rows = recentPlanRows(30);
+  const rows = recentPlanRows(THERMO_WINDOW);
   const host = document.getElementById('thermometerList');
   if (!rows.length) {
     host.innerHTML = '<div class="empty">数据不足，暂无温度计</div>';
@@ -2188,13 +2022,13 @@ function renderThermometer() {
 }
 
 function renderSignal() {
-  const rows = recentPlanRows(30);
+  const rows = recentPlanRows(THERMO_WINDOW);
   const streak = losingStreak();
   const last20 = recentPlanRows(20);
-  const hit20 = last20.filter(r => r.hitOpt).length;
+  const hit20 = last20.filter(r => tierHitOf(r, activeTier)).length;
 
   document.getElementById('losingStreakBadge').textContent = `当前连错 ${streak} 期`;
-  document.getElementById('recentHitBadge').textContent = `近20期主推中 ${hit20} 期`;
+  document.getElementById('recentHitBadge').textContent = `近20期${activeTier}码中 ${hit20} 期`;
 
   const banner = document.getElementById('signalBanner');
   const textEl = document.getElementById('signalText');
@@ -2239,7 +2073,6 @@ function renderMainPick() {
   currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan), union: [...plan.union] };
   renderTierTabs();
   renderPicks();
-  renderDerive(plan);
 }
 
 function renderLockArea(targetLabel) {
@@ -2275,7 +2108,7 @@ function renderLockArea(targetLabel) {
     const when = new Date(log.archivedAt || log.createdAt).toLocaleString('zh-CN');
     const picks = (log.picks && log.picks.length) ? log.picks : log.opt;
     const result = log.special
-      ? `特码 ${lockBallHtml(log.special)} · ${log.tier || picks.length}码${log.hitPicks ?? log.hitOpt ? '命中' : '未中'} · 原版提纯${log.hitOpt ? '命中' : '未中'}`
+      ? `特码 ${lockBallHtml(log.special)} · ${log.tier || picks.length}码${log.hitPicks ? '命中' : '未中'}`
       : log.stale ? '未开奖前已过期 · 快照已存档' : '锁定快照';
     return `<div class="lock-record"><strong>${escapeHtml(log.label)}</strong> &nbsp; ${result}<br><small>锁定于 ${escapeHtml(when)}（本机时间）</small><div class="numbers">${picks.map(lockBallHtml).join('')}</div></div>`;
   }).join('') : '<div class="empty">暂无锁定记录</div>';
@@ -2338,13 +2171,13 @@ function renderHeatSection(usable) {
 function renderHistoryHead() {
   const suffix = `${activeTier}`;
   const actual = currentPlanData ? currentPicks().length : 0;
-  const label = activeTier === UNION_TIER ? `当前并集${actual ? `（${actual}码）` : ''}` : `当前${suffix}码`;
+  const label = `当前${suffix}码${actual ? `（${actual}码）` : ''}`;
   const a = document.getElementById('recentTierColHead');
   const b = document.getElementById('modalTableTierHead');
   const c = document.getElementById('modalYearlyTierHead');
   if (a) a.textContent = label;
   if (b) b.textContent = label;
-  if (c) c.innerHTML = activeTier === UNION_TIER ? `${label}<small>并集去重</small>` : `${label}<small>按分截取</small>`;
+  if (c) c.innerHTML = `${label}<small>综合分截取</small>`;
 }
 
 function drawBallsHtml(raw7) {
@@ -2375,14 +2208,14 @@ function historyRowHtml(r, tier) {
 }
 
 function renderRecentHistory() {
-  const rows = recentPlanRows(10).slice().reverse();
+  const rows = recentPlanRows(RECENT_TABLE_WINDOW).slice().reverse();
   document.getElementById('historyBody').innerHTML = rows.length
     ? rows.map(r => historyRowHtml(r, activeTier)).join('')
     : '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
   const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
-  document.getElementById('recent10Summary').textContent =
+  document.getElementById('recentSummary').textContent =
     rows.length
-      ? `最近 ${rows.length} 期 · ${activeTier === UNION_TIER ? '三组并集' : `当前${activeTier}码`}中 ${hit} 期`
+      ? `最近 ${rows.length} 期 · 当前${activeTier}码中 ${hit} 期`
       : '暂无数据';
 }
 
@@ -2400,11 +2233,9 @@ function cacheReplayRow(usable, i) {
     special: sp,
     ranked: rankCandidatesFromPlan(plan),
     union: [...plan.union],
-    opt: plan.optPicks,
     hot: plan.groups.hot,
     cold: plan.groups.cold,
     cycle: plan.groups.cycle,
-    hitOpt: plan.optPicks.includes(sp),
     hitHot: plan.groups.hot.includes(sp),
     hitCold: plan.groups.cold.includes(sp),
     hitCycle: plan.groups.cycle.includes(sp),
@@ -2415,11 +2246,17 @@ function cacheReplayRow(usable, i) {
 function ensureRecentReplayCache(usable) {
   let start = Math.max(0, usable.length - RECENT_REPLAY_WINDOW);
   for (let i = start; i < usable.length; i++) cacheReplayRow(usable, i);
+  // 温度计与简表都要看够 30 期，缓存不足时继续向前补齐
+  if (usable.length - start < THERMO_WINDOW) {
+    start = Math.max(0, usable.length - THERMO_WINDOW);
+    for (let i = start; i < usable.length; i++) cacheReplayRow(usable, i);
+  }
   // 若最近窗口内全部未中，继续向前补齐，保证「当前连错期数」准确
   while (start > 0 && usable.length - start < 240) {
     let allMiss = true;
     for (let i = start; i < usable.length; i++) {
-      if (planCache.get(usable[i].label)?.hitOpt) { allMiss = false; break; }
+      const row = planCache.get(usable[i].label);
+      if (row && tierHitOf(row, activeTier)) { allMiss = false; break; }
     }
     if (!allMiss) break;
     const newStart = Math.max(0, start - 40);
@@ -2624,7 +2461,7 @@ function showEntryFlash(record, usable) {
   const idx = usable.findIndex(d => d.label === record.label);
   const snap = idx >= 0 ? computeHeatSnapshot(usable, idx, 'special') : null;
   const hits = [];
-  if (rec?.hitOpt) hits.push('提纯主推');
+  if (rec && tierHitOf(rec, activeTier)) hits.push(`${activeTier}码档位`);
   if (rec?.hitHot) hits.push('#1 热态');
   if (rec?.hitCold) hits.push('#2 遗漏');
   if (rec?.hitCycle) hits.push('#3 周期');
@@ -2767,10 +2604,10 @@ function bindHistoryDetail(tbodyId) {
         : '<span class="dc-note">无</span>';
       return `<div class="dg-item"><span class="dg-label">${title}</span>${bs}</div>`;
     };
-    const picks = activeTier === UNION_TIER && Array.isArray(r.union) ? [...r.union].sort((x, y) => x - y) : picksOfRow(r, activeTier);
+    const picks = picksOfRow(r, activeTier);
     const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
     tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
-      ${renderGrp(activeTier === UNION_TIER ? `三组并集 ${picks.length}码` : `推荐 ${picks.length}码`, picks)}
+      ${renderGrp(`推荐 ${picks.length}码`, picks)}
       ${renderGrp('#1 热态', r.hot)}
       ${renderGrp('#2 遗漏', r.cold)}
       ${renderGrp('#3 周期', r.cycle)}
@@ -2785,15 +2622,6 @@ function init() {
   lockedPlan = persisted.locked;
   lockHistory = persisted.locks;
   setupBallInputs();
-
-  // 选号依据：默认只显示摘要，可切换完整表
-  const deriveToggle = document.getElementById('deriveToggle');
-  deriveToggle.addEventListener('click', () => {
-    const stack = document.getElementById('tool2Panels');
-    const expanded = stack.classList.toggle('collapsed') === false;
-    deriveToggle.dataset.expanded = expanded ? '1' : '0';
-    deriveToggle.textContent = expanded ? '收起完整表 ▴' : '展开完整表 ▾';
-  });
 
   bindHistoryDetail('historyBody');
   bindHistoryDetail('fullHistoryBody');
@@ -2887,7 +2715,7 @@ function init() {
     manualRecords.pop();
     const archived = lockHistory.find(x => x.label === last.label && !x.stale);
     if (archived) {
-      lockedPlan = { ...archived, special: null, hitPicks: false, hitOpt: false, hitUnion: false, stale: false };
+      lockedPlan = { ...archived, special: null, hitPicks: false, hitUnion: false, stale: false };
       lockHistory = lockHistory.filter(x => x !== archived);
     }
     if (!saveManual()) {
@@ -3069,6 +2897,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.17-r20"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.18-r21"></script>
 </body>
 </html>

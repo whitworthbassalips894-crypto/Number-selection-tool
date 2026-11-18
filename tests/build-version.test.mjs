@@ -41,18 +41,19 @@ test('页面采用附件工具2模型，并保留同步、PWA、锁号、备份�
   for (const term of [
     '固定 12 码', 'SIGNAL_ROTATION', 'allocationOrderFor', 'makeSelection(plan, record.periodNum)',
     'cfgStake', 'cfgOddsSpecial', '选号与补位规则', 'signal-rules', 'cdn-cgi', '__CF',
-    '特码统计', '工具2专属提纯', 'deltaSelect', 'deltaPrev', 'deltaNext', 'deltaLatest'
+    '特码统计', '工具2专属提纯', 'deltaSelect', 'deltaPrev', 'deltaNext', 'deltaLatest',
+    '选号依据', 'deriveFold', 'deriveToggle', '杀号', '冷却池', 'killedBy', 'optPicks'
   ]) {
     assert.ok(!html.includes(term), `不应包含 ${term}`);
   }
   for (const term of [
-    '特码智能选号助手', '下期智能主推', '近 30 期策略温度计', '近 100 期热度分布', '近 10 期命中简表',
-    'runTool2At', 'selectBalancedSeven', 'computeHeatSnapshot', 'rankCandidatesFromPlan',
+    '特码智能选号助手', '下期智能主推', '近 30 期策略温度计', '近 100 期热度分布', '近 30 期命中简表',
+    'runTool2At', 'selectBalancedSeven', 'computeHeatSnapshot', 'rankCandidatesFromPlan', 'scoreAllNumbers',
     'ensureRecentReplayCache', 'renderHistoryModal', 'renderThermometer', 'renderSignal', 'refreshAll',
     'id="syncNow"', 'id="syncStatus"', 'id="lockBtn"', 'id="lockCurrent"', 'id="lockHistory"',
     'id="exportBtn"', 'id="importBtn"', 'id="yearlyBody"', 'id="heatmap"', 'id="historyBody"',
     'id="fullHistoryBody"', 'id="historyModal"', 'id="dataModal"', 'id="openHistoryModal"',
-    'id="tierTabs"', 'id="copyMainBtn"', 'id="deriveFold"', 'id="thermometerList"', 'id="signalBanner"',
+    'id="tierTabs"', 'id="copyMainBtn"', 'id="thermometerList"', 'id="signalBanner"',
     'id="losingStreakBadge"',
     './manifest.webmanifest?v=', './src/note-sync.js?v=', 'mark6_tool2_heat_v2', 'window.noteSync',
     'class="btn sync"', 'wave-dot', 'class="hc-number"', 'data-wave=', 'head-meta'
@@ -76,8 +77,8 @@ test('单列浅色布局：居中 880px、5 个模块顺序固定、移动端通
     if (i > 0) assert.ok(pos > positions[i - 1], `模块顺序错误：${order[i]}`);
   });
 
-  assert.ok(html.includes('<details class="fold-card" id="deriveFold">'), '推导细节应默认折叠');
-  assert.ok(!/id="deriveFold"[^>]*open/.test(html), '推导细节不应默认展开');
+  assert.ok(!html.includes('deriveFold'), '选号依据模块应已移除');
+  assert.ok(html.includes('<details class="fold-card" id="lockFold">'), '锁定记录仍应可折叠');
   assert.ok(!html.includes('periodNav'), '热度分布不应包含期号导航按钮');
   assert.equal((html.match(/data-scope="all7"/g) || []).length, 1);
 });
@@ -90,7 +91,8 @@ test('推荐号码一键复制为纯 ASCII 逗号分隔两位数字', () => {
   for (const size of [5, 7, 10, 12, 18]) {
     assert.ok(html.includes(String(size)), `缺少 ${size} 码档位`);
   }
-  // 18 码档位走三组并集，不再按分数截取
-  assert.ok(html.includes('const UNION_TIER = 18;'), '18 码档位应标记为并集口径');
-  assert.ok(html.includes('if (tier === UNION_TIER) return [...row.union].sort((a, b) => a - b);'), '并集档位应直接返回去重并集');
+  // 五个档位统一按三策略综合分截取，不再有并集/提纯口径
+  assert.ok(html.includes('function picksOfRow(row, tier) {\n  return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);\n}'), '各档位应统一按综合分截取');
+  assert.ok(!html.includes('UNION_TIER'), '不应再有并集专属档位');
+  assert.ok(html.includes('const STRATEGY_WEIGHTS = { hot: 0.40, cold: 0.34, cycle: 0.26 };'), '应保留三策略权重');
 });
