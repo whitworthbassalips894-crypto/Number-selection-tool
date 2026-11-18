@@ -10,7 +10,8 @@ if (scriptStart < '<script>\n'.length || scriptEnd < 0) throw new Error('无法�
 const script = html.slice(scriptStart, scriptEnd) + `
 globalThis.__tool2 = {
   COMPRESSED_DATA, BASE_RECORDS, WAVE_MAP, WAVE_COLOR, zoneOf,
-  selectBalancedSeven, runTool2At, computeHeatSnapshot
+  selectBalancedSeven, runTool2At, computeHeatSnapshot,
+  scoreAllNumbers, strategyPercentile, STRATEGY_WEIGHTS, rankCandidatesFromPlan
 };
 `;
 const context = vm.createContext({ console });
@@ -21,7 +22,7 @@ function sortedUnique(values) {
   return [...new Set(values)].sort((a, b) => a - b);
 }
 
-test('工具2输出三组各 7 码，提纯与并集关系保持不变', () => {
+test('三策略输出三组各 7 码，并集与提纯逻辑已移除', () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
   assert.equal(usable.length, 1780);
   const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
@@ -36,19 +37,42 @@ test('工具2输出三组各 7 码，提纯与并集关系保持不变', () => {
   assert.deepEqual([...plan.union], unionExpected);
   assert.ok(unionExpected.length >= 12 && unionExpected.length <= 21);
 
-  const seen = new Set(), recentCoolExpected = [];
-  for (const r of usable.slice(-5).reverse()) {
-    if (!seen.has(r.special)) { seen.add(r.special); recentCoolExpected.push(r.special); }
+  // 不再有杀号 / 冷却池 / 提纯等排除口径
+  for (const key of ['optPicks', 'killedByCyc', 'killedByCool', 'recentCool', 'coolSet', 'cycSet', 'hotKept', 'coldKept', 'hotColdShared']) {
+    assert.equal(plan[key], undefined, `不应再输出 ${key}`);
   }
-  assert.deepEqual([...plan.recentCool], recentCoolExpected);
-  const cycSet = new Set(cycle), coolSet = new Set(recentCoolExpected);
-  const hcUnion = sortedUnique([...hot, ...cold]);
-  assert.deepEqual([...plan.optPicks], hcUnion.filter(n => !cycSet.has(n) && !coolSet.has(n)));
-  assert.deepEqual([...plan.killedByCyc], hcUnion.filter(n => cycSet.has(n)));
-  assert.deepEqual([...plan.killedByCool], hcUnion.filter(n => !cycSet.has(n) && coolSet.has(n)));
-  assert.deepEqual([...plan.hotColdShared], hot.filter(n => cold.includes(n)));
-  assert.deepEqual([...plan.hotKept], hot.filter(n => !cycSet.has(n) && !coolSet.has(n)));
-  assert.deepEqual([...plan.coldKept], cold.filter(n => !cycSet.has(n) && !coolSet.has(n)));
+});
+
+test('综合评分：49 码全部参与排序，权重与组内加成可复现', () => {
+  const usable = [...api.BASE_RECORDS].filter(r => r.usable);
+  const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
+  const rows = api.scoreAllNumbers(plan.scores, plan.groups);
+  assert.equal(rows.length, 49);
+  assert.deepEqual(sortedUnique(rows.map(r => r.n)), Array.from({ length: 49 }, (_, i) => i + 1));
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].score >= rows[i].score, '应按综合分降序');
+
+  const weights = api.STRATEGY_WEIGHTS;
+  assert.ok(Math.abs(weights.hot + weights.cold + weights.cycle - 1) < 1e-9, '三策略权重之和应为 1');
+
+  const pctHot = api.strategyPercentile(plan.scores.hot);
+  const sample = rows[0];
+  const base = weights.hot * pctHot[sample.n]
+    + weights.cold * api.strategyPercentile(plan.scores.cold)[sample.n]
+    + weights.cycle * api.strategyPercentile(plan.scores.cycle)[sample.n];
+  assert.ok(sample.score > base, '进入策略 7 码的号码应获得组内加成');
+
+  // 每个档位都是同一份综合分排序的前 N 码（没有任何号码被提前剔除）
+  const ranked = api.rankCandidatesFromPlan(plan);
+  assert.deepEqual(ranked, rows.map(r => r.n));
+  assert.equal(ranked.length, 49);
+  for (const size of [5, 7, 10, 12, 18]) {
+    const picks = ranked.slice(0, size);
+    assert.equal(new Set(picks).size, size, `${size} 码档位不应有重复号码`);
+  }
+  // 三组 7 码里的号码整体应排在未入组号码之前
+  const groupMembers = new Set([...plan.groups.hot, ...plan.groups.cold, ...plan.groups.cycle]);
+  const top18 = ranked.slice(0, 18);
+  assert.ok(top18.filter(n => groupMembers.has(n)).length >= 14, '前 18 码应以三策略命中号码为主');
 });
 
 test('selectBalancedSeven 同时满足区间、波色、单双大小与尾数约束', () => {

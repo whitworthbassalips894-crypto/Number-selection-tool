@@ -133,8 +133,6 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     };
     sample('#latestDrawBalls .ball', 7);
     sample('#optHero .ball', 10);
-    sample('#tool2Panels .ball', 21);
-    sample('#tool2Summary .ball', 1);
     sample('#heatHighlights .ball', 1);
     const heatNumbers = sample('#heatmap .hc-number', 49);
     assert.equal(doc.querySelectorAll('#heatmap .heat-cell').length, 49);
@@ -145,16 +143,17 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     assert.ok(doc.querySelectorAll('#heatmap .hc-flag.cold').length >= 1, '应标记 0 次冷号');
     assert.ok(!doc.getElementById('heatSection').querySelector('select'), '热度卡片不再有期号导航');
 
-    // 近 10 期命中简表 & 完整历史在弹窗内
+    // 近 30 期命中简表 & 完整历史在弹窗内
     const recentRows = doc.querySelectorAll('#historyBody tr.main-row');
-    assert.equal(recentRows.length, 10);
+    assert.equal(recentRows.length, 30);
+    assert.match(doc.querySelector('#recentHistorySection h2').textContent, /近 30 期命中简表/);
 
-    // 近 10 期简表不再展示「提纯主推」列，命中概览改为按当前码数统计
+    // 简表不再展示「提纯主推」列，命中概览改为按当前码数统计
     const homeHead = [...doc.querySelectorAll('#recentHistorySection thead th')].map(th => th.textContent.trim());
     assert.equal(homeHead.length, 7);
     assert.ok(!homeHead.includes('提纯主推'), '首页简表不应再有提纯主推列');
     assert.equal(recentRows[0].querySelectorAll(':scope > td').length, 7, '首页简表每行应有 7 列');
-    assert.match(doc.getElementById('recent10Summary').textContent, /当前10码中 \d+ 期/);
+    assert.match(doc.getElementById('recentSummary').textContent, /当前10码中 \d+ 期/);
 
     // 展开明细的 colspan 必须与表头列数一致，否则整行错位
     doc.querySelector('#historyBody .exp-btn').click();
@@ -186,7 +185,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
       assert.equal(dom.window.getComputedStyle(input).backgroundColor, WAVE_RGB[wave]);
     }
 
-    assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
+    assert.equal(doc.getElementById('deriveFold'), null, '选号依据模块应已移除');
     for (const id of ['syncNow', 'syncStatus', 'exportBtn', 'importBtn', 'importFile', 'heatmap', 'historyBody', 'lockBtn', 'lockCurrent']) {
       assert.ok(doc.getElementById(id), `缺少 ${id}`);
     }
@@ -209,7 +208,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
   }
 });
 
-test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为纯 ASCII 逗号格式", async () => {
+test("5/7/10/12/18 码一键切换（均按三策略综合分截取），复制文本为纯 ASCII 逗号格式", async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -219,11 +218,11 @@ test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为�
     assert.deepEqual(tabs.map(t => t.textContent.match(/^\d+码/)[0]), ['5码', '7码', '10码', '12码', '18码']);
 
     const expect = {
-      5: '04,06,37,39,41',
-      7: '04,06,12,29,37,39,41',
-      10: '01,04,06,09,12,16,29,37,39,41',
-      12: '01,04,06,09,12,16,29,37,39,41,44,49',
-      18: '01,04,06,09,12,15,16,22,25,29,34,37,39,41,44,47,48,49'
+      5: '13,17,26,38,46',
+      7: '05,13,14,17,26,38,46',
+      10: '05,13,14,17,19,20,26,37,38,46',
+      12: '05,06,13,14,17,19,20,23,26,37,38,46',
+      18: '05,06,13,14,15,17,19,20,23,24,26,29,31,37,38,39,41,46'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -235,20 +234,23 @@ test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为�
       assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
     }
 
-    // 18 码档位 = 三组并集去重后的全部号码（码数随期数变化，通常 15~21 码）
+    // 18 码档位同样是同一份综合分排序的前 18 码（固定 18 码，不再走并集）
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
-    const unionChips = doc.querySelectorAll('#optHero .pick-chip').length;
-    assert.ok(unionChips >= 12 && unionChips <= 21, `并集码数异常：${unionChips}`);
-    const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
-    const unionNums = unionText.split(',').map(Number);
-    assert.equal(unionNums.length, unionChips, '复制文本应与并集号码一致');
-    assert.deepEqual(unionNums, [...unionNums].sort((a, b) => a - b), '并集号码应升序');
-    assert.equal(new Set(unionNums).size, unionNums.length, '并集号码不应重复');
-    assert.match(doc.getElementById('recentTierColHead').textContent, /当前并集（\d+码）/);
-    assert.match(doc.getElementById('recent10Summary').textContent, /三组并集中 \d+ 期/);
-    // 与推导细节里的并集口径一致
-    const unionShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
-    assert.deepEqual(unionShown, unionNums);
+    const bigChips = doc.querySelectorAll('#optHero .pick-chip').length;
+    assert.equal(bigChips, 18, `18 码档位应为 18 码：${bigChips}`);
+    const bigText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
+    assert.equal(bigText, expect[18]);
+    const bigNums = bigText.split(',').map(Number);
+    assert.equal(new Set(bigNums).size, 18, '号码不应重复');
+    assert.match(doc.getElementById('recentTierColHead').textContent, /当前18码（18码）/);
+    assert.match(doc.getElementById('recentSummary').textContent, /当前18码中 \d+ 期/);
+    // 档位之间应严格是包含关系（前 N 码）
+    doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
+    const five = new Set(doc.getElementById('copyMainBtn').getAttribute('data-copy').split(',').map(Number));
+    for (const n of five) assert.ok(bigNums.includes(n), `${n} 应同时出现在 18 码档位`);
+    doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
+    const bigShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
+    assert.deepEqual(bigShown, bigNums);
 
     // 档位切换后锁定跟随当前档位
     doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
@@ -260,7 +262,7 @@ test("5/7/10/12/18 码一键切换（18 码为三组并集），复制文本为�
   }
 });
 
-test('温度计随机基线、选号依据默认摘要、本档构成与同步时间', async () => {
+test('温度计随机基线、选号依据已移除、本档构成与同步时间', async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -272,29 +274,23 @@ test('温度计随机基线、选号依据默认摘要、本档构成与同步�
     assert.match(baseline.textContent, /14\.3%/);
     assert.match(baseline.textContent, /±12pp/);
 
-    // 选号依据：默认只有摘要，表格折叠
-    const fold = doc.getElementById('deriveFold');
-    assert.equal(fold.open, false);
-    assert.equal(doc.querySelector('#deriveFold .wide-summary b').textContent, '选号依据');
-    const stack = doc.getElementById('tool2Panels');
-    assert.ok(stack.classList.contains('collapsed'), '默认应折叠完整表');
-    assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
-    assert.equal(doc.querySelectorAll('#tool2Panels .ep-summary').length, 3, '每个面板都应有摘要行');
-    const toggle = doc.getElementById('deriveToggle');
-    assert.match(toggle.textContent, /展开完整表/);
-    toggle.click();
-    assert.ok(!stack.classList.contains('collapsed'));
-    assert.match(toggle.textContent, /收起完整表/);
-    toggle.click();
-    assert.ok(stack.classList.contains('collapsed'));
+    // 选号依据模块已整体移除，页面不再出现杀码/排除口径
+    assert.equal(doc.getElementById('deriveFold'), null, '选号依据模块应已移除');
+    assert.equal(doc.querySelector('#mainPickSection details#deriveFold'), null);
+    const visibleText = [...doc.querySelectorAll('.page *')].map(el => el.childElementCount === 0 ? el.textContent : '').join('');
+    assert.ok(!visibleText.includes('选号依据'));
+    assert.ok(!visibleText.includes('杀号'));
+    assert.ok(!visibleText.includes('排除'));
+    assert.ok(!visibleText.includes('提纯'));
 
-    // 本档构成提示（18 码并集档位不显示）
-    assert.ok(doc.querySelector('.pick-mix'), '5/7/10/12 档位应显示构成');
-    assert.match(doc.querySelector('.pick-mix').textContent, /热态 \d+/);
-    assert.match(doc.querySelector('.pick-mix').textContent, /遗漏 \d+/);
+    // 本档构成提示（所有档位都显示）
+    assert.ok(doc.querySelector('.pick-mix'), '当前档位应显示构成');
+    assert.match(doc.querySelector('.pick-mix').textContent, /含热态 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /含遗漏 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /含周期 \d+/);
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
-    assert.equal(doc.querySelector('.pick-mix'), null, '并集档位不显示单一构成');
-    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
+    assert.ok(doc.querySelector('.pick-mix'), '18 码档位同样显示构成');
+    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /高分前18/);
 
     // 顶部同步时间
     assert.match(doc.getElementById('syncStamp').textContent, /同步于 \d{2}:\d{2}/);
@@ -306,7 +302,7 @@ test('温度计随机基线、选号依据默认摘要、本档构成与同步�
   }
 });
 
-test('近 30 期温度计、连错期数与推导细节折叠面板', async () => {
+test('近 30 期温度计、连错期数与选号依据已移除', async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -320,13 +316,11 @@ test('近 30 期温度计、连错期数与推导细节折叠面板', async () =
     const rates = rows.map(r => r.querySelector('.thermo-rate').textContent);
     assert.deepEqual(rates, ['23.3%', '23.3%', '33.3%']);
 
-    assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 4 期/);
+    assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 \d+ 期/);
     assert.ok(doc.getElementById('signalText').textContent.length > 6);
 
-    const fold = doc.getElementById('deriveFold');
-    assert.equal(fold.open, false, '推导细节应默认折叠');
-    fold.open = true;
-    assert.equal(doc.querySelectorAll('#tool2Panels .panel').length, 3);
+    assert.equal(doc.getElementById('deriveFold'), null, '推导细节模块应已移除');
+    assert.equal(doc.querySelector('#historyBody tr.main-row'), doc.querySelector('#historyBody tr.main-row'), '历史表仍可渲染');
   } finally {
     dom.window.close();
   }
