@@ -215,7 +215,9 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     const doc = dom.window.document;
     const tabs = [...doc.querySelectorAll('#tierTabs .tier-btn')];
     assert.deepEqual(tabs.map(t => t.getAttribute('data-tier')), ['5', '7', '10', '12', '18']);
-    assert.deepEqual(tabs.map(t => t.textContent.match(/^\d+码/)[0]), ['5码', '7码', '10码', '12码', '18码']);
+    // 前四档写死码数，最后一档写「并集全取」并跟上当期实际码数（不写死 18）
+    assert.deepEqual(tabs.slice(0, 4).map(t => t.textContent.match(/^\d+码/)[0]), ['5码', '7码', '10码', '12码']);
+    assert.match(tabs[4].textContent, /^并集全取\s*\d+码$/);
 
     const expect = {
       5: '13,17,26,38,46',
@@ -244,7 +246,8 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.equal(unionNums.length, unionChips, '复制文本应与并集号码一致');
     assert.deepEqual(unionNums, [...unionNums].sort((a, b) => a - b), '并集号码应升序');
     assert.equal(new Set(unionNums).size, unionNums.length, '并集号码不应重复');
-    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
+    assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, new RegExp(`并集全取\\s*${unionChips}码`), '并集按钮应显示当期实际码数');
+    assert.ok(!doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent.startsWith('18码'), '并集档位不应写死 18 码');
     assert.match(doc.getElementById('recentTierColHead').textContent, new RegExp(`当前并集（${unionChips}码）`));
     assert.match(doc.getElementById('recentSummary').textContent, /三组并集中 \d+ 期/);
     assert.match(doc.querySelector('#optHero .copy-preview').textContent, new RegExp(`三组并集共 ${unionChips} 码`));
