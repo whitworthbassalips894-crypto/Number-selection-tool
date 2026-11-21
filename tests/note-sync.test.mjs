@@ -208,7 +208,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
   }
 });
 
-test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，复制文本为纯 ASCII 逗号格式", async () => {
+test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，复制文本为中文逗号格式", async () => {
   const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
   try {
     await waitForRecommendation(dom);
@@ -220,11 +220,11 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.match(tabs[4].textContent, /^并集全取\s*\d+码$/);
 
     const expect = {
-      5: '13,17,26,38,46',
-      7: '05,13,14,17,26,38,46',
-      10: '05,13,14,17,19,20,26,37,38,46',
-      12: '05,06,13,14,17,19,20,23,26,37,38,46',
-      18: '04,05,06,12,13,14,17,19,20,26,29,31,37,38,39,41,46'
+      5: '13，17，26，38，46',
+      7: '05，13，14，17，26，38，46',
+      10: '05，13，14，17，19，20，26，37，38，46',
+      12: '05，06，13，14，17，19，20，23，26，37，38，46',
+      18: '04，05，06，12，13，14，17，19，20，26，29，31，37，38，39，41，46'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -232,7 +232,8 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
       const copy = doc.getElementById('copyMainBtn');
       const text = copy.getAttribute('data-copy');
       assert.equal(text, expect[size], `${size} 码复制文本错误`);
-      assert.match(text, /^(?:\d{2})(?:,\d{2})*$/, '必须为两位数字 + 英文逗号');
+      assert.match(text, /^(?:\d{2})(?:，\d{2})*$/, '必须为两位数字 + 中文逗号');
+      assert.ok(!text.includes(','), '不应包含英文逗号');
       assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
     }
 
@@ -242,7 +243,7 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.ok(unionChips >= 12 && unionChips <= 21, `并集码数异常：${unionChips}`);
     const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy');
     assert.equal(unionText, expect[18]);
-    const unionNums = unionText.split(',').map(Number);
+    const unionNums = unionText.split('，').map(Number);
     assert.equal(unionNums.length, unionChips, '复制文本应与并集号码一致');
     assert.deepEqual(unionNums, [...unionNums].sort((a, b) => a - b), '并集号码应升序');
     assert.equal(new Set(unionNums).size, unionNums.length, '并集号码不应重复');
@@ -255,7 +256,7 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     const unionShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
     assert.deepEqual(unionShown, unionNums);
     doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
-    const five = doc.getElementById('copyMainBtn').getAttribute('data-copy').split(',').map(Number);
+    const five = doc.getElementById('copyMainBtn').getAttribute('data-copy').split('，').map(Number);
     for (const n of five) assert.ok(unionNums.includes(n), `${n} 应同时出现在三组并集里`);
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
 
