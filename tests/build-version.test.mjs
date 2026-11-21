@@ -83,9 +83,11 @@ test('单列浅色布局：居中 880px、5 个模块顺序固定、移动端通
   assert.equal((html.match(/data-scope="all7"/g) || []).length, 1);
 });
 
-test('推荐号码一键复制为纯 ASCII 逗号分隔两位数字', () => {
+test('推荐号码一键复制为中文逗号分隔两位数字', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  assert.match(html, /function currentPicksText\(\) \{ return currentPicks\(\)\.map\(pad2\)\.join\(',\'\); \}/);
+  assert.match(html, /function currentPicksText\(\) \{ return currentPicks\(\)\.map\(pad2\)\.join\(COPY_SEPARATOR\); \}/);
+  assert.ok(html.includes("const COPY_SEPARATOR = '，';"), '复制分隔符应为中文全角逗号');
+  assert.ok(html.includes('复制格式（中文逗号分隔）'), '复制预览文案应说明中文逗号');
   assert.match(html, /copyBtn\.setAttribute\('data-copy', currentPicksText\(\)\)/);
   assert.ok(html.includes("'data-copy-label', '一键复制推荐号码'"), '复制按钮需带原标签以便复位');
   for (const size of [5, 7, 10, 12, 18]) {

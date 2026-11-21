@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.18-r23">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r23">
+<meta name="app-version" content="v2026.11.18-r24">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r24">
 <style>
 :root{
   --ink:#0f172a;
@@ -1079,10 +1079,12 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.18-r23';
+const APP_BUILD = '2026.11.18-r24';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
+/** 复制号码分隔符：中文全角逗号，例如 05，21，37 */
+const COPY_SEPARATOR = '，';
 
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
@@ -1875,7 +1877,7 @@ function currentPicks() {
   return picksOfRow(currentPlanData, activeTier);
 }
 
-function currentPicksText() { return currentPicks().map(pad2).join(','); }
+function currentPicksText() { return currentPicks().map(pad2).join(COPY_SEPARATOR); }
 
 function renderTopBar() {
   const records = allRecords();
@@ -1952,7 +1954,7 @@ function renderPicks() {
   host.innerHTML = `
     <div class="pick-grid">${chips}</div>
     <div class="copy-preview">
-      <span>复制格式（英文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
+      <span>复制格式（中文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
       <code>${currentPicksText()}</code>
     </div>
     <div class="pick-mix">${buildMixHint(plan, picks, activeTier)}</div>`;
@@ -2919,6 +2921,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.18-r23"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.18-r24"></script>
 </body>
 </html>
