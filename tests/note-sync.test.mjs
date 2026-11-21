@@ -150,9 +150,10 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
 
     // 简表不再展示「提纯主推」列，命中概览改为按当前码数统计
     const homeHead = [...doc.querySelectorAll('#recentHistorySection thead th')].map(th => th.textContent.trim());
-    assert.equal(homeHead.length, 7);
+    assert.equal(homeHead.length, 8);
+    assert.ok(homeHead.includes('7码中特'));
     assert.ok(!homeHead.includes('提纯主推'), '首页简表不应再有提纯主推列');
-    assert.equal(recentRows[0].querySelectorAll(':scope > td').length, 7, '首页简表每行应有 7 列');
+    assert.equal(recentRows[0].querySelectorAll(':scope > td').length, 8, '首页简表每行应有 8 列');
     assert.match(doc.getElementById('recentSummary').textContent, /当前10码中 \d+ 期/);
 
     // 展开明细的 colspan 必须与表头列数一致，否则整行错位
@@ -353,15 +354,15 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     const yearlyHead = [...doc.querySelectorAll('#historyModal .yearly-table thead th')].map(th => th.textContent.trim());
     assert.ok(!modalHead.includes('提纯主推'), '弹窗明细表不应再有提纯主推列');
     assert.ok(!yearlyHead.some(t => t.startsWith('提纯')), '年度总表不应再有提纯主推列');
-    assert.equal(modalHead.length, 7);
-    assert.equal(yearlyHead.length, 7);
+    assert.equal(modalHead.length, 8);
+    assert.equal(yearlyHead.length, 8);
     const modalFirst = doc.querySelector('#fullHistoryBody tr.main-row');
-    assert.equal(modalFirst.querySelectorAll(':scope > td').length, 7);
+    assert.equal(modalFirst.querySelectorAll(':scope > td').length, 8);
     const yearlyTotal = doc.querySelector('#yearlyBody tr.yr-total');
-    assert.equal(yearlyTotal.querySelectorAll(':scope > td').length, 7);
+    assert.equal(yearlyTotal.querySelectorAll(':scope > td').length, 8);
     doc.querySelector('#fullHistoryBody .exp-btn').click();
     const modalDetail = doc.querySelector('#fullHistoryBody tr.detail-row td');
-    assert.equal(Number(modalDetail.getAttribute('colspan')), 7);
+    assert.equal(Number(modalDetail.getAttribute('colspan')), 8);
     assert.ok(!modalDetail.textContent.includes('提纯'));
     doc.querySelector('#fullHistoryBody .exp-btn').click();
 

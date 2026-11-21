@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.18-r24">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r24">
+<meta name="app-version" content="v2026.11.21-r26">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.21-r26">
 <style>
 :root{
   --ink:#0f172a;
@@ -525,6 +525,33 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
   .modal-backdrop{padding:8px}
   .modal-head,.modal-body{padding:13px 12px}
 }
+
+/* 蓝白数据看板：保留原有交互，增强信息层次 */
+body{background:radial-gradient(ellipse at 50% 0,#e4efff 0,transparent 480px),var(--bg)}
+.page{padding-top:28px;gap:18px}
+.card{border-color:#dce6f4;box-shadow:0 10px 32px rgba(38,77,133,.065);padding:22px;border-radius:18px}
+#topBarSection{background:linear-gradient(135deg,#fff 25%,#f0f6ff 100%);border-color:#d2e3fc}
+.brand-mark{width:38px;height:38px;border-radius:12px;font-size:18px;box-shadow:0 6px 14px #2563eb35}
+h1{font-size:22px;letter-spacing:.01em} h2{font-size:17px} h2::before{height:20px}
+.latest-draw-row{background:#fff;box-shadow:0 4px 16px #2456a30b;border-radius:14px;padding:16px}
+.thermo-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.thermo-row{background:linear-gradient(160deg,#f7faff,#fff);border-color:#e0eafb;padding:14px}
+.thermo-top{align-items:flex-start;flex-direction:column}.thermo-name{flex-wrap:wrap}
+.opt-hero-box{background:linear-gradient(145deg,#f2f7ff,#fff);border-color:#d4e5ff;padding:18px}
+.tier-btn.active{background:linear-gradient(120deg,#245ee7,#3988f5)}
+.pick-chip{box-shadow:0 3px 10px #294e8b0a}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+.special-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.special-draw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:9px;background:#f8fbff;font:700 12px Consolas,monospace}
+.special-draw small{color:var(--muted);font-size:10px;margin-left:auto}
+.special-number{display:inline-flex;align-items:center;justify-content:center;color:#fff;width:30px;height:30px;border-radius:50%;flex-shrink:0}
+.special-number[data-wave=red]{background:#e54b4b}.special-number[data-wave=blue]{background:#3b82f6}.special-number[data-wave=green]{background:#10a878}
+.history-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.history-tools select,.history-tools input[type=search]{border:1px solid var(--line-strong);border-radius:8px;padding:8px;color:var(--ink);background:#fff}
+.pick3-groups{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}.pick3-group{background:#f1f5f9;border-radius:6px;padding:4px 6px;white-space:nowrap}.pick3-group.won{background:#fee2e2;color:#b91c1c;font-weight:800}
+.section-note{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 12px}.section-more{margin-top:12px;text-align:center}
+@media(max-width:640px){.page{padding:12px 10px 32px;gap:12px}.card{padding:16px 14px}.thermo-list{grid-template-columns:1fr}.thermo-top{flex-direction:row;align-items:center}h1{font-size:18px}.special-list{grid-template-columns:repeat(2,minmax(0,1fr))}.special-draw{font-size:11px}.special-draw small{display:none}}
+
 </style>
 </head>
 <body>
@@ -674,6 +701,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
             <th class="col-period">期号</th>
             <th>开奖号码（末位特码）</th>
             <th id="recentTierColHead">当前10码</th>
+            <th>7码中特</th>
             <th>#1 热态</th>
             <th>#2 遗漏</th>
             <th>#3 周期</th>
@@ -683,6 +711,23 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <tbody id="historyBody"></tbody>
       </table>
     </div>
+  </section>
+
+
+  <section class="card" id="specialDrawSection" aria-labelledby="specialDrawTitle">
+    <div class="card-head"><div class="card-title-wrap"><h2 id="specialDrawTitle">特码开奖记录</h2><span class="pill brand">按期查看</span></div></div>
+    <p class="section-note">按开奖期号由近到远展示，号码颜色对应波色；仅显示有效开奖。</p>
+    <div id="specialDrawList" class="special-list"></div>
+    <div class="section-more"><button type="button" class="btn ghost" id="specialMore">加载更多 30 期</button></div>
+  </section>
+  <section class="card" id="pick3HistorySection" aria-labelledby="pick3Title">
+    <div class="card-head"><div class="card-title-wrap"><h2 id="pick3Title">三中三历史命中</h2><span class="pill subtle">旧五组方案回放</span></div><button type="button" class="btn primary" id="pick3Start">开始历史回放</button></div>
+    <p class="section-note">每期五组，每组三码；三个号码全部落在前六个正码才算命中。按开奖前历史数据逐期模拟，不代表实际投注记录。</p>
+    <div class="pill brand" id="pick3Summary">尚未开始回放</div>
+    <p class="section-note" id="pick3Status" role="status" aria-live="polite">点击开始，后台逐期计算完整历史。</p>
+    <div class="history-tools"><select id="pick3Year" aria-label="筛选年份"><option value="ALL">全部年份</option></select><input type="search" id="pick3Search" placeholder="搜索期号" aria-label="搜索期号"><label><input type="checkbox" id="pick3OnlyHit"> 仅看命中</label></div>
+    <div class="table-wrap"><table class="history"><thead><tr><th class="col-period">期号</th><th>六个正码</th><th>五组推荐号码</th><th>命中</th></tr></thead><tbody id="pick3Body"><tr><td colspan="4" class="empty">点击开始历史回放</td></tr></tbody></table></div>
+    <div class="section-more"><button type="button" class="btn ghost" id="pick3More" hidden>加载更多 30 期</button></div>
   </section>
 
   <div class="foot-note">仅供历史数据统计参考，每期开奖独立随机，请理性娱乐。</div>
@@ -703,6 +748,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
               <th>年份</th>
               <th>期数</th>
               <th id="modalYearlyTierHead">当前10码<small>按分截取</small></th>
+              <th>7码中特<small>综合分前7码</small></th>
               <th>#1 热态<small>7码</small></th>
               <th>#2 遗漏<small>7码</small></th>
               <th>#3 周期<small>7码</small></th>
@@ -718,7 +764,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <div class="search-row">
           <input type="search" id="historySearch" class="search-input" placeholder="搜期号 如 2026-300">
           <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:inline-flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="checkbox" id="historyOnlyHit"> 仅看命中
+            <input type="checkbox" id="historyOnlyHit"> 仅看命中（当前档或7码）
           </label>
         </div>
       </div>
@@ -730,6 +776,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
               <th class="col-period">期号</th>
               <th>开奖号码（末位特码）</th>
               <th id="modalTableTierHead">当前10码</th>
+              <th>7码中特</th>
               <th>#1 热态</th>
               <th>#2 遗漏</th>
               <th>#3 周期</th>
@@ -759,6 +806,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
           <input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-320">
           <input id="quickPaste" class="paste-input" placeholder="粘贴7个开奖号码自动填入">
         </div>
+        <p class="section-note">请输入前六位正码和第 7 位特码，7 个号码须互不重复。</p>
         <div class="balls-wrap" id="ballInputs"></div>
         <div class="actions">
           <button class="btn primary" id="submitDraw" type="button">保存本期开奖</button>
@@ -1079,7 +1127,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.18-r24';
+const APP_BUILD = '2026.11.21-r26';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -2219,11 +2267,12 @@ function historyRowHtml(r, tier) {
   const cell = (hit, cls = 'hit') => hit
     ? `<span class="badge ${cls}">${pad2(r.special)}</span>`
     : '<span class="miss-dash">-</span>';
-  const anyHit = tierHitOf(r, tier) || r.hitHot || r.hitCold || r.hitCycle;
+  const anyHit = tierHitOf(r, tier) || tierHitOf(r, 7) || r.hitHot || r.hitCold || r.hitCycle;
   return `<tr class="main-row${anyHit ? ' row-hit' : ''}" data-lbl="${escapeHtml(r.label)}">
     <td class="col-period">${escapeHtml(r.label)}</td>
     <td>${drawBallsHtml(r.raw7)}</td>
     <td>${cell(tierHitOf(r, tier), 'tier-hit')}</td>
+    <td class="seven-hit">${cell(tierHitOf(r, 7), 'tier-hit')}</td>
     <td>${cell(r.hitHot)}</td>
     <td>${cell(r.hitCold)}</td>
     <td>${cell(r.hitCycle)}</td>
@@ -2235,11 +2284,12 @@ function renderRecentHistory() {
   const rows = recentPlanRows(RECENT_TABLE_WINDOW).slice().reverse();
   document.getElementById('historyBody').innerHTML = rows.length
     ? rows.map(r => historyRowHtml(r, activeTier)).join('')
-    : '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
+    : '<tr><td colspan="8" class="empty">暂无数据</td></tr>';
   const hit = rows.filter(r => tierHitOf(r, activeTier)).length;
+  const sevenHit = rows.filter(r => tierHitOf(r, 7)).length;
   document.getElementById('recentSummary').textContent =
     rows.length
-      ? `最近 ${rows.length} 期 · ${activeTier === UNION_TIER ? '三组并集' : `当前${activeTier}码`}中 ${hit} 期`
+      ? `最近 ${rows.length} 期 · ${activeTier === UNION_TIER ? '三组并集' : `当前${activeTier}码`}中 ${hit} 期 · 7码中 ${sevenHit} 期`
       : '暂无数据';
 }
 
@@ -2338,6 +2388,7 @@ function renderYearlyTable(allRows) {
       <td class="yr-label">${labelText}</td>
       <td class="yr-cnt">${rows.length}</td>
       ${replayRateCell(rows, r => tierHitOf(r, activeTier))}
+      ${replayRateCell(rows, r => tierHitOf(r, 7))}
       ${replayRateCell(rows, r => r.hitHot)}
       ${replayRateCell(rows, r => r.hitCold)}
       ${replayRateCell(rows, r => r.hitCycle)}
@@ -2374,7 +2425,7 @@ function modalRows() {
   let rows = selectedYear === 'ALL' ? all : all.filter(r => r.year === selectedYear);
   const q = historySearchQuery.trim();
   if (q) rows = rows.filter(r => r.label.includes(q));
-  if (historyOnlyHit) rows = rows.filter(r => tierHitOf(r, activeTier));
+  if (historyOnlyHit) rows = rows.filter(r => tierHitOf(r, activeTier) || tierHitOf(r, 7));
   return { all, rows };
 }
 
@@ -2387,7 +2438,7 @@ function renderHistoryModal() {
   const slice = rows.slice().reverse().slice(0, modalHistoryLimit);
   document.getElementById('fullHistoryBody').innerHTML = slice.length
     ? slice.map(r => historyRowHtml(r, activeTier)).join('')
-    : '<tr><td colspan="7" class="empty">没有符合条件的期数</td></tr>';
+    : '<tr><td colspan="8" class="empty">没有符合条件的期数</td></tr>';
 
   const bar = document.getElementById('modalMoreBar');
   const shown = slice.length, total = rows.length;
@@ -2456,6 +2507,7 @@ function refreshAll() {
   renderRecentHistory();
   renderLockArea(expectedNextLabel());
   updateDataStatus();
+  window.dispatchEvent(new Event('history-data-change'));
 }
 
 function updateDataStatus() {
@@ -2541,6 +2593,7 @@ function setupBallInputs() {
     inp.maxLength = 2;
     inp.placeholder = i === 6 ? '特' : String(i + 1);
     inp.className = 'ball-input';
+    inp.setAttribute('aria-label', i === 6 ? '第7位特码' : `第${i + 1}位正码`);
 
     inp.addEventListener('paste', e => {
       const text = e.clipboardData?.getData('text') || '';
@@ -2583,7 +2636,7 @@ function setupBallInputs() {
     });
 
     const lbl = document.createElement('small');
-    lbl.textContent = i === 6 ? '特码' : `正${i + 1}`;
+    lbl.textContent = i === 6 ? '第7位特码' : `正${i + 1}`;
     slot.append(inp, lbl);
     wrap.append(slot);
   }
@@ -2632,6 +2685,7 @@ function bindHistoryDetail(tbodyId) {
     const colCount = tr.closest('table')?.querySelectorAll('thead th').length || 8;
     tr.insertAdjacentHTML('afterend', `<tr class="detail-row"><td colspan="${colCount}"><div class="detail-groups">
       ${renderGrp(activeTier === UNION_TIER ? `三组并集 ${picks.length}码` : `推荐 ${picks.length}码`, picks)}
+      ${renderGrp('综合7码', picksOfRow(r, 7))}
       ${renderGrp('#1 热态', r.hot)}
       ${renderGrp('#2 遗漏', r.cold)}
       ${renderGrp('#3 周期', r.cycle)}
@@ -2919,8 +2973,10 @@ window.noteSync = {
   }
 };
 
+window.getHistoryDraws = () => usableRecordsOf(allRecords()).map(r => ({ ...r, numbers: [...r.numbers], raw7: [...r.raw7] }));
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.18-r24"></script>
+<script type="module" src="./src/history-panel.js?v=2026.11.21-r26"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.21-r26"></script>
 </body>
 </html>
