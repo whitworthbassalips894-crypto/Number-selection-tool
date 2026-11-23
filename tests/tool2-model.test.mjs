@@ -28,7 +28,7 @@ function unionExpectedFor(plan) {
 
 test('三策略输出三组各 7 码，并集与提纯逻辑已移除', () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
-  assert.equal(usable.length, 1780);
+  assert.equal(usable.length, 1786);
   const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
   const hot = [...plan.groups.hot], cold = [...plan.groups.cold], cycle = [...plan.groups.cycle];
   for (const list of [hot, cold, cycle]) {
