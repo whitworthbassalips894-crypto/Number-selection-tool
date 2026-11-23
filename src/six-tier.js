@@ -1,5 +1,21 @@
 /** 双档融合模型：只使用严格早于目标期的有效开奖，不使用伪随机抖动。 */
 import { isUsableDraw } from './audit.js';
+import { configureSevenPicker, selectBalancedSeven as pickSeven } from './seven-picker.js';
+
+// 与 src/strategy.js 共用同一份求解器实现，避免三份副本各自漂移。
+// 依赖在首次调用时惰性注入：ALL_49 / WAVE_MAP 定义在本文件后半段，
+// 模块顶层直接引用会触发 TDZ（Cannot access 'ALL_49' before initialization）。
+let sevenPickerReady = false;
+function ensureSevenPicker() {
+  if (sevenPickerReady) return;
+  configureSevenPicker({
+    zoneOf: (n) => (n <= 16 ? 1 : n <= 33 ? 2 : 3),
+    colorOf: (n) => WAVE_MAP[n],
+    allNumbers: ALL_49,
+    defaultSize: 7,
+  });
+  sevenPickerReady = true;
+}
 const TIER_DEFS = [
   { size: 5, icon: '🔥', label: '5码精选', desc: '主力核' },
   { size: 8, icon: '⚡', label: '8码主力', desc: '主力核 + 防守补位' }
@@ -89,64 +105,8 @@ function normArr(arr) {
 }
 
 function selectBalancedSeven(scoreMap, opts) {
-  const minZ = opts.minPerZone, maxZ = opts.maxPerZone;
-  const minC = opts.minPerColor, maxC = opts.maxPerColor;
-  const oddLo = opts.oddRange[0], oddHi = opts.oddRange[1];
-  const bigLo = opts.bigRange[0], bigHi = opts.bigRange[1];
-  const maxTail = opts.maxTailRepeat;
-  const norm = normArr(scoreMap);
-  const candidates = ALL_49.slice().sort((a, b) => norm[b] - norm[a] || a - b);
-
-  const chosen = [];
-  const chosenMask = new Uint8Array(50);
-  const zCnt = [0, 0, 0, 0];
-  const cCnt = { red: 0, blue: 0, green: 0 };
-  const tCnt = new Uint8Array(10);
-  let oddCnt = 0, bigCnt = 0;
-
-  while (chosen.length < 7) {
-    let bestNum = 0, bestVal = -Infinity;
-    const remAfter = 7 - (chosen.length + 1);
-    for (const strict of [true, false]) {
-      for (let idx = 0; idx < 49; idx++) {
-        const n = candidates[idx];
-        if (chosenMask[n]) continue;
-        const z = zoneOf(n), c = WAVE_MAP[n], tl = n % 10;
-        const isOdd = n & 1, isBig = n >= 25 ? 1 : 0;
-        if (strict) {
-          if (zCnt[z] + 1 > maxZ || cCnt[c] + 1 > maxC || tCnt[tl] + 1 > maxTail) continue;
-          const zDef = Math.max(0, minZ - (zCnt[1] + (z === 1 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[2] + (z === 2 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[3] + (z === 3 ? 1 : 0)));
-          if (zDef > remAfter) continue;
-          const cDef = Math.max(0, minC - (cCnt.red + (c === 'red' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.blue + (c === 'blue' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.green + (c === 'green' ? 1 : 0)));
-          if (cDef > remAfter) continue;
-          const nextOdd = oddCnt + isOdd;
-          if (nextOdd > oddHi || nextOdd + remAfter < oddLo) continue;
-          const nextBig = bigCnt + isBig;
-          if (nextBig > bigHi || nextBig + remAfter < bigLo) continue;
-        }
-        let val = norm[n];
-        if (zCnt[z] < minZ) val += 0.18; else if (zCnt[z] >= maxZ - 1) val -= 0.06;
-        if (cCnt[c] < minC) val += 0.14; else if (cCnt[c] >= maxC - 1) val -= 0.05;
-        if (tCnt[tl] > 0) val -= 0.12 * tCnt[tl];
-        val -= 0.05 * Math.abs(oddCnt + isOdd - 3.5) - 0.05 * Math.abs(bigCnt + isBig - 3.5);
-        if (val > bestVal) { bestVal = val; bestNum = n; }
-      }
-      if (bestNum) break;
-    }
-    if (!bestNum) break;
-    chosen.push(bestNum);
-    chosenMask[bestNum] = 1;
-    zCnt[zoneOf(bestNum)]++;
-    cCnt[WAVE_MAP[bestNum]]++;
-    tCnt[bestNum % 10]++;
-    if (bestNum & 1) oddCnt++;
-    if (bestNum >= 25) bigCnt++;
-  }
-  return chosen.sort((a, b) => a - b);
+  ensureSevenPicker();
+  return pickSeven(scoreMap, { size: 7, ...opts });
 }
 
 function selectPoolSeven(pool, scoreMap) {

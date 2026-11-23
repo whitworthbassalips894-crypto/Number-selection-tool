@@ -93,9 +93,13 @@ test('推荐号码一键复制为中文逗号分隔两位数字', () => {
   for (const size of [5, 7, 10, 12, 18]) {
     assert.ok(html.includes(String(size)), `缺少 ${size} 码档位`);
   }
-  // 5/7/10/12 码按三策略综合分截取，18 码档位取三组去重并集（码数随期浮动）
-  assert.ok(html.includes("if (tier === UNION_TIER) {"), '18 码档位应单独走并集分支');
+  // 5/7/10/12 码按三策略综合分截取；并集档 = 综合前 12 ∪ 三组去重（保证档位严格包含）
+  assert.ok(html.includes("if (tier === UNION_TIER) return unionTierNumbers(row);"), '并集档应走独立分支');
   assert.ok(html.includes('const UNION_TIER = 18;'), '18 码档位应标记为并集口径');
-  assert.ok(html.includes('return [...new Set(union)].sort((a, b) => a - b);'), '并集号码应去重后升序');
+  assert.ok(html.includes('const UNION_BASE = 12;'), '并集档需包含综合分前 12 码');
+  assert.ok(
+    html.includes('return [...new Set([...ranked.slice(0, UNION_BASE), ...union])].sort((a, b) => a - b);'),
+    '并集号码应为「综合前 12 ∪ 三组去重」并升序'
+  );
   assert.ok(html.includes('const STRATEGY_WEIGHTS = { hot: 0.40, cold: 0.34, cycle: 0.26 };'), '应保留三策略权重');
 });

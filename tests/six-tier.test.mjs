@@ -11,7 +11,8 @@ const target = { year: 2026, periodNum: 316, date: '2026-11-12' };
 test('新客观模型固定基准、双档同心与冷却', () => {
   assert.equal(through315.filter(isUsableDraw).length, 1775);
   const p = sixTierPlan(through315, target);
-  assert.deepEqual(p.ranked.slice(0,8), [25,37,8,40,1,9,24,27]);
+  // [2026-11-23] 修正大小均衡项符号 bug 后的基准
+  assert.deepEqual(p.ranked.slice(0,8), [25,37,8,40,9,24,27,17]);
   assert.deepEqual(TIER_DEFS.map(t => t.size), [5,8]);
   assert.equal(new Set(p.ranked).size, 49);
   assert.deepEqual([...p.ranked].sort((a,b)=>a-b), Array.from({length:49},(_,i)=>i+1));

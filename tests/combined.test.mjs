@@ -9,8 +9,9 @@ test('2026-306 两个原版与双方案基准', () => {
   const p = combinedPlan(db.draws, target);
   assert.deepEqual(p.tool1, [1,6,10,15,23,24,25,30,34,37,43,48]);
   assert.deepEqual(p.twelve.breakdown.map(x => x.numbers), [[6,30,48],[10,23,25],[37,43],[1,15,24,34]]);
-  assert.deepEqual(p.three.five.map(x => x.numbers), [[8,17,21,23,36,38,45],[3,6,12,27,29,34,41],[2,11,17,23,25,36,38]]);
-  assert.deepEqual(p.a, [23,25,34]);
+  // [2026-11-23] 修正大小均衡项符号 bug 后的基准（原 [[8,17,21,...]] 是 bug 期快照）
+  assert.deepEqual(p.three.five.map(x => x.numbers), [[8,10,17,23,25,36,38],[3,6,12,27,29,34,41],[2,11,17,23,25,36,38]]);
+  assert.deepEqual(p.a, [10,23,25,34]);
   assert.deepEqual(p.b, [10,23,25,37,43]);
 });
 test('多个历史期原版一致且严格不读取当期和未来', () => {
@@ -47,7 +48,7 @@ test('无效开奖不进入回放，推荐只按特码命中', () => {
 
 test('A + B 固定剔除随机号，重叠号码按两注结算', () => {
   const p = combinedPlan(db.draws, target);
-  assert.deepEqual(p.ab, [23,25,34,10,23,25,37,43]);
+  assert.deepEqual(p.ab, [10,23,25,34,10,23,25,37,43]);
   const draw = { id: '2026-306', year: 2026, periodNum: 306, date: '2026-11-02', numbers: [1,2,3,4,5,7], special: 23 };
   const record = replayRecord(db.draws, draw);
   assert.deepEqual(record.picks.a, p.a);
@@ -55,10 +56,11 @@ test('A + B 固定剔除随机号，重叠号码按两注结算', () => {
   assert.equal('aPure' in record.picks, false);
   assert.equal('abPure' in record.picks, false);
   const result = summarize([record], 'ab', 10, 48);
-  assert.equal(result.bets, 8);
+  // [2026-11-23] 符号 bug 修正后 A∪B 变为 9 注（重叠号 23/25 各计两注）
+  assert.equal(result.bets, 9);
   assert.equal(result.hits, 2);
-  assert.equal(result.net, 880);
-  assert.equal(result.hitRate, 2 / 8);
+  assert.equal(result.net, 870);
+  assert.equal(result.hitRate, 2 / 9);
 });
 
 test('优选仅过滤最近四期有效特码，去重且不读取当期或未来', () => {
@@ -100,10 +102,11 @@ test('截至 2026-307 的优选回测：有效历史与原版口径分别验算'
   const totals = summarize(records, 'opt', 10, 48);
   assert.equal(totals.periods, 1767);
   // 工具 1 原版的特码间隔会读取无效的 2022-132；严格有效历史与原版口径不同。
-  assert.equal(totals.bets, 10145);
-  assert.equal(totals.hits, 247);
-  assert.equal(totals.net, 17110);
-  assert.equal(totals.maxDrawdown, 2970);
+  // [2026-11-23] 修正大小均衡项符号 bug 后的基准（选号变化会导致注数/命中轻微不同）
+  assert.equal(totals.bets, 10117);
+  assert.equal(totals.hits, 236);
+  assert.equal(totals.net, 12110);
+  assert.equal(totals.maxDrawdown, 3650);
   assert.equal(totals.longestLosing, 32);
   for (const year of [2022, 2023, 2024, 2025, 2026]) {
     assert.ok(summarize(records.filter(r => r.draw.year === year), 'opt', 10, 48).net > 0, `${year} 净收益应为正`);
@@ -123,10 +126,10 @@ test('截至 2026-307 的优选回测：有效历史与原版口径分别验算'
   });
   const raw = summarize(rawRecords, 'opt', 10, 48);
   assert.equal(raw.periods, 1767);
-  assert.equal(raw.bets, 10148);
-  assert.equal(raw.hits, 247);
-  assert.equal(raw.net, 17080);
-  assert.equal(raw.maxDrawdown, 2990);
+  assert.equal(raw.bets, 10120);
+  assert.equal(raw.hits, 236);
+  assert.equal(raw.net, 12080);
+  assert.equal(raw.maxDrawdown, 3650);
   assert.equal(raw.longestLosing, 32);
 });
 
@@ -141,6 +144,7 @@ test('隔离 2022-132 无效期后，工具 1 不得从该行读取特码', () =
   assert.deepEqual(validPlan.opt, withoutBad.opt);
   const original = original1(db.draws, draw, {mode: 'special', randomSalt: 0}).five[0];
   const originalA = original.numbers.filter(n => original.styles[n] !== 'random' && validPlan.tool2Unique.includes(n));
-  assert.deepEqual(originalA, [9,21,22,34,39,48]);
-  assert.deepEqual(validPlan.a, [9,21,22,34,39]);
+  // [2026-11-23] 符号 bug 修正后基准
+  assert.deepEqual(originalA, [9,22,34,36,39,48]);
+  assert.deepEqual(validPlan.a, [9,22,34,36,39]);
 });
