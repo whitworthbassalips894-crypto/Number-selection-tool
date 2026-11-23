@@ -132,7 +132,8 @@ function selectBalancedSeven(scoreMap, opts) {
         if (zCnt[z] < minZ) val += 0.18; else if (zCnt[z] >= maxZ - 1) val -= 0.06;
         if (cCnt[c] < minC) val += 0.14; else if (cCnt[c] >= maxC - 1) val -= 0.05;
         if (tCnt[tl] > 0) val -= 0.12 * tCnt[tl];
-        val -= 0.05 * Math.abs(oddCnt + isOdd - 3.5) - 0.05 * Math.abs(bigCnt + isBig - 3.5);
+        // 奇偶与大小都向 3.5 靠拢：两项都必须「偏离越远扣越多」，故同为减号
+        val -= 0.05 * Math.abs(oddCnt + isOdd - 3.5) + 0.05 * Math.abs(bigCnt + isBig - 3.5);
         if (val > bestVal) { bestVal = val; bestNum = n; }
       }
       if (bestNum) break;

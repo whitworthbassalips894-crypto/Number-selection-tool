@@ -47,13 +47,13 @@ test('内置仓库底库与 data/draws.json 一致，一键同步只追加连续
   const alternate = Array.from({ length: 49 }, (_, i) => i + 1)
     .find(n => n !== lastLocal.special && !lastLocal.numbers.includes(n));
   const changed = remote.map(d => d.id === lastLocal.id ? { ...d, special: alternate } : d);
-  assert.throws(() => planSync(local, changed), /冲突/);
+  assert.throws(() => planSync(local, changed), /不一致/);
 
   const gap = normalizeDrawRecord({
     year: 2026, periodNum: 328, date: '2026-11-24',
     numbers: [8, 9, 10, 11, 12, 13], special: 14
   });
-  assert.throws(() => planSync(local, [gap, ...remote]), /缺口/);
+  assert.throws(() => planSync(local, [gap, ...remote]), /不连续/);
 });
 
 test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () => {
@@ -100,7 +100,7 @@ test('一键同步按钮读取仓库 JSON，并把连续新期写入页面', asy
     await import(`../src/note-sync.js?click=${Date.now()}`);
     dom.window.document.getElementById('syncNow').click();
     await new Promise(resolve => setTimeout(resolve, 80));
-    assert.match(dom.window.document.getElementById('syncStatus').textContent, /已同步 1 期/);
+    assert.match(dom.window.document.getElementById('syncStatus').textContent, /已从仓库同步 1 期/);
     assert.equal(dom.window.document.getElementById('noticeLatest').textContent, fresh.id);
     assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).labels.at(-1), fresh.id);
   } finally {
@@ -153,7 +153,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     assert.equal(homeHead.length, 7);
     assert.ok(!homeHead.includes('提纯主推'), '首页简表不应再有提纯主推列');
     assert.equal(recentRows[0].querySelectorAll(':scope > td').length, 7, '首页简表每行应有 7 列');
-    assert.match(doc.getElementById('recentSummary').textContent, /当前10码中 \d+ 期/);
+    assert.match(doc.getElementById('recentSummary').textContent, /最近 30 期 · 10码中 \d+ 期/);
 
     // 展开明细的 colspan 必须与表头列数一致，否则整行错位
     doc.querySelector('#historyBody .exp-btn').click();
@@ -219,12 +219,13 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.deepEqual(tabs.slice(0, 4).map(t => t.textContent.match(/^\d+码/)[0]), ['5码', '7码', '10码', '12码']);
     assert.match(tabs[4].textContent, /^并集全取\s*\d+码$/);
 
+    // [2026-11-23] 修正大小均衡项符号 bug 后的基准；并集档 = 综合前 12 ∪ 三组去重
     const expect = {
       5: '03，05，26，38，46',
-      7: '03，05，19，26，38，46，47',
-      10: '03，05，15，19，21，23，26，38，46，47',
-      12: '03，05，15，19，21，22，23，26，38，40，46，47',
-      18: '01，03，04，05，06，15，19，21，22，23，26，29，37，38，39，40，46，47'
+      7: '02，03，05，26，38，43，46',
+      10: '02，03，05，19，21，26，38，43，46，47',
+      12: '02，03，05，15，19，21，23，26，38，43，46，47',
+      18: '01，02，03，04，05，06，15，19，21，22，23，26，29，37，38，39，43，46，47'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -250,7 +251,7 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, new RegExp(`并集全取\\s*${unionChips}码`), '并集按钮应显示当期实际码数');
     assert.ok(!doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent.startsWith('18码'), '并集档位不应写死 18 码');
     assert.match(doc.getElementById('recentTierColHead').textContent, new RegExp(`当前并集（${unionChips}码）`));
-    assert.match(doc.getElementById('recentSummary').textContent, /三组并集中 \d+ 期/);
+    assert.match(doc.getElementById('recentSummary').textContent, /并集全取中 \d+ 期/);
     assert.match(doc.querySelector('#optHero .copy-preview').textContent, new RegExp(`三组并集共 ${unionChips} 码`));
     // 号码越多，18 码档位应包含 5 码档位的全部号码
     const unionShown = [...doc.querySelectorAll('#optHero .pick-chip .ball')].map(x => Number(x.textContent));
@@ -279,8 +280,10 @@ test('温度计随机基线、选号依据已移除、本档构成与同步时�
     // 温度计随机基线提示
     const baseline = doc.getElementById('thermoBaseline');
     assert.ok(baseline, '应有随机基线提示');
-    assert.match(baseline.textContent, /14\.3%/);
-    assert.match(baseline.textContent, /±12pp/);
+    // 基线文案随档位动态生成：必须给出「当前档位覆盖率」与「95% 正常区间」
+    assert.match(baseline.textContent, /本表三组各 7 码：单组随机基线 14\.3%/);
+    assert.match(baseline.textContent, /当前主推档位「10码」覆盖 10\/49/);
+    assert.match(baseline.textContent, /都算正常波动/);
 
     // 选号依据模块已整体移除，页面不再出现杀码/排除口径
     assert.equal(doc.getElementById('deriveFold'), null, '选号依据模块应已移除');
@@ -293,15 +296,15 @@ test('温度计随机基线、选号依据已移除、本档构成与同步时�
 
     // 本档构成提示（所有档位都显示）
     assert.ok(doc.querySelector('.pick-mix'), '当前档位应显示构成');
-    assert.match(doc.querySelector('.pick-mix').textContent, /含热态 \d+/);
-    assert.match(doc.querySelector('.pick-mix').textContent, /含遗漏 \d+/);
-    assert.match(doc.querySelector('.pick-mix').textContent, /含周期 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /热态 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /遗漏 \d+/);
+    assert.match(doc.querySelector('.pick-mix').textContent, /周期 \d+/);
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
     assert.ok(doc.querySelector('.pick-mix'), '18 码并集档位同样显示构成');
     assert.match(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent, /并集全取/);
 
     // 顶部同步时间
-    assert.match(doc.getElementById('syncStamp').textContent, /同步于 \d{2}:\d{2}/);
+    assert.match(doc.getElementById('syncStamp').textContent, /本地校验于 \d{2}:\d{2}/);
 
     // 弹窗筛选文案已改为「仅看命中」
     assert.match(doc.querySelector('#historyOnlyHit').parentElement.textContent, /仅看命中/);
@@ -322,7 +325,8 @@ test('近 30 期温度计、连错期数与选号依据已移除', async () => {
       assert.match(row.querySelector('.thermo-rate').textContent, /^\d+\.\d%$/);
     }
     const rates = rows.map(r => r.querySelector('.thermo-rate').textContent);
-    assert.deepEqual(rates, ['23.3%', '23.3%', '26.7%']);
+    // [2026-11-23] 符号 bug 修正后基准
+    assert.deepEqual(rates, ['23.3%', '20.0%', '23.3%']);
 
     assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 \d+ 期/);
     assert.ok(doc.getElementById('signalText').textContent.length > 6);
@@ -447,6 +451,212 @@ test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并�
     assert.equal(fold.open, true);
     assert.equal(doc.querySelectorAll('#strategyFold[open] #strategyBody .strategy-balls .ball').length, 21);
     assert.match(doc.querySelector('#strategyBody .strategy-note:last-child').textContent, new RegExp(`共 ${union.length} 个号码`));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('档位严格包含：并集档必须包含 5/7/10/12 码档的全部号码', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const picksOf = (size) => {
+      doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
+      return doc.getElementById('copyMainBtn').getAttribute('data-copy').split('，').map(Number);
+    };
+    const five = picksOf(5);
+    const seven = picksOf(7);
+    const ten = picksOf(10);
+    const twelve = picksOf(12);
+    const union = picksOf(18);
+    for (const [small, big, name] of [[five, seven, '5⊂7'], [seven, ten, '7⊂10'], [ten, twelve, '10⊂12'], [twelve, union, '12⊂并集']]) {
+      for (const n of small) assert.ok(big.includes(n), `${name} 被破坏：${n} 不在大档位里`);
+    }
+    assert.equal(new Set(union).size, union.length, '并集档不应有重复号码');
+    assert.equal(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent.trim(), `并集全取 ${union.length}码`);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('主推卡片给出成本/覆盖/期望，并说明回报率与选号无关', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const cost = doc.querySelector('#optHero .pick-cost');
+    assert.ok(cost, '主推卡片应有成本行');
+    assert.match(cost.textContent, /\d+ 注/);
+    assert.match(cost.textContent, /覆盖 \d+\/49（\d+\.\d%）/);
+    assert.match(cost.textContent, /每期投入 ¥\d+/);
+    assert.match(cost.textContent, /期望净亏 ¥\d+\.\d{2}/);
+    assert.match(cost.textContent, /回报率 97\.96%/);
+    assert.ok(cost.querySelector('.cost-neg'), '期望净亏应高亮为负值');
+    // 切档后成本行同步更新
+    doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
+    const costText5 = doc.querySelector('#optHero .pick-cost').textContent.replace(/\s+/g, ' ');
+    assert.match(costText5, /5 注 · 覆盖 5\/49（10\.2%） · 每期投入 ¥5/);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('连错与温度计都按当前档位的随机基线表达，不再给「建议参考」', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 \d+ 期 · 随机下约 \d+% 概率/);
+    const signal = doc.getElementById('signalText').textContent;
+    assert.match(signal, /随机基线 \d+\.\d% · 95% 正常区间/);
+    assert.match(signal, /z=\d+\.\d{2}/);
+    assert.doesNotMatch(signal, /可优先参考|建议谨慎参考|建议小额参考/);
+    // 阈值随档位浮动：5 码档不应因为命中率天然偏低就永远标「偏冷」
+    const tags5 = () => [...doc.querySelectorAll('#thermometerList .temp-tag')].map(el => el.textContent);
+    assert.deepEqual(tags5(), [...tags5()]);
+    for (const tag of tags5()) assert.ok(['偏冷', '正常', '偏热'].includes(tag));
+    assert.match(doc.getElementById('thermoBaseline').textContent, /当前主推档位「10码」覆盖 10\/49/);
+    doc.querySelector('#tierTabs .tier-btn[data-tier="5"]').click();
+    assert.match(doc.getElementById('thermoBaseline').textContent, /当前主推档位「5码」覆盖 5\/49/);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('简表给出汇总行，未中改为浅灰点而不是满屏减号', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const stats = doc.getElementById('recentStats');
+    assert.match(stats.textContent, /命中 \d+ \/ 30 期/);
+    assert.match(stats.textContent, /最长连错 \d+ 期/);
+    assert.match(stats.textContent, /累计 \d+ 注/);
+    assert.match(stats.textContent, /随机基线 \d+~\d+ 期（95%）/);
+    assert.equal(doc.querySelectorAll('#historyBody .miss-dash').length, 0, '不应再用减号表示未中');
+    assert.ok(doc.querySelectorAll('#historyBody .miss-dot').length > 0, '未中应渲染为浅灰点');
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('术语说明弹窗可打开、可关闭，并解释页面上出现的黑话', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const modal = doc.getElementById('glossaryModal');
+    assert.equal(modal.hidden, true);
+    doc.querySelector('#optHero .glossary-btn').click();
+    assert.equal(modal.hidden, false);
+    assert.equal(doc.body.classList.contains('modal-open'), true);
+    for (const term of ['特码', '双策共振', '综合分', '并集全取', '当前连错 N 期', '期望净亏', '底库 / 同步']) {
+      assert.ok(modal.textContent.includes(term), `术语说明应包含「${term}」`);
+    }
+    doc.getElementById('closeGlossaryModal').click();
+    assert.equal(modal.hidden, true);
+    assert.equal(doc.body.classList.contains('modal-open'), false);
+    // Esc 同样可关闭
+    doc.querySelector('#optHero .glossary-btn').click();
+    doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    assert.equal(modal.hidden, true);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('导出说明写明不含内置底库，导出文件带上底库版本信息', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    const note = doc.querySelector('.backup-note').textContent.replace(/\s+/g, ' ');
+    assert.match(note, /内置底库（\d{4}-\d{3} \/ \d+ 期）随页面一起更新，不需要导出/);
+    assert.match(note, /只保存你手动补录\/同步到本机的期次与锁定快照/);
+    assert.match(doc.getElementById('backupDbInfo').textContent, /^\d{4}-\d{3} \/ \d+ 期$/);
+    assert.equal(doc.getElementById('exportBtn').textContent.trim(), '导出本机记录');
+    assert.match(doc.getElementById('exportBtn').title, /不含随页面下发的内置底库/);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('一键同步三态可区分：进行中 / 无新数据 / 失败，且都不会写坏数据', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const keys = ['window', 'document', 'navigator', 'location', 'fetch'];
+  const savedGlobals = Object.fromEntries(keys.map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+  try {
+    globalThis.window = dom.window;
+    globalThis.document = dom.window.document;
+    Object.defineProperty(globalThis, 'navigator', { value: dom.window.navigator, configurable: true });
+    globalThis.location = dom.window.location;
+    const doc = dom.window.document;
+
+    // 1) 进行中：fetch 挂起，按钮应进入 busy 态并给出「正在检查」
+    // 进行中：第一次请求挂起，放行后返回「已同步 1 期」，避免再落到上游分支
+    let release;
+    globalThis.fetch = () => new Promise(resolve => {
+      release = () => resolve({ ok: true, json: async () => ({ draws: [fresh, ...remote] }) });
+    });
+    await import(`../src/note-sync.js?states=${Date.now()}`);
+    doc.getElementById('syncNow').click();
+    await new Promise(r => setTimeout(r, 20));
+    const status = doc.getElementById('syncStatus');
+    assert.equal(status.dataset.state, 'pending');
+    assert.match(status.textContent, /正在检查最新开奖…/);
+    assert.equal(doc.getElementById('syncNow').classList.contains('is-busy'), true);
+    assert.equal(doc.getElementById('syncNow').getAttribute('aria-busy'), 'true');
+    release();
+    await new Promise(r => setTimeout(r, 80));
+    assert.equal(status.dataset.state, 'ok');
+    assert.match(status.textContent, /已从仓库同步 1 期/);
+    assert.equal(doc.getElementById('syncNow').getAttribute('aria-busy'), 'false');
+
+    // 2) 无新数据：明确写「不是失败」，而不是假装成功
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ draws: remote }) });
+    doc.getElementById('syncNow').click();
+    await new Promise(r => setTimeout(r, 40));
+    assert.equal(status.dataset.state, 'warn');
+    assert.match(status.textContent, /没有更新的期次/);
+    assert.match(status.textContent, /不是失败/);
+
+    // 3) 失败：红色状态 + 人话解释，不能静默
+    globalThis.fetch = async () => { throw new Error('offline'); };
+    doc.getElementById('syncNow').click();
+    await new Promise(r => setTimeout(r, 40));
+    assert.equal(status.dataset.state, 'error');
+    assert.match(status.textContent, /同步失败/);
+    // 失败不能写坏数据：本机仍只有前面那一条正常同步
+    assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).labels.length, 1);
+  } finally {
+    dom.window.close();
+    for (const k of keys) {
+      if (savedGlobals[k]) Object.defineProperty(globalThis, k, savedGlobals[k]);
+      else delete globalThis[k];
+    }
+  }
+});
+
+test('底库为空时不崩溃，三个模块都给出「状态 + 原因 + 下一步」', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+    assert.doesNotThrow(() => {
+      dom.window.eval('BASE_RECORDS.length = 0; manualRecords = []; planCache.clear(); refreshAll();');
+    }, '空库时 refreshAll 不应抛错（曾因 expectedNextLabel 读取 undefined.label 崩溃）');
+    for (const sel of ['#optHero .empty-state', '#thermometerList .empty-state', '#strategyBody .empty-state']) {
+      const box = doc.querySelector(sel);
+      assert.ok(box, `${sel} 应有统一空态`);
+      assert.ok(box.querySelector('.empty-state-title'), '空态需要标题');
+      assert.ok(box.querySelector('.empty-state-reason'), '空态需要原因');
+    }
+    const actions = [...doc.querySelectorAll('button[data-empty-action]')];
+    assert.equal(actions.length, 3, '三个空态各应有一个下一步按钮');
+    for (const btn of actions) assert.equal(btn.getAttribute('data-empty-action'), 'sync');
+    assert.match(doc.getElementById('signalText').textContent, /先点「一键同步」/);
+    assert.match(doc.querySelector('.latest-period-line').textContent, /第 — 期/);
   } finally {
     dom.window.close();
   }

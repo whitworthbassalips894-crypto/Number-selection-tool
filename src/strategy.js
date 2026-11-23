@@ -153,11 +153,11 @@ export function selectBalancedSeven(scoreMap = {}, opts = {}) {
 
         if (st.tails[n % 10] > 0) val -= 0.12 * st.tails[n % 10];
 
-        // 奇偶与大小向 3.5 中心轻微靠拢
+        // 奇偶与大小向中心轻微靠拢：两项都必须「偏离越远扣越多」，故同为减号
         const targetMid = size / 2;
         const nextOddDist = Math.abs(st.odd + (isOdd(n) ? 1 : 0) - targetMid);
         const nextBigDist = Math.abs(st.big + (isBig(n) ? 1 : 0) - targetMid);
-        val -= 0.05 * nextOddDist - 0.05 * nextBigDist;
+        val -= 0.05 * nextOddDist + 0.05 * nextBigDist;
 
         if (val > bestVal) {
           bestVal = val;
