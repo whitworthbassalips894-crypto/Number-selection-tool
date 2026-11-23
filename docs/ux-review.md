@@ -202,3 +202,26 @@ pill `最近 30 期 · 当前10码中 10 期` 是有的，但它是一个灰色�
 - 区间文案统一由 `heatBandLabels()` 生成，避免出现「≤0次」这种读起来别扭的写法。
 
 回归测试见 `tests/note-sync.test.mjs`「热度阈值按窗口二项基线推导」。
+
+---
+
+## 附二：选号求解器去重（2026-11-23，构建 r28）
+
+上表第 2 条提到的「三份引擎副本」已处理。
+
+**问题**：`selectBalancedSeven` 在 `index.html`、`src/strategy.js`、`src/six-tier.js` 各有一份。上一轮的「均衡项符号写反」缺陷就同时存在于三处 —— 这是复制代码最典型的代价：一次判断错误会同时污染多个入口，而修的时候极易漏改。
+
+**做法**：抽成 `src/seven-picker.js` 作为唯一实现，其余三处只做依赖注入与转发。抽之前先做了等值性验证：
+
+| 对比 | 用例数 | 差异 |
+|---|---|---|
+| `src/strategy.js` vs `src/six-tier.js` | 400 | 0 |
+| `index.html` vs `src/strategy.js` | 400 | 0 |
+| `index.html` vs `src/strategy.js`（大量并列分数压力测试） | 50 | 0 |
+| 新模块 vs 上述三处 | 900 | 0 |
+
+因此这次重构**不改变任何一期选出的号码**。
+
+**连带影响**：页面加载求解器变成异步（动态 import），`refreshAll()` / `renderMainPick()` / `runTool2At()` / `noteSync.apply()` 随之变成 Promise。测试里 17 处页面构造统一收进 `tests/helpers/page.mjs`，由它把 Node 侧加载的同一份模块通过 `window.__sevenPickerModule` 预载口注入页面 —— 测试覆盖的仍是真实实现，没有测试替身。
+
+**顺带发现一个既有缺陷（未修，已登记）**：`#3 周期组` 的配置 `minPerColor=2` 配 `maxTailRepeat=1` 会互相挤压，贪心算法的严格轮次走进死路后，兜底轮次会放宽**全部**约束（包括三色下限和尾数上限），于是约 5% 的期次里三色中有一色只剩 1 码，与界面「选号依据」承诺的「三色各≥2」不符。修法是让兜底轮次只放宽下限、仍守上限，但那会改变选定号码，属于统计口径变更，单独评估。当前由 `tests/seven-picker.test.mjs` 锁定发生率，防止恶化。

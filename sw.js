@@ -8,7 +8,7 @@
  *  4. BUILD_ID 必须与 src/constants.js 的 APP_BUILD、index.html 的 ?v= 参数一致，由单测自动校验。
  */
 
-const BUILD_ID = '2026.11.23-r27';
+const BUILD_ID = '2026.11.23-r28';
 const CACHE_PREFIX = 'mark6-nst-';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 
@@ -26,6 +26,8 @@ const SHELL_FILES = [
   './src/periods.js',
   './src/china-time.js',
   './src/constants.js',
+  // 选号求解器唯一实现（index.html 动态 import 它），离线时必须可用
+  './src/seven-picker.js',
   './data/draws.js',
   './data/draws.json'
 ];

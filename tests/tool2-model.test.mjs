@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { picker as sevenPicker } from './helpers/page.mjs';
 
 const html = fs.readFileSync('index.html', 'utf8');
 const scriptStart = html.indexOf('<script>\n') + '<script>\n'.length;
@@ -14,7 +15,12 @@ globalThis.__tool2 = {
   scoreAllNumbers, strategyPercentile, STRATEGY_WEIGHTS, rankCandidatesFromPlan
 };
 `;
-const context = vm.createContext({ console });
+// 页面用动态 import 加载求解器；vm 里没有模块加载能力，
+// 这里通过预载口把它接到 Node 侧加载的同一份 src/seven-picker.js
+const sandbox = { console, window: {} };
+sandbox.window.__sevenPickerModule = sevenPicker;
+sandbox.globalThis = sandbox;
+const context = vm.createContext(sandbox);
 vm.runInContext(script, context);
 const api = context.__tool2;
 
@@ -26,10 +32,10 @@ function unionExpectedFor(plan) {
   return sortedUnique([...plan.groups.hot, ...plan.groups.cold, ...plan.groups.cycle]);
 }
 
-test('三策略输出三组各 7 码，并集与提纯逻辑已移除', () => {
+test('三策略输出三组各 7 码，并集与提纯逻辑已移除', async () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
   assert.equal(usable.length, 1786);
-  const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
+  const plan = await api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
   const hot = [...plan.groups.hot], cold = [...plan.groups.cold], cycle = [...plan.groups.cycle];
   for (const list of [hot, cold, cycle]) {
     assert.equal(list.length, 7);
@@ -47,9 +53,9 @@ test('三策略输出三组各 7 码，并集与提纯逻辑已移除', () => {
   }
 });
 
-test('综合评分：49 码全部参与排序，权重与组内加成可复现', () => {
+test('综合评分：49 码全部参与排序，权重与组内加成可复现', async () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
-  const plan = api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
+  const plan = await api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
   const rows = api.scoreAllNumbers(plan.scores, plan.groups);
   assert.equal(rows.length, 49);
   assert.deepEqual(sortedUnique(rows.map(r => r.n)), Array.from({ length: 49 }, (_, i) => i + 1));

@@ -110,7 +110,8 @@ async function syncNow() {
       setSyncState('warn', `⚠️ 没有更新的期次：${from}的最新仍是 ${localLatest}（不是失败，稍后再试即可）`);
       return;
     }
-    window.noteSync.apply(rows);
+    // apply 现在返回 Promise（页面重渲染是异步的），等它完成再报同步成功
+    await window.noteSync.apply(rows);
     setSyncState('ok', `✅ 已从${from}同步 ${rows.length} 期，最新 ${rows.at(-1).id}`);
   } catch (e) {
     const message = String(e?.message || '未知错误');

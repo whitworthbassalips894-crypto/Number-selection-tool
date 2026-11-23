@@ -48,7 +48,7 @@ npm start
 npm run sync
 ```
 
-构建版本需同步更新 `src/constants.js`、`index.html`、`sw.js` 与 `manifest.webmanifest`，当前为 `2026.11.23-r27`。
+构建版本需同步更新 `src/constants.js`、`index.html`、`sw.js` 与 `manifest.webmanifest`，当前为 `2026.11.23-r28`。
 
 ### 代码结构说明（改代码前请先看）
 
@@ -56,7 +56,15 @@ npm run sync
 
 `src/` 下其余模块（`app.js`、`combined.js`、`dailyfive.js`、`six-tier*.js`、`replay-*.js`、`rhythm.js`、`tool1/`、`strategy.js`、`statistics.js`、`storage.js`、`copy.js`）是历史版本（工具 1 / 工具 2 / 六档）的引擎与旧页面逻辑，**当前页面不加载它们**，只被测试与脚本引用。`sw.js` 因此只预缓存页面实际用到的文件，避免首次安装多下载约 300KB 永远不会执行的代码。
 
-注意 `src/strategy.js` 与 `index.html` 内联脚本各有一份 `selectBalancedSeven`（前者被测试使用，后者是页面真正跑的），改选号逻辑必须同时改两处及 `src/six-tier.js`。
+**选号求解器只有一份实现：`src/seven-picker.js`。** `index.html`、`src/strategy.js`、`src/six-tier.js` 都只是转发壳，改选号逻辑只需改 `src/seven-picker.js`。
+
+- `src/strategy.js` / `src/six-tier.js` 通过 `configureSevenPicker()` 注入各自的 `zoneOf` / `colorOf`，再转发调用。
+- `index.html` 用动态 import 加载同一份模块；jsdom 与 `file://` 环境不支持动态 import 时，可用 `window.__sevenPickerModule` 预载口，或用同步 XHR 兜底取同一份源码。
+- `tests/seven-picker.test.mjs` 守两件事：三处入口输出逐位一致；仓库里不得再出现第二份实现。
+
+因为页面要等模块加载，`refreshAll()` / `renderMainPick()` / `runTool2At()` / `noteSync.apply()` 都是异步的，调用时请 `await`（页面里已全部串好）。
+
+已知遗留：`#3 周期组` 用的配置（`minPerColor=2`、`maxTailRepeat=1`）下，贪心算法在严格轮次进入死路后会放宽**全部**约束兜底，导致少数期次三色中有一色只剩 1 码（约 5%），界面「选号依据」仍承诺三色各≥2。修法是兜底轮次只放宽下限、仍守上限，但那会改变选定号码，需单独评估；当前由 `tests/seven-picker.test.mjs` 锁定发生率防恶化。
 
 ### 复算概率结论
 

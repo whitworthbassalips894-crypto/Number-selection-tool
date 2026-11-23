@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.23-r27">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.23-r27">
+<meta name="app-version" content="v2026.11.23-r28">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.23-r28">
 <style>
 :root{
   --ink:#0f172a;
@@ -1251,7 +1251,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.23-r27';
+const APP_BUILD = '2026.11.23-r28';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1545,97 +1545,83 @@ function archiveLockedResult(record) {
 /* ==================== 三策略选号引擎（#1 热态 / #2 遗漏 / #3 周期） ==================== */
 function zoneOf(n) { return n <= 16 ? 1 : n <= 33 ? 2 : 3; }
 
-function selectBalancedSeven(scoreMap, opts) {
-  const size = 7;
-  const minZ = opts.minPerZone, maxZ = opts.maxPerZone;
-  const minC = opts.minPerColor, maxC = opts.maxPerColor;
-  const oddLo = opts.oddRange[0], oddHi = opts.oddRange[1];
-  const bigLo = opts.bigRange[0], bigHi = opts.bigRange[1];
-  const maxTail = opts.maxTailRepeat;
+/* ==================== 单组 7 码求解器（唯一实现：src/seven-picker.js） ====================
+   这段算法曾经在 index.html / src/strategy.js / src/six-tier.js 各有一份副本，
+   2026-11-23 的「均衡项符号写反」缺陷就同时存在于三处。现在只保留
+   src/seven-picker.js 一份，页面按下述顺序取用：
 
-  let lo = Infinity, hi = -Infinity;
-  for (let n = 1; n <= 49; n++) {
-    const v = scoreMap[n];
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
-  }
-  const span = hi - lo;
-  const norm = new Float64Array(50);
-  for (let n = 1; n <= 49; n++) norm[n] = span > 1e-12 ? (scoreMap[n] - lo) / span : 0.5;
+     1. 模块已就绪（常规情况）→ 直接调用；
+     2. 模块还在加载中 → 等它，结果不变；
+     3. 模块加载失败（例如直接双击打开本地文件、浏览器拦截了模块）→
+        用同步 XHR 取回同一份源码再 import，保证功能不退化。
 
-  const candidates = Array.from({ length: 49 }, (_, i) => i + 1)
-    .sort((a, b) => norm[b] - norm[a] || a - b);
+   三条路径执行的都是同一份源码，因此号码结果完全一致。 */
+// 预载口：宿主环境不支持动态 import（如测试用的 jsdom、或 file:// 打开）
+// 时，可以先把同一份模块挂到 window.__sevenPickerModule 上，页面直接取用。
+let sevenPickerMod = (typeof window !== 'undefined' && window.__sevenPickerModule) || null;
+let sevenPickerTask = null;     // 正在加载的 Promise
 
-  const chosen = [];
-  const chosenMask = new Uint8Array(50);
-  const zCnt = [0, 0, 0, 0];
-  const cCnt = { red: 0, blue: 0, green: 0 };
-  const tCnt = new Uint8Array(10);
-  let oddCnt = 0, bigCnt = 0;
-
-  while (chosen.length < size) {
-    let bestNum = 0, bestVal = -Infinity;
-    const remAfter = size - (chosen.length + 1);
-
-    for (const strict of [true, false]) {
-      for (let idx = 0; idx < 49; idx++) {
-        const n = candidates[idx];
-        if (chosenMask[n]) continue;
-        const z = zoneOf(n), c = WAVE_MAP[n], tl = n % 10;
-        const isOdd = n & 1, isBig = n >= 25 ? 1 : 0;
-
-        if (strict) {
-          if (zCnt[z] + 1 > maxZ) continue;
-          if (cCnt[c] + 1 > maxC) continue;
-          if (tCnt[tl] + 1 > maxTail) continue;
-
-          const zDef = Math.max(0, minZ - (zCnt[1] + (z === 1 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[2] + (z === 2 ? 1 : 0)))
-                     + Math.max(0, minZ - (zCnt[3] + (z === 3 ? 1 : 0)));
-          if (zDef > remAfter) continue;
-
-          const cDef = Math.max(0, minC - (cCnt.red + (c === 'red' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.blue + (c === 'blue' ? 1 : 0)))
-                     + Math.max(0, minC - (cCnt.green + (c === 'green' ? 1 : 0)));
-          if (cDef > remAfter) continue;
-
-          const nextOdd = oddCnt + isOdd;
-          if (nextOdd > oddHi || nextOdd + remAfter < oddLo) continue;
-          const nextBig = bigCnt + isBig;
-          if (nextBig > bigHi || nextBig + remAfter < bigLo) continue;
-        }
-
-        let val = norm[n];
-        if (zCnt[z] < minZ) val += 0.18;
-        else if (zCnt[z] >= maxZ - 1) val -= 0.06;
-
-        if (cCnt[c] < minC) val += 0.14;
-        else if (cCnt[c] >= maxC - 1) val -= 0.05;
-
-        if (tCnt[tl] > 0) val -= 0.12 * tCnt[tl];
-
-        // 奇偶与大小都向 3.5 靠拢：两项都必须「偏离越远扣越多」，故同为减号
-        val -= 0.05 * Math.abs(oddCnt + isOdd - 3.5) + 0.05 * Math.abs(bigCnt + isBig - 3.5);
-        if (val > bestVal) {
-          bestVal = val;
-          bestNum = n;
-        }
-      }
-      if (bestNum) break;
-    }
-    if (!bestNum) break;
-    chosen.push(bestNum);
-    chosenMask[bestNum] = 1;
-    zCnt[zoneOf(bestNum)]++;
-    cCnt[WAVE_MAP[bestNum]]++;
-    tCnt[bestNum % 10]++;
-    if (bestNum & 1) oddCnt++;
-    if (bestNum >= 25) bigCnt++;
-  }
-  return chosen.sort((a, b) => a - b);
+function injectSevenPicker(mod) {
+  mod.configureSevenPicker({
+    zoneOf: (n) => (n <= 16 ? 1 : n <= 33 ? 2 : 3),
+    colorOf: (n) => WAVE_MAP[n],
+    allNumbers: Array.from({ length: 49 }, (_, i) => i + 1),
+    defaultSize: 7,
+  });
+  sevenPickerMod = mod;
+  return mod;
 }
 
-function runTool2At(usableAsc, P, year, periodNum, dateStr) {
+/** 同步兜底：用同步 XHR 取回模块源码并 import。 */
+function loadSevenPickerViaXhr() {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', './src/seven-picker.js', false);
+  xhr.send(null);
+  if (xhr.status !== 200 && xhr.status !== 0) {
+    throw new Error(`无法加载选号求解器（HTTP ${xhr.status}）`);
+  }
+  const blobUrl = URL.createObjectURL(new Blob([xhr.responseText], { type: 'text/javascript' }));
+  const task = import(blobUrl).finally(() => URL.revokeObjectURL(blobUrl));
+  return task.then(injectSevenPicker);
+}
+
+/** 取得求解器：返回模块对象（可能是一个 Promise）。 */
+function getSevenPicker() {
+  if (sevenPickerMod) return sevenPickerMod;
+  if (!sevenPickerTask) {
+    sevenPickerTask = import('./src/seven-picker.js')
+      .then(injectSevenPicker)
+      .catch((err) => {
+        console.warn('[seven-picker] 模块加载失败，改用同步 XHR 兜底', err);
+        sevenPickerTask = null;
+        try {
+          return loadSevenPickerViaXhr();
+        } catch (xhrErr) {
+          // 环境既不支持动态 import 也拿不到源码（例如测试环境、离线双击打开）
+          console.error('[seven-picker] 兜底加载同样失败', xhrErr);
+          return Promise.reject(new Error('选号求解器不可用，请通过 http(s) 打开页面或刷新重试'));
+        }
+      });
+  }
+  return sevenPickerTask;
+}
+
+/** 预热：脚本解析完就让模块在后台加载，避免首次选号时才等。
+    预热失败不抛出（真正的错误由调用 selectBalancedSeven 的一方处理）。 */
+function warmSevenPicker() { return getSevenPicker().catch(() => null); }
+
+/**
+ * 选出单组 7 码。
+ * 模块已就绪时同步返回号码数组；否则返回 Promise<号码数组>。
+ * 调用方（runTool2At / runTool1At）已统一用 await 处理。
+ */
+function selectBalancedSeven(scoreMap, opts) {
+  const args = { size: 7, ...opts };
+  if (sevenPickerMod) return sevenPickerMod.selectBalancedSeven(scoreMap, args);
+  return getSevenPicker().then((mod) => mod.selectBalancedSeven(scoreMap, args));
+}
+
+async function runTool2At(usableAsc, P, year, periodNum, dateStr) {
   const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : `${year}-01-01`);
   const baseZIdx = yearZodiacBaseIdx(effDate);
 
@@ -1840,9 +1826,12 @@ function runTool2At(usableAsc, P, year, periodNum, dateStr) {
       jitter(n, 89) * 0.45;
   }
 
-  const hot = selectBalancedSeven(hotMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
-  const cold = selectBalancedSeven(coldMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 });
-  const cycle = selectBalancedSeven(cycleMap, { minPerZone: 2, maxPerZone: 3, minPerColor: 2, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 1 });
+  // 三组各自独立求解，允许自然重叠；模块已就绪时全部同步完成
+  const [hot, cold, cycle] = await Promise.all([
+    selectBalancedSeven(hotMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 }),
+    selectBalancedSeven(coldMap, { minPerZone: 1, maxPerZone: 3, minPerColor: 1, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 2 }),
+    selectBalancedSeven(cycleMap, { minPerZone: 2, maxPerZone: 3, minPerColor: 2, maxPerColor: 3, oddRange: [3, 4], bigRange: [3, 4], maxTailRepeat: 1 }),
+  ]);
 
   const counts = new Uint8Array(50);
   for (const n of hot) counts[n]++;
@@ -2481,7 +2470,7 @@ function renderSignal() {
   banner.title = '命中率随样本波动极大，短期高低多数是随机起伏；此看板不影响选号';
 }
 
-function renderMainPick() {
+async function renderMainPick() {
   const nextLbl = expectedNextLabel();
   document.getElementById('nextTargetHead').textContent = nextLbl;
   document.getElementById('recPeriodTag').textContent = nextLbl;
@@ -2492,7 +2481,9 @@ function renderMainPick() {
     renderStrategyCodes();
     return;
   }
-  const plan = runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
+  const plan = await runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
+  // 选号现在是异步的（求解器模块可能仍在加载）：期间数据可能已被同步覆盖，需重新校对目标期
+  if (expectedNextLabel() !== nextLbl) return;
   currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan), union: [...plan.union] };
   renderTierTabs();
   renderPicks();
@@ -2683,10 +2674,10 @@ function renderRecentHistory() {
 }
 
 /* ==================== 历史回放（完整历史逐期明细与年度命中率） ==================== */
-function cacheReplayRow(usable, i) {
+async function cacheReplayRow(usable, i) {
   const d = usable[i];
   if (planCache.has(d.label)) return;
-  const plan = runTool2At(usable, i, d.year, d.periodNum, d.date);
+  const plan = await runTool2At(usable, i, d.year, d.periodNum, d.date);
   const sp = d.special;
   planCache.set(d.label, {
     label: d.label,
@@ -2706,13 +2697,13 @@ function cacheReplayRow(usable, i) {
   });
 }
 
-function ensureRecentReplayCache(usable) {
+async function ensureRecentReplayCache(usable) {
   let start = Math.max(0, usable.length - RECENT_REPLAY_WINDOW);
-  for (let i = start; i < usable.length; i++) cacheReplayRow(usable, i);
+  for (let i = start; i < usable.length; i++) await cacheReplayRow(usable, i);
   // 温度计与简表都要看够 30 期，缓存不足时继续向前补齐
   if (usable.length - start < THERMO_WINDOW) {
     start = Math.max(0, usable.length - THERMO_WINDOW);
-    for (let i = start; i < usable.length; i++) cacheReplayRow(usable, i);
+    for (let i = start; i < usable.length; i++) await cacheReplayRow(usable, i);
   }
   // 若最近窗口内全部未中，继续向前补齐，保证「当前连错期数」准确
   while (start > 0 && usable.length - start < 240) {
@@ -2723,7 +2714,7 @@ function ensureRecentReplayCache(usable) {
     }
     if (!allMiss) break;
     const newStart = Math.max(0, start - 40);
-    for (let i = newStart; i < start; i++) cacheReplayRow(usable, i);
+    for (let i = newStart; i < start; i++) await cacheReplayRow(usable, i);
     start = newStart;
   }
 }
@@ -2744,9 +2735,9 @@ function runFullReplay(onProgress, onDone) {
   const idle = typeof requestIdleCallback === 'function'
     ? (cb) => requestIdleCallback(cb, { timeout: 300 })
     : (cb) => setTimeout(cb, 16);
-  const step = () => {
+  const step = async () => {
     const end = Math.min(usable.length, i + CHUNK);
-    for (; i < end; i++) cacheReplayRow(usable, i);
+    for (; i < end; i++) await cacheReplayRow(usable, i);
     if (onProgress) onProgress(i, usable.length);
     if (i < usable.length) {
       replayTimer = idle(step);
@@ -2900,13 +2891,14 @@ function closeDataModal() {
 }
 
 /* ==================== 交互与初始化 ==================== */
-function refreshAll() {
+async function refreshAll() {
   activeUsable = usableRecordsOf(allRecords());
-  ensureRecentReplayCache(activeUsable);
+  // 回放缓存是温度计与简表的数据源，必须先补齐再渲染（选号求解器可能是异步的）
+  await ensureRecentReplayCache(activeUsable);
   const periodInput = document.getElementById('periodLabel');
   if (periodInput && document.getElementById('dataModal').hidden) periodInput.value = expectedNextLabel();
   renderTopBar();
-  renderMainPick();
+  await renderMainPick();
   renderThermometer();
   renderStrategyCodes();
   renderSignal();
@@ -3359,7 +3351,14 @@ function init() {
     });
   });
 
-  refreshAll();
+  // 先预热选号求解器模块（唯一实现见 src/seven-picker.js），再渲染首屏，
+  // 这样首屏选号走的是已就绪的模块，不必等同步 XHR 兜底。
+  warmSevenPicker();
+  refreshAll().catch((err) => {
+    console.error('[init] 首屏渲染失败', err);
+    const notice = document.getElementById('noticeLatest');
+    if (notice) notice.textContent = '初始化失败，请刷新重试';
+  });
 
   // 首页渲染后空闲补齐历史，打开弹窗时通常已就绪
   setTimeout(() => {
@@ -3418,14 +3417,16 @@ window.noteSync = {
       throw err;
     }
     justEnteredLabel = '';
-    refreshAll();
+    // refreshAll 是异步的（选号需等待求解器模块），返回 Promise 让调用方可以等：
+    // 这样「同步完成后立即断言页面状态」的场景才不会读到旧数据。
+    const pending = refreshAll();
     if (!document.getElementById('historyModal').hidden) renderHistoryModal();
-    return appended.length;
+    return pending.then(() => appended.length);
   }
 };
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.23-r27"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.23-r28"></script>
 </body>
 </html>

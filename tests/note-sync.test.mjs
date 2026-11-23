@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
+import { createPage } from './helpers/page.mjs';
 import { planSync } from '../src/note-sync.js';
 import { normalizeDrawRecord } from '../src/parser.js';
 import { NUMBER_TO_COLOR } from '../src/constants.js';
@@ -57,7 +58,7 @@ test('内置仓库底库与 data/draws.json 一致，一键同步只追加连续
 });
 
 test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     const doc = dom.window.document;
     assert.ok(dom.window.noteSync);
@@ -69,7 +70,7 @@ test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () 
     assert.ok(!doc.body.textContent.includes('选号与补位规则'));
     assert.ok(!doc.body.textContent.includes('固定 12 码'));
 
-    dom.window.noteSync.apply([fresh]);
+    await dom.window.noteSync.apply([fresh]);
     const saved = JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2'));
     assert.equal(saved.version, 3);
     assert.equal(saved.labels.length, 1);
@@ -88,7 +89,7 @@ test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () 
 });
 
 test('一键同步按钮读取仓库 JSON，并把连续新期写入页面', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   const keys = ['window', 'document', 'navigator', 'location', 'fetch'];
   const savedGlobals = Object.fromEntries(keys.map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
   try {
@@ -113,7 +114,7 @@ test('一键同步按钮读取仓库 JSON，并把连续新期写入页面', asy
 });
 
 test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/备份入口可用', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -197,7 +198,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     currentBalls.forEach(checkWave);
     assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-327');
 
-    dom.window.noteSync.apply([fresh]);
+    await dom.window.noteSync.apply([fresh]);
     assert.match(doc.getElementById('lockHistoryCount').textContent, /1 条/);
     const historyBalls = [...doc.querySelectorAll('#lockHistory .lock-ball')];
     assert.ok(historyBalls.length > 0);
@@ -209,7 +210,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
 });
 
 test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，复制文本为中文逗号格式", async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -272,7 +273,7 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
 });
 
 test('温度计随机基线、选号依据已移除、本档构成与同步时间', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -314,7 +315,7 @@ test('温度计随机基线、选号依据已移除、本档构成与同步时�
 });
 
 test('近 30 期温度计、连错期数与选号依据已移除', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -339,7 +340,7 @@ test('近 30 期温度计、连错期数与选号依据已移除', async () => {
 });
 
 test('查看全部打开历史弹窗，含年度总表与全部历史分页', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -401,7 +402,7 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
 });
 
 test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并可分组复制', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -457,7 +458,7 @@ test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并�
 });
 
 test('档位严格包含：并集档必须包含 5/7/10/12 码档的全部号码', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -481,7 +482,7 @@ test('档位严格包含：并集档必须包含 5/7/10/12 码档的全部号码
 });
 
 test('主推卡片给出成本/覆盖/期望，并说明回报率与选号无关', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -503,7 +504,7 @@ test('主推卡片给出成本/覆盖/期望，并说明回报率与选号无关
 });
 
 test('连错与温度计都按当前档位的随机基线表达，不再给「建议参考」', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -525,7 +526,7 @@ test('连错与温度计都按当前档位的随机基线表达，不再给「�
 });
 
 test('简表给出汇总行，未中改为浅灰点而不是满屏减号', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -542,7 +543,7 @@ test('简表给出汇总行，未中改为浅灰点而不是满屏减号', async
 });
 
 test('术语说明弹窗可打开、可关闭，并解释页面上出现的黑话', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -567,7 +568,7 @@ test('术语说明弹窗可打开、可关闭，并解释页面上出现的黑�
 });
 
 test('导出说明写明不含内置底库，导出文件带上底库版本信息', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
@@ -583,7 +584,7 @@ test('导出说明写明不含内置底库，导出文件带上底库版本信�
 });
 
 test('一键同步三态可区分：进行中 / 无新数据 / 失败，且都不会写坏数据', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   const keys = ['window', 'document', 'navigator', 'location', 'fetch'];
   const savedGlobals = Object.fromEntries(keys.map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
   try {
@@ -639,13 +640,13 @@ test('一键同步三态可区分：进行中 / 无新数据 / 失败，且都�
 });
 
 test('底库为空时不崩溃，三个模块都给出「状态 + 原因 + 下一步」', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const doc = dom.window.document;
-    assert.doesNotThrow(() => {
-      dom.window.eval('BASE_RECORDS.length = 0; manualRecords = []; planCache.clear(); refreshAll();');
-    }, '空库时 refreshAll 不应抛错（曾因 expectedNextLabel 读取 undefined.label 崩溃）');
+    dom.window.eval('BASE_RECORDS.length = 0; manualRecords = []; planCache.clear();');
+    // refreshAll 自求解器抽离后是异步的（选号可能等待模块），必须等它跑完再断言
+    await dom.window.refreshAll();
     for (const sel of ['#optHero .empty-state', '#thermometerList .empty-state', '#strategyBody .empty-state']) {
       const box = doc.querySelector(sel);
       assert.ok(box, `${sel} 应有统一空态`);
@@ -663,7 +664,7 @@ test('底库为空时不崩溃，三个模块都给出「状态 + 原因 + 下�
 });
 
 test('热度阈值按窗口二项基线推导，全奖口径也能标出冷号（旧实现 freq===0 恒不命中）', async () => {
-  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = await createPage();
   try {
     await waitForRecommendation(dom);
     const w = dom.window;
