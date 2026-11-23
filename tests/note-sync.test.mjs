@@ -661,3 +661,48 @@ test('底库为空时不崩溃，三个模块都给出「状态 + 原因 + 下�
     dom.window.close();
   }
 });
+
+test('热度阈值按窗口二项基线推导，全奖口径也能标出冷号（旧实现 freq===0 恒不命中）', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const w = dom.window;
+    const doc = w.document;
+    const base = JSON.parse(w.eval('JSON.stringify({ s: heatBaseline("special"), a: heatBaseline("all7") })'));
+    // 特码：100 次抽取，均值 2.04 ±1.41 → 热 5 / 温 3 / 冷 0
+    assert.equal(base.s.n, 100);
+    assert.equal(base.s.hot, 5);
+    assert.equal(base.s.warm, 3);
+    assert.equal(base.s.cold, 0);
+    // 全奖：700 次抽取，均值 14.29 ±3.74 → 热 22 / 温 18 / 冷 7
+    assert.equal(base.a.n, 700);
+    assert.equal(base.a.hot, 22);
+    assert.equal(base.a.warm, 18);
+    assert.equal(base.a.cold, 7, '全奖口径的冷号阈值必须 >0，否则永远标不出冷号');
+
+    // 两种口径的区间文案应首尾相接、不重叠
+    for (const scope of ['special', 'all7']) {
+      const lab = JSON.parse(w.eval(`JSON.stringify(heatBandLabels(${JSON.stringify(scope)}))`));
+      const b = scope === 'special' ? base.s : base.a;
+      assert.ok(lab.hot.includes(`≥${b.hot}`), `${scope} 热区文案应含下限`);
+      assert.ok(lab.cold.includes(b.cold === 0 ? '0次' : `≤${b.cold}`), `${scope} 冷区文案应含上限`);
+      assert.ok(lab.warm && lab.normal, `${scope} 应有偏温与正常档`);
+    }
+
+    // 渲染：全奖口径下冷号高亮必须真的有号码
+    w.eval("heatScope='all7'; renderHeatSection(activeUsable);");
+    const coldLine = doc.querySelectorAll('#heatHighlights .hh-line')[1].textContent.replace(/\s+/g, ' ');
+    assert.match(coldLine, /❄️ ≤7次 偏冷/);
+    assert.ok(doc.querySelectorAll('#heatHighlights .hh-line')[1].querySelectorAll('.ball').length > 0, '全奖口径应列出冷号球');
+    const coldCells = doc.querySelectorAll('#heatmap .heat-cell.is-cold').length;
+    assert.ok(coldCells > 0, `全奖口径热度图应有偏冷格子，实际 ${coldCells}`);
+
+    // 说明里必须有关键数字，用户才知道阈值怎么来的
+    const note = doc.getElementById('heatBaselineNote').textContent.replace(/\s+/g, ' ');
+    assert.match(note, /近 100 期全奖7球共 700 次抽取/);
+    assert.match(note, /期望 14\.3 次/);
+    assert.match(note, /不代表下期更可能开出/);
+  } finally {
+    dom.window.close();
+  }
+});

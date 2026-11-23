@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.23-r26">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.23-r26">
+<meta name="app-version" content="v2026.11.23-r27">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.23-r27">
 <style>
 :root{
   --ink:#0f172a;
@@ -403,6 +403,8 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
   margin-bottom:10px;font-size:11.5px;color:var(--muted);
 }
 .legend-items{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.heat-baseline-note{font-size:11.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px}
+.heat-baseline-note b{color:var(--ink-soft)}
 .lg-chip{display:inline-flex;align-items:center;gap:4px;font-weight:600}
 .lg-dot{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid rgba(15,23,42,.08)}
 
@@ -784,6 +786,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 
     <div id="heatHighlights" class="heat-highlights"></div>
     <div id="heatLegend" class="heat-legend"></div>
+    <div id="heatBaselineNote" class="heat-baseline-note"></div>
     <div id="heatmap" class="heat"></div>
   </section>
 
@@ -1248,7 +1251,7 @@ const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.23-r26';
+const APP_BUILD = '2026.11.23-r27';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1991,20 +1994,46 @@ function computeHeatSnapshot(usableAsc, targetIdx, scope) {
   return { currFreq, prevFreq, deltaByNum, enteredDraw, exitedDraw, increased, decreased, cancelled };
 }
 
+/* 热度阈值按「窗口内总抽取次数 × 1/49」的二项基线推导，不再写死。
+   特码窗口 100 期 = 100 次抽取；全奖 7 球窗口 100 期 = 700 次抽取。
+   冷号单独判定：全奖口径下每号期望 ~14 次，用 freq===0 判冷永远不会命中。 */
+const HEAT_WINDOW = 100;
+function heatBaseline(scope) {
+  const draws = scope === 'special' ? 1 : 7;
+  const n = HEAT_WINDOW * draws;
+  const p = 1 / 49;
+  return {
+    n, p,
+    mean: n * p,
+    sd: Math.sqrt(n * p * (1 - p)),
+    hot: Math.round(n * p + 2 * Math.sqrt(n * p * (1 - p))),
+    warm: Math.round(n * p + Math.sqrt(n * p * (1 - p))),
+    cold: Math.max(0, Math.round(n * p - 2 * Math.sqrt(n * p * (1 - p)))),
+  };
+}
+
 function heatCellStyle(freq, scope) {
-  if (scope === 'special') {
-    if (freq >= 5) return { cls: 'is-hot', color: '#be123c' };
-    if (freq >= 3) return { cls: 'is-warm', color: '#b45309' };
-    if (freq === 0) return { cls: 'is-cold', color: '#1d4ed8' };
-    return { cls: '', color: 'var(--ink-soft)' };
-  }
-  if (freq >= 18) return { cls: 'is-hot', color: '#be123c' };
-  if (freq >= 14) return { cls: 'is-warm', color: '#b45309' };
-  if (freq === 0) return { cls: 'is-cold', color: '#1d4ed8' };
+  const b = heatBaseline(scope);
+  if (freq >= b.hot) return { cls: 'is-hot', color: '#be123c' };
+  if (freq >= b.warm) return { cls: 'is-warm', color: '#b45309' };
+  if (freq <= b.cold) return { cls: 'is-cold', color: '#1d4ed8' };
   return { cls: '', color: 'var(--ink-soft)' };
 }
 
-function heatHotThreshold(scope) { return scope === 'special' ? 5 : 18; }
+function heatHotThreshold(scope) { return heatBaseline(scope).hot; }
+function heatColdThreshold(scope) { return heatBaseline(scope).cold; }
+/* 区间文案统一在这里生成，避免「≤0次」这类读起来别扭的写法 */
+function heatBandLabels(scope) {
+  const b = heatBaseline(scope);
+  const span = (lo, hi, word) => lo > hi ? '' : (lo === hi ? `${lo}次 ${word}` : `${lo}-${hi}次 ${word}`);
+  return {
+    hot: `\u2265${b.hot}次 偏热`,
+    warm: span(b.warm, b.hot - 1, '偏温'),
+    normal: span(b.cold + 1, b.warm - 1, '正常'),
+    cold: b.cold === 0 ? '0次 偏冷' : `\u2264${b.cold}次 偏冷`,
+    hotShort: b.hot, warmShort: b.warm, coldShort: b.cold,
+  };
+}
 
 /* ==================== 主推候选排序（三策略综合评分，全 49 码参与） ==================== */
 function rankCandidatesFromPlan(plan) {
@@ -2522,31 +2551,43 @@ function renderHeatSection(usable) {
     ? `✨ 新录入 ${snap.enteredDraw.label}`
     : `截至 ${snap.enteredDraw.label}`;
 
-  const hotThreshold = heatHotThreshold(heatScope);
+  const b = heatBaseline(heatScope);
+  const lab = heatBandLabels(heatScope);
+  const scopeText = heatScope === 'special' ? '特码' : '全奖7球';
+  const hotThreshold = b.hot;
+  const coldThreshold = b.cold;
   const hotList = [], coldList = [];
   for (let n = 1; n <= 49; n++) {
     const f = snap.currFreq[n];
     if (f >= hotThreshold) hotList.push({ n, f });
-    if (f === 0) coldList.push(n);
+    if (f <= coldThreshold) coldList.push({ n, f });
   }
   hotList.sort((a, b) => b.f - a.f || a.n - b.n);
 
   document.getElementById('heatHighlights').innerHTML = `
     <div class="hh-line">
-      <span class="hh-badge hot">🔥 高频热号（≥${hotThreshold}次）</span>
-      ${hotList.length ? hotList.map(x => `${ballHtml(x.n, 'sm')}<b>${x.f}次</b>`).join(' ') : '<span class="dc-note">本期无高频号</span>'}
+      <span class="hh-badge hot">🔥 ${lab.hot.replace(' 偏热', '')} 偏热</span>
+      ${hotList.length ? hotList.map(x => `${ballHtml(x.n, 'sm')}<b>${x.f}次</b>`).join(' ') : `<span class="dc-note">本期无${lab.hot.replace(' 偏热', '')}的号码</span>`}
     </div>
     <div class="hh-line">
-      <span class="hh-badge cold">❄️ 冷号（0次）</span>
-      ${coldList.length ? coldList.map(n => ballHtml(n, 'sm cool-dim')).join(' ') : '<span class="dc-note">无 0 次号码</span>'}
+      <span class="hh-badge cold">❄️ ${lab.cold.replace(' 偏冷', '')} 偏冷</span>
+      ${coldList.length ? coldList.map(x => `${ballHtml(x.n, 'sm cool-dim')}<b>${x.f}次</b>`).join(' ') : `<span class="dc-note">本期无${lab.cold.replace(' 偏冷', '')}的号码</span>`}
     </div>`;
 
-  const chips = heatScope === 'special'
-    ? [['#fecdd3', '≥5次 热'], ['#fef3c7', '3-4次'], ['#f8fafc', '1-2次'], ['#dbeafe', '0次 冷']]
-    : [['#fecdd3', '≥18次 热'], ['#fef3c7', '14-17次'], ['#f8fafc', '其他'], ['#dbeafe', '0次 冷']];
+  const chips = [
+    ['#fecdd3', lab.hot],
+    ['#fef3c7', lab.warm],
+    ['#f8fafc', lab.normal],
+    ['#dbeafe', lab.cold],
+  ].filter(([, t]) => t);
   document.getElementById('heatLegend').innerHTML = `
     <div class="legend-items">${chips.map(([c, t]) => `<span class="lg-chip"><span class="lg-dot" style="background:${c}"></span>${t}</span>`).join('')}</div>
     ${waveLegendHtml()}`;
+  const noteEl = document.getElementById('heatBaselineNote');
+  if (noteEl) {
+    noteEl.innerHTML = `统计口径：近 ${HEAT_WINDOW} 期${scopeText}共 <b>${b.n}</b> 次抽取，每个号码期望 <b>${b.mean.toFixed(1)}</b> 次（±${b.sd.toFixed(1)}）。`
+      + `阈值按基线±1σ（偏温）与±2σ（偏热/偏冷）划分；纯随机下同样会标记出几个「偏热/偏冷」，属正常波动，不代表下期更可能开出。`;
+  }
 
   const order = Array.from({ length: 49 }, (_, i) => i + 1);
   if (heatSort === 'freq') {
@@ -3385,6 +3426,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.23-r26"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.23-r27"></script>
 </body>
 </html>
