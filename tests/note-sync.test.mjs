@@ -395,3 +395,59 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     dom.window.close();
   }
 });
+
+test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并可分组复制', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+
+    const section = doc.getElementById('strategySection');
+    assert.ok(section, '应有三策略号码模块');
+    const fold = doc.getElementById('strategyFold');
+    assert.ok(fold && fold.tagName === 'DETAILS', '模块应为可展开的 details');
+    assert.equal(fold.open, false, '默认应为折叠状态');
+
+    // 模块顺序：紧跟主推卡片、在热度分布之前
+    const order = [...doc.querySelectorAll('.page > section.card')].map(s => s.id);
+    assert.ok(order.indexOf('strategySection') === order.indexOf('mainPickSection') + 1, '应紧跟在主推卡片之后');
+    assert.ok(order.indexOf('strategySection') < order.indexOf('heatSection'), '应在热度分布之前');
+
+    // 折叠时也给出三组码数摘要
+    assert.match(doc.getElementById('strategySummaryHint').textContent, /#1 7码 · #2 7码 · #3 7码/);
+
+    // 主推「并集全取」档位号码 = 三组去重并集，模块里的分组码应与之一致
+    const items = [...doc.querySelectorAll('#strategyBody .strategy-item')];
+    assert.equal(items.length, 3, '应展示三组策略号码');
+    const groupNums = [];
+    for (const [index, key] of ['hot', 'cold', 'cycle'].entries()) {
+      const item = items[index];
+      assert.equal(item.dataset.strategy, key);
+      const balls = [...item.querySelectorAll('.strategy-balls .ball')];
+      assert.equal(balls.length, 7, `第 ${index + 1} 组应有 7 码`);
+      const nums = balls.map(b => Number(b.textContent));
+      assert.equal(new Set(nums).size, 7, '同组内不应重复');
+      for (const ball of balls) {
+        const n = Number(ball.textContent);
+        assert.equal(ball.dataset.wave, NUMBER_TO_COLOR[n], '号码应按波色标记');
+      }
+      assert.deepEqual(nums, [...nums].sort((a, b) => a - b), '同组号码应升序');
+      const copy = item.querySelector('button[data-copy]');
+      assert.match(copy.getAttribute('data-copy'), /^(?:\d{2})(?:，\d{2}){6}$/, '复制文本应为中文逗号分隔的 7 个两位数字');
+      groupNums.push(nums);
+    }
+
+    const union = [...new Set(groupNums.flat())].sort((a, b) => a - b);
+    doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
+    const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy').split('，').map(Number);
+    assert.deepEqual(unionText, union, '并集档位应与三组去重并集一致');
+
+    // 展开后能看到 21 个号码
+    fold.open = true;
+    assert.equal(fold.open, true);
+    assert.equal(doc.querySelectorAll('#strategyFold[open] #strategyBody .strategy-balls .ball').length, 21);
+    assert.match(doc.querySelector('#strategyBody .strategy-note:last-child').textContent, new RegExp(`共 ${union.length} 个号码`));
+  } finally {
+    dom.window.close();
+  }
+});
