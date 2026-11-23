@@ -18,7 +18,7 @@ const local = data.map(r => ({
 }));
 const remote = JSON.parse(fs.readFileSync('data/draws.json')).draws.map(normalizeDrawRecord);
 const fresh = normalizeDrawRecord({
-  year: 2026, periodNum: 321, date: '2026-11-17',
+  year: 2026, periodNum: 327, date: '2026-11-23',
   numbers: [1, 2, 3, 4, 5, 6], special: 7
 });
 const WAVE_HEX = { red: '#e54b4b', blue: '#3b82f6', green: '#10a878' };
@@ -50,7 +50,7 @@ test('内置仓库底库与 data/draws.json 一致，一键同步只追加连续
   assert.throws(() => planSync(local, changed), /冲突/);
 
   const gap = normalizeDrawRecord({
-    year: 2026, periodNum: 322, date: '2026-11-18',
+    year: 2026, periodNum: 328, date: '2026-11-24',
     numbers: [8, 9, 10, 11, 12, 13], special: 14
   });
   assert.throws(() => planSync(local, [gap, ...remote]), /缺口/);
@@ -77,8 +77,8 @@ test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () 
     assert.equal(saved.locked, null);
     assert.deepEqual(saved.locks, []);
     assert.equal(doc.getElementById('noticeLatest').textContent, fresh.id);
-    assert.equal(doc.getElementById('nextTargetHead').textContent, '2026-322');
-    assert.equal(doc.getElementById('totalCount').textContent, '1781');
+    assert.equal(doc.getElementById('nextTargetHead').textContent, '2026-328');
+    assert.equal(doc.getElementById('totalCount').textContent, '1787');
     assert.equal(doc.getElementById('storageLine').hidden, false);
     assert.match(doc.getElementById('dataSourceLabel').textContent, /本机同步记录/);
     assert.equal(dom.window.noteSync.records().at(-1).label, fresh.id);
@@ -195,7 +195,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     const currentBalls = [...doc.querySelectorAll('#lockCurrent .lock-ball')];
     assert.equal(currentBalls.length, 10, '默认锁定 10 码');
     currentBalls.forEach(checkWave);
-    assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-321');
+    assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-327');
 
     dom.window.noteSync.apply([fresh]);
     assert.match(doc.getElementById('lockHistoryCount').textContent, /1 条/);
@@ -220,11 +220,11 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
     assert.match(tabs[4].textContent, /^并集全取\s*\d+码$/);
 
     const expect = {
-      5: '13，17，26，38，46',
-      7: '05，13，14，17，26，38，46',
-      10: '05，13，14，17，19，20，26，37，38，46',
-      12: '05，06，13，14，17，19，20，23，26，37，38，46',
-      18: '04，05，06，12，13，14，17，19，20，26，29，31，37，38，39，41，46'
+      5: '03，05，26，38，46',
+      7: '03，05，19，26，38，46，47',
+      10: '03，05，15，19，21，23，26，38，46，47',
+      12: '03，05，15，19，21，22，23，26，38，40，46，47',
+      18: '01，03，04，05，06，15，19，21，22，23，26，29，37，38，39，40，46，47'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -322,7 +322,7 @@ test('近 30 期温度计、连错期数与选号依据已移除', async () => {
       assert.match(row.querySelector('.thermo-rate').textContent, /^\d+\.\d%$/);
     }
     const rates = rows.map(r => r.querySelector('.thermo-rate').textContent);
-    assert.deepEqual(rates, ['23.3%', '23.3%', '33.3%']);
+    assert.deepEqual(rates, ['23.3%', '23.3%', '26.7%']);
 
     assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 \d+ 期/);
     assert.ok(doc.getElementById('signalText').textContent.length > 6);
@@ -381,16 +381,72 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     assert.ok(!/v\d{4}\.\d{2}\.\d{2}/.test(foot.textContent), '底部不应再显示构建版本号');
     assert.ok(foot.textContent.includes('仅供历史数据统计参考'));
     assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 120);
-    assert.match(doc.getElementById('modalTotalBadge').textContent, /1780/);
-    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1780 期/);
+    assert.match(doc.getElementById('modalTotalBadge').textContent, /1786/);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1786 期/);
 
     doc.getElementById('modalLoadAll').click();
-    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 1780);
-    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示全部 1780 期/);
+    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 1786);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示全部 1786 期/);
 
     doc.getElementById('closeHistoryModal').click();
     assert.equal(doc.getElementById('historyModal').hidden, true);
     assert.equal(doc.body.classList.contains('modal-open'), false);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并可分组复制', async () => {
+  const dom = new JSDOM(html, { url: 'https://example.com/', runScripts: 'dangerously', pretendToBeVisual: true });
+  try {
+    await waitForRecommendation(dom);
+    const doc = dom.window.document;
+
+    const section = doc.getElementById('strategySection');
+    assert.ok(section, '应有三策略号码模块');
+    const fold = doc.getElementById('strategyFold');
+    assert.ok(fold && fold.tagName === 'DETAILS', '模块应为可展开的 details');
+    assert.equal(fold.open, false, '默认应为折叠状态');
+
+    // 模块顺序：紧跟主推卡片、在热度分布之前
+    const order = [...doc.querySelectorAll('.page > section.card')].map(s => s.id);
+    assert.ok(order.indexOf('strategySection') === order.indexOf('mainPickSection') + 1, '应紧跟在主推卡片之后');
+    assert.ok(order.indexOf('strategySection') < order.indexOf('heatSection'), '应在热度分布之前');
+
+    // 折叠时也给出三组码数摘要
+    assert.match(doc.getElementById('strategySummaryHint').textContent, /#1 7码 · #2 7码 · #3 7码/);
+
+    // 主推「并集全取」档位号码 = 三组去重并集，模块里的分组码应与之一致
+    const items = [...doc.querySelectorAll('#strategyBody .strategy-item')];
+    assert.equal(items.length, 3, '应展示三组策略号码');
+    const groupNums = [];
+    for (const [index, key] of ['hot', 'cold', 'cycle'].entries()) {
+      const item = items[index];
+      assert.equal(item.dataset.strategy, key);
+      const balls = [...item.querySelectorAll('.strategy-balls .ball')];
+      assert.equal(balls.length, 7, `第 ${index + 1} 组应有 7 码`);
+      const nums = balls.map(b => Number(b.textContent));
+      assert.equal(new Set(nums).size, 7, '同组内不应重复');
+      for (const ball of balls) {
+        const n = Number(ball.textContent);
+        assert.equal(ball.dataset.wave, NUMBER_TO_COLOR[n], '号码应按波色标记');
+      }
+      assert.deepEqual(nums, [...nums].sort((a, b) => a - b), '同组号码应升序');
+      const copy = item.querySelector('button[data-copy]');
+      assert.match(copy.getAttribute('data-copy'), /^(?:\d{2})(?:，\d{2}){6}$/, '复制文本应为中文逗号分隔的 7 个两位数字');
+      groupNums.push(nums);
+    }
+
+    const union = [...new Set(groupNums.flat())].sort((a, b) => a - b);
+    doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
+    const unionText = doc.getElementById('copyMainBtn').getAttribute('data-copy').split('，').map(Number);
+    assert.deepEqual(unionText, union, '并集档位应与三组去重并集一致');
+
+    // 展开后能看到 21 个号码
+    fold.open = true;
+    assert.equal(fold.open, true);
+    assert.equal(doc.querySelectorAll('#strategyFold[open] #strategyBody .strategy-balls .ball').length, 21);
+    assert.match(doc.querySelector('#strategyBody .strategy-note:last-child').textContent, new RegExp(`共 ${union.length} 个号码`));
   } finally {
     dom.window.close();
   }

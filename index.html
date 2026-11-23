@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.18-r24">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r24">
+<meta name="app-version" content="v2026.11.18-r25">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.18-r25">
 <style>
 :root{
   --ink:#0f172a;
@@ -302,6 +302,22 @@ summary::-webkit-details-marker{display:none}
 details[open]>.wide-summary .arrow{transform:rotate(180deg)}
 .fold-content{border-top:1px solid var(--line);padding:13px;font-size:12.5px;line-height:1.6}
 
+/* 3.5 三策略号码展开面板 */
+.strategy-fold{margin-top:12px}
+.strategy-fold>.wide-summary{min-height:44px}
+.strategy-list{display:grid;gap:9px}
+.strategy-item{
+  border:1px solid var(--line);border-radius:11px;background:var(--surface);
+  padding:10px 11px;
+}
+.strategy-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.strategy-name{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:var(--ink)}
+.strategy-name .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.strategy-name .strategy-desc{font-weight:600;font-size:11px;color:var(--muted)}
+.strategy-balls{display:flex;flex-wrap:wrap;gap:5px}
+.strategy-copy{font-size:11px;padding:4px 9px;border-radius:8px}
+.strategy-note{margin-top:9px;font-size:11px;color:var(--muted);line-height:1.5}
+
 .lock-list{display:grid;gap:8px}
 .lock-record{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 11px;font-size:12px}
 .lock-record strong{color:#0f766e;font-family:Consolas,monospace}
@@ -503,6 +519,11 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
   .tier-btn{padding:8px 2px;font-size:12.5px}
   .tier-btn small{font-size:9px}
   .pick-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .strategy-item{padding:9px 10px}
+  .strategy-balls{gap:4px}
+  .strategy-balls .ball.sm{width:26px;height:26px;font-size:11.5px}
+  .strategy-name .strategy-desc{display:none}
+  .strategy-copy{padding:5px 8px}
   .pick-chip{padding:7px 2px 6px}
   .pick-chip .ball.lg{width:33px;height:33px;font-size:13.5px}
   .pick-tag{font-size:10px;padding:1px 4px}
@@ -631,6 +652,23 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
       </div>
     </details>
 
+  </section>
+
+  <!-- 模块 3.5：三策略号码（默认折叠） -->
+  <section class="card" id="strategySection" data-module="strategy-codes">
+    <details class="fold-card strategy-fold" id="strategyFold">
+      <summary class="wide-summary">
+        <span class="left">
+          <b>三策略号码</b>
+          <span class="pill subtle" id="strategySummaryHint">展开查看三组号码</span>
+        </span>
+        <span class="arrow">⌄</span>
+      </summary>
+      <div class="fold-content">
+        <div id="strategyBody" class="strategy-list"></div>
+        <div class="strategy-note" id="strategyNote">三组各自独立评分的 7 码；同一号码进入多组时会重复出现，主推档位由这三组综合分排序截取。</div>
+      </div>
+    </details>
   </section>
 
   <!-- 模块 4：近 100 期热度分布 -->
@@ -1072,14 +1110,14 @@ const COMPRESSED_DATA = [
   [2026,298,31,36,40,34,37,43,8],[2026,299,12,19,28,32,5,42,23],[2026,300,1,29,23,17,18,42,38],[2026,301,27,41,23,11,2,43,17],[2026,302,10,2,14,13,11,12,45],[2026,303,8,28,40,3,38,49,17],
   [2026,304,23,24,10,43,13,36,21],[2026,305,31,49,29,44,18,40,26],[2026,306,39,13,28,9,14,32,15],[2026,307,48,38,49,9,13,3,42],[2026,308,25,16,28,8,6,40,46],[2026,309,34,39,18,46,4,38,13],
   [2026,310,37,11,34,2,40,44,46],[2026,311,32,40,49,14,19,16,34],[2026,312,31,46,4,43,32,15,38],[2026,313,33,39,45,15,7,20,43],[2026,314,13,26,9,37,34,44,31],[2026,315,6,9,25,27,33,22,48],
-  [2026,316,14,4,10,46,45,49,3],[2026,317,31,49,30,22,43,24,26],[2026,318,10,36,2,9,26,37,38],[2026,319,6,3,15,13,25,45,5],[2026,320,14,17,32,34,24,46,20]
+  [2026,316,14,4,10,46,45,49,3],[2026,317,31,49,30,22,43,24,26],[2026,318,10,36,2,9,26,37,38],[2026,319,6,3,15,13,25,45,5],[2026,320,14,17,32,34,24,46,20],[2026,321,15,45,23,8,47,49,41],[2026,322,47,31,43,17,8,30,7],[2026,323,33,8,2,9,15,41,47],[2026,324,19,4,14,12,21,34,43],[2026,325,41,37,10,1,27,17,3],[2026,326,9,16,22,36,5,47,23]
 ];
 
 const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.18-r24';
+const APP_BUILD = '2026.11.18-r25';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -2043,6 +2081,45 @@ function renderThermometer() {
   }).join('');
 }
 
+/* 三策略号码：展开查看 #1 热态 / #2 遗漏 / #3 周期 三组各 7 码 */
+const STRATEGY_GROUP_KEYS = [
+  { key: 'hot', def: THERMO_DEFS[0] },
+  { key: 'cold', def: THERMO_DEFS[1] },
+  { key: 'cycle', def: THERMO_DEFS[2] }
+];
+
+function strategyGroupCodes(plan, key) {
+  const raw = plan && plan.groups ? plan.groups[key] : null;
+  return Array.isArray(raw) ? [...raw].sort((a, b) => a - b) : [];
+}
+
+function renderStrategyCodes() {
+  const body = document.getElementById('strategyBody');
+  if (!body) return;
+  const plan = currentPlanData ? currentPlanData.plan : null;
+  const hint = document.getElementById('strategySummaryHint');
+  if (!plan) {
+    body.innerHTML = '<div class="empty">暂无可用数据</div>';
+    if (hint) hint.textContent = '暂无可用数据';
+    return;
+  }
+  const groups = STRATEGY_GROUP_KEYS.map(({ key, def }) => ({ def, codes: strategyGroupCodes(plan, key) }));
+  if (hint) {
+    hint.textContent = groups.map(g => `${g.def.code} ${g.codes.length}码`).join(' · ');
+  }
+  const unionCodes = [...new Set(groups.flatMap(g => g.codes))];
+  body.innerHTML = groups.map(({ def, codes }) => {
+    const text = codes.map(pad2).join(COPY_SEPARATOR);
+    return `<div class="strategy-item" data-strategy="${def.key.replace('hit', '').toLowerCase()}" style="border-left:3px solid ${def.color}">
+      <div class="strategy-item-top">
+        <span class="strategy-name"><span class="dot" style="background:${def.color}"></span>${def.code} ${def.name}<span class="strategy-desc">· ${def.desc}</span></span>
+        <button type="button" class="btn ghost strategy-copy" data-copy="${text}" data-copy-label="复制 ${def.code}">复制 ${def.code}</button>
+      </div>
+      <div class="strategy-balls">${codes.map(n => ballHtml(n, 'sm')).join('')}</div>
+    </div>`;
+  }).join('') + `<div class="strategy-note">三组去重后共 ${unionCodes.length} 个号码（对应主推「并集全取」档位）。</div>`;
+}
+
 function renderSignal() {
   const rows = recentPlanRows(THERMO_WINDOW);
   const streak = losingStreak();
@@ -2090,12 +2167,14 @@ function renderMainPick() {
   if (!p || !activeUsable.length) {
     currentPlanData = null;
     renderPicks();
+    renderStrategyCodes();
     return;
   }
   const plan = runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
   currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan), union: [...plan.union] };
   renderTierTabs();
   renderPicks();
+  renderStrategyCodes();
 }
 
 function renderLockArea(targetLabel) {
@@ -2450,6 +2529,7 @@ function refreshAll() {
   renderTopBar();
   renderMainPick();
   renderThermometer();
+  renderStrategyCodes();
   renderSignal();
   renderHeatSection(activeUsable);
   renderHistoryHead();
@@ -2921,6 +3001,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.18-r24"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.18-r25"></script>
 </body>
 </html>
