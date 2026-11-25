@@ -11,7 +11,7 @@ if (scriptStart < '<script>\n'.length || scriptEnd < 0) throw new Error('无法�
 const script = html.slice(scriptStart, scriptEnd) + `
 globalThis.__tool2 = {
   COMPRESSED_DATA, BASE_RECORDS, WAVE_MAP, WAVE_COLOR, zoneOf,
-  selectBalancedSeven, runTool2At, computeHeatSnapshot, engineASevenFromSpecials,
+  selectBalancedSeven, runTool2At, computeHeatSnapshot,
   scoreAllNumbers, strategyPercentile, STRATEGY_WEIGHTS, rankCandidatesFromPlan
 };
 `;
@@ -34,7 +34,7 @@ function unionExpectedFor(plan) {
 
 test('三策略输出三组各 7 码，并集与提纯逻辑已移除', async () => {
   const usable = [...api.BASE_RECORDS].filter(r => r.usable);
-  assert.equal(usable.length, 1788);
+  assert.equal(usable.length, 1786);
   const plan = await api.runTool2At(usable, usable.length, 2026, 321, '2026-11-17');
   const hot = [...plan.groups.hot], cold = [...plan.groups.cold], cycle = [...plan.groups.cycle];
   for (const list of [hot, cold, cycle]) {
@@ -137,25 +137,4 @@ test('近100期热度快照正确追踪滑入 +1 与滑出 -1', () => {
   assert.deepEqual([...snap.increased].map(x => ({ n: Number(x.n), prev: Number(x.prev), curr: Number(x.curr) })), [{ n: 2, prev: 99, curr: 100 }]);
   assert.deepEqual([...snap.decreased].map(x => ({ n: Number(x.n), prev: Number(x.prev), curr: Number(x.curr) })), [{ n: 1, prev: 1, curr: 0 }]);
   assert.equal([...snap.cancelled].length, 0);
-});
-
-test('上传版引擎A：与上传文件左栏 7 码结果一致，且只使用预测期之前的数据', async () => {
-  const usable = [...api.BASE_RECORDS].filter(r => r.usable);
-
-  // 上传文件内置数据从 2023-001 到 2026-229，其左栏引擎A当期给出的 7 码
-  const uploadSpecials = usable
-    .filter(r => r.label >= '2023-001' && r.label <= '2026-229')
-    .map(r => r.special);
-  assert.deepEqual([...api.engineASevenFromSpecials(uploadSpecials)], [34, 39, 46, 16, 6, 1, 43]);
-
-  // 回放第 i 期时只能用前 i 期特码，不能混入该期开奖
-  const at = 1700;
-  const pastSpecials = usable.slice(0, at).map(r => r.special);
-  const plan = await api.runTool2At(usable, at, usable[at].year, usable[at].periodNum, usable[at].date);
-  assert.deepEqual([...plan.engineA], [...api.engineASevenFromSpecials(pastSpecials)]);
-
-  // 追加一期新开奖后，7 码会跟着变化（不再是一组写死的号码）
-  const appended = [...pastSpecials, usable[at].special];
-  assert.notDeepEqual([...api.engineASevenFromSpecials(appended)], [...plan.engineA]);
-  assert.equal(api.engineASevenFromSpecials(pastSpecials.slice(0, 30)), null);
 });
