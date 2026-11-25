@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>特码智能选号助手</title>
-<meta name="app-version" content="v2026.11.23-r28">
-<link rel="manifest" href="./manifest.webmanifest?v=2026.11.23-r28">
+<meta name="app-version" content="v2026.11.25-r30">
+<link rel="manifest" href="./manifest.webmanifest?v=2026.11.25-r30">
 <style>
 :root{
   --ink:#0f172a;
@@ -897,8 +897,10 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <dd>某个号同时被 2 组或 3 组选中。听起来更"稳"，但实测命中率与普通号没有差别，只作展示。</dd>
         <dt>综合分</dt>
         <dd>把三组评分换算成排名百分位后，按 热态 40% / 遗漏 34% / 周期 26% 加权，再给入选的号加成，得到 49 个号的统一排序。</dd>
-        <dt>5 / 7 / 10 / 12 码档</dt>
-        <dd>取综合分排序的前 N 个号码，四个档位严格互相包含（12 码档一定包含 10 码档）。</dd>
+        <dt>5 / 10 / 12 码档</dt>
+        <dd>取综合分排序的前 N 个号码，三个档位严格互相包含（12 码档一定包含 10 码档）。</dd>
+        <dt>7 码档（上传版引擎A）</dt>
+        <dd>按上传的双引擎工具左栏「引擎A · 纯净版」计算：近 45 期偏波、近 150 期频次与全历史遗漏饱和度排序，再按号码区间补足 7 码。每期只用此前开奖，号码会随新开奖变化；它与其他档位不互相包含。</dd>
         <dt>并集全取</dt>
         <dd>综合分前 12 码 ∪ 三组去重后的全部号码。码数随当期三组重叠程度浮动（历史 14~21 码），因此每期注数与成本也会浮动。</dd>
         <dt>当前连错 N 期</dt>
@@ -906,7 +908,7 @@ details[open]>.wide-summary .arrow{transform:rotate(180deg)}
         <dt>期望净亏</dt>
         <dd>按赔率 48 倍计算，每期投入 − 期望返奖。特码赔率 48 倍时回报率恒为 48/49 ≈ 97.96%，与选哪个号无关。</dd>
         <dt>底库 / 同步</dt>
-        <dd>底库是随页面一起下发的历史开奖（当前 1786 期可用）；「一键同步」只从仓库或上游追加连续的新期，不会跳过缺失的期号。</dd>
+        <dd>底库是随页面一起下发的历史开奖（当前 1788 期可用）；「一键同步」只从仓库或上游追加连续的新期，不会跳过缺失的期号。</dd>
       </dl>
       <div class="glossary-foot">每期开奖相互独立，以上规则都不改变单注 1/49 的命中概率；本工具的价值在于把选择过程变得可复现、可核对。</div>
     </div>
@@ -1244,14 +1246,16 @@ const COMPRESSED_DATA = [
   [2026,298,31,36,40,34,37,43,8],[2026,299,12,19,28,32,5,42,23],[2026,300,1,29,23,17,18,42,38],[2026,301,27,41,23,11,2,43,17],[2026,302,10,2,14,13,11,12,45],[2026,303,8,28,40,3,38,49,17],
   [2026,304,23,24,10,43,13,36,21],[2026,305,31,49,29,44,18,40,26],[2026,306,39,13,28,9,14,32,15],[2026,307,48,38,49,9,13,3,42],[2026,308,25,16,28,8,6,40,46],[2026,309,34,39,18,46,4,38,13],
   [2026,310,37,11,34,2,40,44,46],[2026,311,32,40,49,14,19,16,34],[2026,312,31,46,4,43,32,15,38],[2026,313,33,39,45,15,7,20,43],[2026,314,13,26,9,37,34,44,31],[2026,315,6,9,25,27,33,22,48],
-  [2026,316,14,4,10,46,45,49,3],[2026,317,31,49,30,22,43,24,26],[2026,318,10,36,2,9,26,37,38],[2026,319,6,3,15,13,25,45,5],[2026,320,14,17,32,34,24,46,20],[2026,321,15,45,23,8,47,49,41],[2026,322,47,31,43,17,8,30,7],[2026,323,33,8,2,9,15,41,47],[2026,324,19,4,14,12,21,34,43],[2026,325,41,37,10,1,27,17,3],[2026,326,9,16,22,36,5,47,23]
+  [2026,316,14,4,10,46,45,49,3],[2026,317,31,49,30,22,43,24,26],[2026,318,10,36,2,9,26,37,38],[2026,319,6,3,15,13,25,45,5],[2026,320,14,17,32,34,24,46,20],[2026,321,15,45,23,8,47,49,41],
+  [2026,322,47,31,43,17,8,30,7],[2026,323,33,8,2,9,15,41,47],[2026,324,19,4,14,12,21,34,43],[2026,325,41,37,10,1,27,17,3],[2026,326,9,16,22,36,5,47,23],[2026,327,21,49,7,41,46,36,45],
+  [2026,328,15,21,31,5,12,47,6]
 ];
 
 const STORAGE_KEY = 'mark6_tool2_heat_v2';
 const LEGACY_KEY = 'lucky_draws_minimal_v1';
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 const COOLDOWN_LOOKBACK = 5;
-const APP_BUILD = '2026.11.23-r28';
+const APP_BUILD = '2026.11.25-r30';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const MAX_LOCK_RECORDS = 200;
 const TIER_SIZES = [5, 7, 10, 12, 18];
@@ -1544,6 +1548,103 @@ function archiveLockedResult(record) {
 
 /* ==================== 三策略选号引擎（#1 热态 / #2 遗漏 / #3 周期） ==================== */
 function zoneOf(n) { return n <= 16 ? 1 : n <= 33 ? 2 : 3; }
+
+/* ==================== 上传版「引擎A」7 码（仅 7码档使用） ====================
+   移植自上传的 7码版双引擎工具左栏「引擎A · 纯净版」：
+   1. 近 45 期特码定偏波，近 150 期统计频次；全历史计算最大遗漏与当前遗漏的比值（饱和度）；
+   2. 饱和度分段得分 + 频次 ×3 + 命中偏波 +14，得到 49 码分数；
+   3. 按分数降序取前 5 码，再按 5 个号码区间补足，余下名额允许低分码进入，凑满 7 码。
+   只读取预测期之前的特码，逐期回放不会用到未来数据；数据不足 60 期时返回 null，
+   由调用方回退到综合分前 7 码。 */
+const ENGINE_A_ATTR_WINDOW = 45;
+const ENGINE_A_FREQ_WINDOW = 150;
+const ENGINE_A_SIZE = 7;
+
+function engineASevenFromSpecials(specials) {
+  if (!Array.isArray(specials) || specials.length < 60) return null;
+  const t = specials.length;
+  const waveCounts = { red: 0, blue: 0, green: 0 };
+  for (let i = t - ENGINE_A_ATTR_WINDOW; i < t; i++) {
+    const n = specials[i];
+    if (!Number.isInteger(n) || n < 1 || n > 49) return null;
+    waveCounts[WAVE_MAP[n]]++;
+  }
+  const predWave = Object.keys(waveCounts).reduce((a, b) => waveCounts[a] < waveCounts[b] ? a : b);
+
+  const freq = new Uint16Array(50);
+  const last = new Int32Array(50).fill(-1);
+  const appearances = Array.from({ length: 50 }, () => []);
+  for (let i = 0; i < t; i++) {
+    const n = specials[i];
+    if (i >= t - ENGINE_A_FREQ_WINDOW) freq[n]++;
+    last[n] = i;
+    appearances[n].push(i);
+  }
+
+  const maxOmit = new Uint16Array(50);
+  const saturation = new Float64Array(50);
+  for (let n = 1; n <= 49; n++) {
+    const indices = appearances[n];
+    if (indices.length === 0) {
+      maxOmit[n] = t;
+      saturation[n] = 1;
+      continue;
+    }
+    let gap = indices[0];
+    for (let j = 1; j < indices.length; j++) gap = Math.max(gap, indices[j] - indices[j - 1] - 1);
+    gap = Math.max(gap, t - 1 - indices[indices.length - 1]);
+    maxOmit[n] = gap;
+    const omit = t - 1 - last[n];
+    saturation[n] = gap > 0 ? omit / gap : 0;
+  }
+
+  const saturationScore = (s) => {
+    if (s >= 1.00) return 25;
+    if (s >= 0.96) return 42;
+    if (s >= 0.90) return 38;
+    if (s >= 0.85) return 45;
+    if (s >= 0.80) return 5;
+    if (s >= 0.75) return -15;
+    if (s >= 0.70) return 2;
+    if (s >= 0.55) return -10;
+    if (s >= 0.50) return -12;
+    if (s >= 0.45) return -3;
+    if (s >= 0.20) return 0;
+    if (s >= 0.15) return 12;
+    if (s >= 0.10) return 8;
+    if (s >= 0.05) return 2;
+    return 1;
+  };
+
+  const scores = [];
+  for (let n = 1; n <= 49; n++) {
+    let score = saturationScore(saturation[n]) + freq[n] * 3;
+    if (WAVE_MAP[n] === predWave) score += 14;
+    const zone = n <= 10 ? 'A' : n <= 20 ? 'B' : n <= 30 ? 'C' : n <= 40 ? 'D' : 'E';
+    scores.push({ n, score, zone });
+  }
+  scores.sort((a, b) => b.score - a.score || a.n - b.n);
+
+  const picks = [];
+  const usedZones = new Set();
+  const fifthScore = scores[4]?.score || 0;
+  const cutLine = fifthScore - 0.2 * Math.abs(fifthScore);
+  for (const s of scores) {
+    if (picks.length >= ENGINE_A_SIZE) break;
+    if (picks.length < 5 || !usedZones.has(s.zone) || s.score < cutLine || picks.length >= 6) {
+      picks.push(s.n);
+      usedZones.add(s.zone);
+    }
+  }
+  if (picks.length < ENGINE_A_SIZE) {
+    for (const s of scores) {
+      if (picks.includes(s.n)) continue;
+      picks.push(s.n);
+      if (picks.length >= ENGINE_A_SIZE) break;
+    }
+  }
+  return picks;
+}
 
 /* ==================== 单组 7 码求解器（唯一实现：src/seven-picker.js） ====================
    这段算法曾经在 index.html / src/strategy.js / src/six-tier.js 各有一份副本，
@@ -1841,11 +1942,17 @@ async function runTool2At(usableAsc, P, year, periodNum, dateStr) {
   const union = [];
   for (let n = 1; n <= 49; n++) if (counts[n] >= 1) union.push(n);
 
+  // 上传版引擎A只消费预测期之前的特码（回放时 P 已排除当前期）
+  const specials = [];
+  for (let i = 0; i < Math.min(P, usableAsc.length); i++) specials.push(usableAsc[i].special);
+  const engineA = engineASevenFromSpecials(specials);
+
   return {
     groups: { hot, cold, cycle },
     scores: { hot: hotMap, cold: coldMap, cycle: cycleMap },
     counts,
-    union
+    union,
+    engineA
   };
 }
 
@@ -2029,7 +2136,8 @@ function rankCandidatesFromPlan(plan) {
   return scoreAllNumbers(plan.scores, plan.groups).map(r => r.n);
 }
 
-function pickTagOf(plan, n) {
+function pickTagOf(plan, n, tier = activeTier) {
+  if (tier === ENGINE_A_SIZE) return { text: '引擎A', cls: '' };
   const inHot = plan.groups.hot.includes(n);
   const inCold = plan.groups.cold.includes(n);
   const inCycle = plan.groups.cycle.includes(n);
@@ -2057,8 +2165,8 @@ let currentPlanData = null;
 let replayTimer = null;
 let replayBusy = false;
 
-/* 5 / 7 / 10 / 12 码按三策略综合分从高到低截取；
-   第 5 档 = (综合前 12) ∪ (#1∪#2∪#3 去重)，保证「档位之间严格包含」，
+/* 5 / 10 / 12 码按三策略综合分从高到低截取；7 码档改用上传版引擎A（饱和/频次/偏波）。
+   第 5 档 = (综合前 12) ∪ (#1∪#2∪#3 去重)，保证其余档位之间严格包含，
    码数随当期三组重叠程度浮动（历史 14~21 码，平均约 18 码）。 */
 const UNION_TIER = 18;
 /** 并集档中始终包含的综合分前 N 码，用来兑现「档位严格包含」 */
@@ -2074,6 +2182,10 @@ function unionTierNumbers(row) {
 
 function picksOfRow(row, tier) {
   if (tier === UNION_TIER) return unionTierNumbers(row);
+  // 7 码档走上传版引擎A；旧备份/早期回放没有该字段时回退到综合分前 7 码
+  if (tier === ENGINE_A_SIZE && Array.isArray(row.engineA) && row.engineA.length === ENGINE_A_SIZE) {
+    return row.engineA.slice().sort((a, b) => a - b);
+  }
   return row.ranked.slice(0, tier).slice().sort((a, b) => a - b);
 }
 
@@ -2135,7 +2247,9 @@ function renderTierTabs() {
     // 并集档位不写死码数：当期 (综合前12 ∪ 三组并集) 去重后有多少个就显示多少个
     const label = size === UNION_TIER
       ? (unionCount ? `并集全取 <small>${unionCount}码</small>` : '并集全取')
-      : `${size}码<small>高分前${size}</small>`;
+      : size === ENGINE_A_SIZE
+        ? '7码<small>上传版引擎A</small>'
+        : `${size}码<small>高分前${size}</small>`;
     return `<button type="button" class="tier-btn${size === activeTier ? ' active' : ''}" data-tier="${size}" role="tab" aria-selected="${size === activeTier}">${label}</button>`;
   }).join('');
   wrap.querySelectorAll('button[data-tier]').forEach(btn => {
@@ -2171,14 +2285,14 @@ function renderPicks() {
   const plan = currentPlanData.plan;
   const picks = currentPicks();
   const chips = picks.map(n => {
-    const tag = pickTagOf(plan, n);
+    const tag = pickTagOf(plan, n, activeTier);
     return `<div class="pick-chip ${tag.cls}">${ballHtml(n, 'lg')}<span class="pick-tag">${tag.text}</span></div>`;
   }).join('');
   host.innerHTML = `
     <div class="pick-grid">${chips}</div>
     <div class="pick-cost">${buildCostHint(picks)}</div>
     <div class="copy-preview">
-      <span>复制格式（中文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : ''}</span>
+      <span>复制格式（中文逗号分隔）${activeTier === UNION_TIER ? ` · 三组并集共 ${picks.length} 码` : activeTier === ENGINE_A_SIZE ? ' · 上传版引擎A 7 码' : ''}</span>
       <code>${currentPicksText()}</code>
     </div>
     <div class="pick-mix">${buildMixHint(plan, picks, activeTier)}</div>`;
@@ -2213,6 +2327,11 @@ function buildCostHint(picks) {
 }
 
 function buildMixHint(plan, picks, tier = activeTier) {
+  if (tier === ENGINE_A_SIZE) {
+    return `<span class="mix-label">本档口径</span><span class="mix-chip hot">上传版引擎A</span>`
+      + `<span class="mix-note">（饱和度分段 + 近150期频次 + 偏波，取 7 码；与三策略档位独立）</span>`
+      + `<button type="button" class="glossary-btn" data-glossary-open>这些词什么意思？</button>`;
+  }
   const hotSet = new Set(plan.groups.hot);
   const coldSet = new Set(plan.groups.cold);
   const cycleSet = new Set(plan.groups.cycle);
@@ -2484,7 +2603,13 @@ async function renderMainPick() {
   const plan = await runTool2At(activeUsable, activeUsable.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
   // 选号现在是异步的（求解器模块可能仍在加载）：期间数据可能已被同步覆盖，需重新校对目标期
   if (expectedNextLabel() !== nextLbl) return;
-  currentPlanData = { label: nextLbl, plan, ranked: rankCandidatesFromPlan(plan), union: [...plan.union] };
+  currentPlanData = {
+    label: nextLbl,
+    plan,
+    ranked: rankCandidatesFromPlan(plan),
+    union: [...plan.union],
+    engineA: plan.engineA ? [...plan.engineA] : null
+  };
   renderTierTabs();
   renderPicks();
   renderStrategyCodes();
@@ -2609,7 +2734,11 @@ function renderHistoryHead() {
   const c = document.getElementById('modalYearlyTierHead');
   if (a) a.textContent = label;
   if (b) b.textContent = label;
-  if (c) c.innerHTML = activeTier === UNION_TIER ? `${label}<small>并集去重</small>` : `${label}<small>综合分截取</small>`;
+  if (c) c.innerHTML = activeTier === UNION_TIER
+    ? `${label}<small>并集去重</small>`
+    : activeTier === ENGINE_A_SIZE
+      ? `${label}<small>上传版引擎A</small>`
+      : `${label}<small>综合分截取</small>`;
 }
 
 function drawBallsHtml(raw7) {
@@ -2687,6 +2816,7 @@ async function cacheReplayRow(usable, i) {
     special: sp,
     ranked: rankCandidatesFromPlan(plan),
     union: [...plan.union],
+    engineA: plan.engineA ? [...plan.engineA] : null,
     hot: plan.groups.hot,
     cold: plan.groups.cold,
     cycle: plan.groups.cycle,
@@ -3427,6 +3557,6 @@ window.noteSync = {
 
 init();
 </script>
-<script type="module" src="./src/note-sync.js?v=2026.11.23-r28"></script>
+<script type="module" src="./src/note-sync.js?v=2026.11.25-r30"></script>
 </body>
 </html>
