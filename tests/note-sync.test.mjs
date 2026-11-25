@@ -19,7 +19,7 @@ const local = data.map(r => ({
 }));
 const remote = JSON.parse(fs.readFileSync('data/draws.json')).draws.map(normalizeDrawRecord);
 const fresh = normalizeDrawRecord({
-  year: 2026, periodNum: 327, date: '2026-11-23',
+  year: 2026, periodNum: 329, date: '2026-11-25',
   numbers: [1, 2, 3, 4, 5, 6], special: 7
 });
 const WAVE_HEX = { red: '#e54b4b', blue: '#3b82f6', green: '#10a878' };
@@ -51,7 +51,7 @@ test('内置仓库底库与 data/draws.json 一致，一键同步只追加连续
   assert.throws(() => planSync(local, changed), /不一致/);
 
   const gap = normalizeDrawRecord({
-    year: 2026, periodNum: 328, date: '2026-11-24',
+    year: 2026, periodNum: 330, date: '2026-11-26',
     numbers: [8, 9, 10, 11, 12, 13], special: 14
   });
   assert.throws(() => planSync(local, [gap, ...remote]), /不连续/);
@@ -78,8 +78,8 @@ test('附件页面启动并把同步数据写入 mark6_tool2_heat_v2', async () 
     assert.equal(saved.locked, null);
     assert.deepEqual(saved.locks, []);
     assert.equal(doc.getElementById('noticeLatest').textContent, fresh.id);
-    assert.equal(doc.getElementById('nextTargetHead').textContent, '2026-328');
-    assert.equal(doc.getElementById('totalCount').textContent, '1787');
+    assert.equal(doc.getElementById('nextTargetHead').textContent, '2026-330');
+    assert.equal(doc.getElementById('totalCount').textContent, '1789');
     assert.equal(doc.getElementById('storageLine').hidden, false);
     assert.match(doc.getElementById('dataSourceLabel').textContent, /本机同步记录/);
     assert.equal(dom.window.noteSync.records().at(-1).label, fresh.id);
@@ -196,7 +196,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
     const currentBalls = [...doc.querySelectorAll('#lockCurrent .lock-ball')];
     assert.equal(currentBalls.length, 10, '默认锁定 10 码');
     currentBalls.forEach(checkWave);
-    assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-327');
+    assert.equal(JSON.parse(dom.window.localStorage.getItem('mark6_tool2_heat_v2')).locked.label, '2026-329');
 
     await dom.window.noteSync.apply([fresh]);
     assert.match(doc.getElementById('lockHistoryCount').textContent, /1 条/);
@@ -209,7 +209,7 @@ test('推荐、开奖、热度、锁定与输入号码按波色显示，回放/�
   }
 });
 
-test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，复制文本为中文逗号格式", async () => {
+test("5/10/12 码按综合分截取、7 码走上传版引擎A、18 码为三组去重并集，复制文本为中文逗号格式", async () => {
   const dom = await createPage();
   try {
     await waitForRecommendation(dom);
@@ -222,11 +222,11 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
 
     // [2026-11-23] 修正大小均衡项符号 bug 后的基准；并集档 = 综合前 12 ∪ 三组去重
     const expect = {
-      5: '03，05，26，38，46',
-      7: '02，03，05，26，38，43，46',
-      10: '02，03，05，19，21，26，38，43，46，47',
-      12: '02，03，05，15，19，21，23，26，38，43，46，47',
-      18: '01，02，03，04，05，06，15，19，21，22，23，26，29，37，38，39，43，46，47'
+      5: '03，23，26，38，45',
+      7: '08，09，15，17，25，36，42',
+      10: '03，07，12，15，19，21，23，26，38，45',
+      12: '03，06，07，12，15，16，19，21，23，26，38，45',
+      18: '03，04，06，07，12，15，16，19，21，23，26，27，29，32，37，38，39，40，45'
     };
     for (const size of [5, 7, 10, 12]) {
       doc.querySelector(`#tierTabs .tier-btn[data-tier="${size}"]`).click();
@@ -238,6 +238,15 @@ test("5/7/10/12 码按三策略综合分截取、18 码为三组去重并集，�
       assert.ok(!text.includes(','), '不应包含英文逗号');
       assert.equal(doc.querySelectorAll('#optHero .pick-chip .pick-tag').length, size, '每个号码都应有标签');
     }
+
+    // 7 码档明确标注上传版引擎A，号码与三策略综合分前 7 码不同（会随新开奖重新计算）
+    doc.querySelector('#tierTabs .tier-btn[data-tier="7"]').click();
+    assert.match(tabs[1].textContent, /上传版引擎A/);
+    assert.match(doc.querySelector('#optHero .pick-mix').textContent, /上传版引擎A/);
+    const engineASpecials = local.filter(r => r.usable).map(r => r.raw7[6]);
+    const engineAExpected = [...dom.window.engineASevenFromSpecials(engineASpecials)].sort((a, b) => a - b);
+    assert.deepEqual(doc.getElementById('copyMainBtn').getAttribute('data-copy').split('，').map(Number), engineAExpected);
+    assert.notDeepEqual(engineAExpected, [3, 7, 12, 15, 19, 21, 23], '不应再是三策略综合分前 7 码');
 
     // 18 码档位 = #1∪#2∪#3 去重后的全部号码（当期有多少码就显示多少码）
     doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').click();
@@ -327,7 +336,7 @@ test('近 30 期温度计、连错期数与选号依据已移除', async () => {
     }
     const rates = rows.map(r => r.querySelector('.thermo-rate').textContent);
     // [2026-11-23] 符号 bug 修正后基准
-    assert.deepEqual(rates, ['23.3%', '20.0%', '23.3%']);
+    assert.deepEqual(rates, ['20.0%', '20.0%', '23.3%']);
 
     assert.match(doc.getElementById('losingStreakBadge').textContent, /当前连错 \d+ 期/);
     assert.ok(doc.getElementById('signalText').textContent.length > 6);
@@ -386,12 +395,12 @@ test('查看全部打开历史弹窗，含年度总表与全部历史分页', as
     assert.ok(!/v\d{4}\.\d{2}\.\d{2}/.test(foot.textContent), '底部不应再显示构建版本号');
     assert.ok(foot.textContent.includes('仅供历史数据统计参考'));
     assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 120);
-    assert.match(doc.getElementById('modalTotalBadge').textContent, /1786/);
-    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1786 期/);
+    assert.match(doc.getElementById('modalTotalBadge').textContent, /1788/);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示 120 \/ 1788 期/);
 
     doc.getElementById('modalLoadAll').click();
-    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 1786);
-    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示全部 1786 期/);
+    assert.equal(doc.querySelectorAll('#fullHistoryBody tr.main-row').length, 1788);
+    assert.match(doc.getElementById('modalMoreBar').textContent, /已显示全部 1788 期/);
 
     doc.getElementById('closeHistoryModal').click();
     assert.equal(doc.getElementById('historyModal').hidden, true);
@@ -457,7 +466,7 @@ test('三策略号码模块默认折叠，展开后展示 #1/#2/#3 各 7 码并�
   }
 });
 
-test('档位严格包含：并集档必须包含 5/7/10/12 码档的全部号码', async () => {
+test('档位包含关系：并集档包含 5/10/12 码档，7 码档走独立引擎A', async () => {
   const dom = await createPage();
   try {
     await waitForRecommendation(dom);
@@ -471,9 +480,11 @@ test('档位严格包含：并集档必须包含 5/7/10/12 码档的全部号码
     const ten = picksOf(10);
     const twelve = picksOf(12);
     const union = picksOf(18);
-    for (const [small, big, name] of [[five, seven, '5⊂7'], [seven, ten, '7⊂10'], [ten, twelve, '10⊂12'], [twelve, union, '12⊂并集']]) {
+    for (const [small, big, name] of [[five, ten, '5⊂10'], [ten, twelve, '10⊂12'], [twelve, union, '12⊂并集']]) {
       for (const n of small) assert.ok(big.includes(n), `${name} 被破坏：${n} 不在大档位里`);
     }
+    // 7 码档改用上传版引擎A，与其他档位不再互相包含
+    assert.ok(seven.some(n => !union.includes(n)), '7 码档不应再是综合分截取的子集');
     assert.equal(new Set(union).size, union.length, '并集档不应有重复号码');
     assert.equal(doc.querySelector('#tierTabs .tier-btn[data-tier="18"]').textContent.trim(), `并集全取 ${union.length}码`);
   } finally {
@@ -694,9 +705,18 @@ test('热度阈值按窗口二项基线推导，全奖口径也能标出冷号�
     w.eval("heatScope='all7'; renderHeatSection(activeUsable);");
     const coldLine = doc.querySelectorAll('#heatHighlights .hh-line')[1].textContent.replace(/\s+/g, ' ');
     assert.match(coldLine, /❄️ ≤7次 偏冷/);
-    assert.ok(doc.querySelectorAll('#heatHighlights .hh-line')[1].querySelectorAll('.ball').length > 0, '全奖口径应列出冷号球');
+    // 冷号个数随最近 100 期数据浮动；有冷号时必须列出球，没有时明确写「本期无」
+    const coldCount = w.eval(`(() => {
+      const b = heatBaseline('all7');
+      const snap = computeHeatSnapshot(activeUsable, activeUsable.length - 1, 'all7');
+      return Array.from({ length: 49 }, (_, i) => i + 1).filter(n => snap.currFreq[n] <= b.cold).length;
+    })()`);
+    const coldBalls = doc.querySelectorAll('#heatHighlights .hh-line')[1].querySelectorAll('.ball').length;
+    assert.equal(coldBalls, coldCount, '冷号高亮数量应与当前窗口一致');
+    if (coldCount === 0) assert.match(coldLine, /本期无/);
+    else assert.ok(coldBalls > 0, '全奖口径应列出冷号球');
     const coldCells = doc.querySelectorAll('#heatmap .heat-cell.is-cold').length;
-    assert.ok(coldCells > 0, `全奖口径热度图应有偏冷格子，实际 ${coldCells}`);
+    assert.equal(coldCells, coldCount, `全奖口径热度图偏冷格子数应与当前窗口一致，实际 ${coldCells}`);
 
     // 说明里必须有关键数字，用户才知道阈值怎么来的
     const note = doc.getElementById('heatBaselineNote').textContent.replace(/\s+/g, ' ');
